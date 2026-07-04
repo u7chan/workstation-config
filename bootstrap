@@ -35,6 +35,9 @@ readonly PROFILE="${1:-personal}"
 source /etc/os-release
 [[ ${ID:-} == "ubuntu" && ${VERSION_ID:-} == "26.04" ]] || die "Ubuntu 26.04 is required"
 grep -qi 'microsoft-standard-WSL2' /proc/sys/kernel/osrelease || die "WSL2 is required"
+MACHINE_ARCH="$(uname -m)"
+readonly MACHINE_ARCH
+[[ $MACHINE_ARCH == "x86_64" ]] || die "x86_64 is required (detected: $MACHINE_ARCH)"
 command -v sudo >/dev/null 2>&1 || die "sudo is required"
 
 printf '==> Validating sudo access\n'
