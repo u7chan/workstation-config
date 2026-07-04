@@ -1,0 +1,6 @@
+---
+# Optional personal roles are added here by their dedicated issues.
+- name: Report personal profile activation
+  ansible.builtin.debug:
+    msg: "Personal profile enabled; base configuration is already applied."
+  changed_when: false

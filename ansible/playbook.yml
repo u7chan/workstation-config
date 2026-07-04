@@ -1,0 +1,25 @@
+---
+- name: Configure Ubuntu WSL workstation
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - vars/main.yml
+  pre_tasks:
+    - name: Validate requested profile
+      ansible.builtin.assert:
+        that:
+          - workstation_profile in workstation_profiles
+        fail_msg: "workstation_profile must be base or personal"
+
+    - name: Validate target platform
+      ansible.builtin.assert:
+        that:
+          - ansible_facts["distribution"] == "Ubuntu"
+          - ansible_facts["distribution_version"] is version("26.04", "==")
+          - ansible_facts["architecture"] == "x86_64"
+        fail_msg: "This playbook supports x86_64 Ubuntu 26.04 only"
+
+  roles:
+    - role: base
+    - role: personal
+      when: workstation_profile == "personal"
