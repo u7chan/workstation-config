@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly ROOT_DIR
+
+usage() {
+  cat <<'EOF'
+Usage: ./bootstrap [base|personal]
+
+Profiles:
+  personal  Base configuration plus personal roles (default)
+  base      Common configuration only
+EOF
+}
+
+die() {
+  printf 'bootstrap: %s\n' "$*" >&2
+  exit 1
+}
+
+if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+(( $# <= 1 )) || die "expected at most one profile argument"
+readonly PROFILE="${1:-personal}"
+[[ $PROFILE == "base" || $PROFILE == "personal" ]] || die "profile must be 'base' or 'personal'"
+
+[[ ${EUID} -ne 0 ]] || die "run as a regular user, not root"
+[[ -r /etc/os-release ]] || die "cannot read /etc/os-release"
+
+# shellcheck disable=SC1091
+source /etc/os-release
+[[ ${ID:-} == "ubuntu" && ${VERSION_ID:-} == "26.04" ]] || die "Ubuntu 26.04 is required"
+grep -qi 'microsoft-standard-WSL2' /proc/sys/kernel/osrelease || die "WSL2 is required"
+command -v sudo >/dev/null 2>&1 || die "sudo is required"
+
+printf '==> Validating sudo access\n'
+if ! sudo -n true 2>/dev/null; then
+  sudo -v
+fi
+
+if ! command -v ansible-playbook >/dev/null 2>&1; then
+  printf '==> Installing Ubuntu ansible-core\n'
+  sudo env DEBIAN_FRONTEND=noninteractive apt-get update
+  sudo env DEBIAN_FRONTEND=noninteractive \
+    apt-get install --yes --no-install-recommends ansible-core
+fi
+
+printf '==> Applying Ansible profile: %s\n' "$PROFILE"
+ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+  ansible-playbook \
+  --inventory "$ROOT_DIR/ansible/inventory/localhost.yml" \
+  --extra-vars "workstation_profile=$PROFILE" \
+  "$ROOT_DIR/ansible/playbook.yml"
+
+printf '==> Applying chezmoi source\n'
+"$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty
+
+printf '==> Installing mise tools\n'
+MISE_CONFIG_FILE="$ROOT_DIR/mise/config.toml" \
+MISE_YES=1 \
+  "$HOME/.local/bin/mise" install
+
+printf '==> Bootstrap complete: %s\n' "$PROFILE"

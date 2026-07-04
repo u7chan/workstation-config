@@ -1,0 +1,18 @@
+---
+workstation_profiles:
+  - base
+  - personal
+
+# Keep this list small. Add packages only for a documented role need.
+base_apt_packages:
+  - ca-certificates
+  - curl
+  - git
+
+chezmoi_version: "2.70.5"
+chezmoi_url: "https://github.com/twpayne/chezmoi/releases/download/v{{ chezmoi_version }}/chezmoi-linux-amd64"
+chezmoi_checksum: "sha256:da4f1346e3626c68cbe3620abc12134d886733420df92e32edb48d0406c7f9e5"
+
+mise_version: "2026.7.0"
+mise_url: "https://github.com/jdx/mise/releases/download/v{{ mise_version }}/mise-v{{ mise_version }}-linux-x64"
+mise_checksum: "sha256:0744cb3c303baf0d308ff7b112ed41f22abb6029cb5644fd3a8ce74b29f16a68"

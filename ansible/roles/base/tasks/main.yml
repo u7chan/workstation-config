@@ -1,0 +1,28 @@
+---
+- name: Install explicit base package allowlist
+  become: true
+  ansible.builtin.apt:
+    name: "{{ base_apt_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create user binary directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.local/bin"
+    state: directory
+    mode: "0755"
+
+- name: Install pinned chezmoi binary
+  ansible.builtin.get_url:
+    url: "{{ chezmoi_url }}"
+    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/chezmoi"
+    checksum: "{{ chezmoi_checksum }}"
+    mode: "0755"
+
+- name: Install pinned mise binary
+  ansible.builtin.get_url:
+    url: "{{ mise_url }}"
+    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/mise"
+    checksum: "{{ mise_checksum }}"
+    mode: "0755"
