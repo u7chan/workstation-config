@@ -12,13 +12,56 @@ grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
 test -s "$ROOT_DIR/mise/mise.lock"
 
+bash -n "$ROOT_DIR/home/modify_dot_bashrc"
+bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+
+test_dir="$(mktemp -d)"
+test_bashrc="$test_dir/bashrc"
+test_home="$test_dir/home"
+mkdir -p "$test_home"
+trap 'rm -rf "$test_dir"' EXIT
+printf '# Ubuntu default\n' >"$test_bashrc"
+"$ROOT_DIR/home/modify_dot_bashrc" <"$test_bashrc" >"${test_bashrc}.first"
+"$ROOT_DIR/home/modify_dot_bashrc" <"${test_bashrc}.first" >"${test_bashrc}.second"
+cmp "${test_bashrc}.first" "${test_bashrc}.second"
+[[ $(grep -c '^# BEGIN workstation-config$' "${test_bashrc}.second") -eq 1 ]]
+[[ $(grep -c 'source "$HOME/.config/workstation/shell/init.bash"' "${test_bashrc}.second") -eq 1 ]]
+
+noninteractive_output="$(bash -c 'source "$1"' _ "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" 2>&1)"
+[[ -z $noninteractive_output ]]
+
+interactive_output="$({
+  HOME="$test_home" \
+  WT_SESSION=test \
+  WSL_DISTRO_NAME=test \
+    bash --noprofile --norc -ic '
+      set -e
+      PROMPT_COMMAND="existing_hook"
+      source "$1"
+      source "$1"
+      prompt_state="${PROMPT_COMMAND};${STARSHIP_PROMPT_COMMAND:-}"
+      [[ $prompt_state == *existing_hook* ]]
+      [[ $(grep -o "__workstation_report_cwd" <<<"$prompt_state" | wc -l) -eq 1 ]]
+      [[ $(grep -o "starship_precmd" <<<"$PROMPT_COMMAND" | wc -l) -le 1 ]]
+      alias g | grep -q "alias g=.*git"
+      alias h | grep -q "alias h=.*herdr"
+    ' _ "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+} 2>&1)" || {
+  printf '%s\n' "$interactive_output" >&2
+  exit 1
+}
+
 if "$ROOT_DIR/bootstrap" invalid >/dev/null 2>&1; then
   printf 'Invalid profile was accepted.\n' >&2
   exit 1
 fi
 
 if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck "$ROOT_DIR/bootstrap" "$ROOT_DIR/tests/static.sh"
+  shellcheck \
+    "$ROOT_DIR/bootstrap" \
+    "$ROOT_DIR/home/modify_dot_bashrc" \
+    "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
+    "$ROOT_DIR/tests/static.sh"
 fi
 
 if command -v ansible-playbook >/dev/null 2>&1; then
