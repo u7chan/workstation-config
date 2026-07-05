@@ -1,0 +1,5 @@
+# Non-secret preferences only. Runtime data remains owned by Herdr.
+onboarding = false
+
+[experimental]
+pane_history = false

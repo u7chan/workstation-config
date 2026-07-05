@@ -25,6 +25,26 @@ bash -n "$ROOT_DIR/tests/neovim-smoke.sh"
 bash -n "$ROOT_DIR/home/modify_dot_bashrc"
 bash -n "$ROOT_DIR/home/modify_dot_gitconfig"
 bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+bash -n "$ROOT_DIR/scripts/install-herdr-integrations"
+bash -n "$ROOT_DIR/tests/herdr-integrations-smoke.sh"
+bash -n "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+
+grep -q 'mise.*activate bash' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+grep -q 'integration install' "$ROOT_DIR/scripts/install-herdr-integrations"
+grep -q 'integration status' "$ROOT_DIR/scripts/install-herdr-integrations"
+grep -q 'type -a herdr codex' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
+test -f "$ROOT_DIR/home/dot_codex/config.toml"
+if find "$ROOT_DIR/home" -type f \( \
+  -name 'herdr-agent-state.*' -o \
+  -name 'hooks.json' -o \
+  -name 'settings.json' -o \
+  -name 'session.json' -o \
+  -name '*.log' \
+\) | grep -q .; then
+  printf 'Herdr-generated runtime data must not be managed by chezmoi.\n' >&2
+  exit 1
+fi
 
 grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
 grep -q '^  - gh$' "$ROOT_DIR/ansible/vars/main.yml"
@@ -103,6 +123,9 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/home/modify_dot_bashrc" \
     "$ROOT_DIR/home/modify_dot_gitconfig" \
     "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
+    "$ROOT_DIR/scripts/install-herdr-integrations" \
+    "$ROOT_DIR/tests/herdr-integrations-smoke.sh" \
+    "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/static.sh"
 fi
 
