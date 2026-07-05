@@ -1,0 +1,11 @@
+# `ya pkg install` materializes package bodies in these directories.
+/plugins/
+/flavors/
+
+# Runtime-generated data must remain local.
+/.cache/
+/cache/
+/history/
+/preview/
+/state/
+/*.log
