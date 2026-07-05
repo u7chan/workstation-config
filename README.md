@@ -93,6 +93,16 @@ mise which nvim
 
 プラグイン更新の担当者は、Neovimで`:Lazy update`を実行し、生成された`lazy-lock.json`の差分と上記smoke testを確認してください。Masonで導入するLSP serverとTreesitter parserは生成物のためGit管理しません。
 
+## Yazi
+
+Yazi本体はmise、`~/.config/yazi/yazi.toml`とpackage宣言はchezmoiで管理します。標準テーマと標準キーマップを使い、plugin本体、flavor本体、cache、履歴、preview生成物、runtime stateはGit管理しません。fresh HOME相当の設定読込は次で確認できます。
+
+```bash
+./tests/yazi-smoke.sh
+```
+
+pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新して`ya pkg install`を実行し、取得物をcommitせず上記smoke testを再実行してください。Yazi本体の更新は「miseの管理範囲」の手順でlockfileも更新します。
+
 ## HerdrとAI CLI integration
 
 Herdr本体はmise、非機密設定の`~/.config/herdr/config.toml`と`~/.codex/config.toml`はchezmoiで管理します。`personal` bootstrapはHerdr公式コマンドでCodex、Claude Code、OpenCodeのintegrationを導入し、3つが`current`であることを検証します。AI CLIの認証は手動です。

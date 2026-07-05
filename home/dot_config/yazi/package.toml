@@ -1,0 +1,7 @@
+# Package declarations are managed here. `ya pkg install` owns downloaded
+# plugin and flavor bodies under plugins/ and flavors/.
+[plugin]
+deps = []
+
+[flavor]
+deps = []
