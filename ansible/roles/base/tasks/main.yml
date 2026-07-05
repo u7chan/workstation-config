@@ -78,6 +78,11 @@
   changed_when: safe_chain_bun_remove.rc == 0
   failed_when: false
 
+- name: Remove legacy Bun safe-chain binary
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.bun/bin/safe-chain"
+    state: absent
+
 - name: Check currently installed Safe-chain version
   ansible.builtin.shell: |
     set -o pipefail
@@ -101,6 +106,8 @@
 - name: Install Safe-chain from official release
   ansible.builtin.command:
     cmd: "{{ ansible_facts['user_dir'] }}/.safe-chain-installer.sh"
+  environment:
+    SAFE_CHAIN_VERSION: "{{ safe_chain_version }}"
   register: safe_chain_install_result
   changed_when: "'already installed' not in safe_chain_install_result.stdout"
   when: safe_chain_installed_version.stdout != safe_chain_version

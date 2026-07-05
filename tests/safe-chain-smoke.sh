@@ -4,7 +4,10 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
 
-smoke_output="$(bash --noprofile --norc <<'SMOKE' 2>&1
+expected_safe_chain_version="$(awk -F'"' '/^safe_chain_version:/{print $2}' "$ROOT_DIR/ansible/vars/main.yml")"
+readonly expected_safe_chain_version
+
+smoke_output="$(EXPECTED_SAFE_CHAIN_VERSION="$expected_safe_chain_version" bash --noprofile --norc <<'SMOKE' 2>&1
 set -euo pipefail
 if [[ -x "$HOME/.local/bin/mise" ]]; then
   eval "$("$HOME/.local/bin/mise" activate bash)"
@@ -26,8 +29,8 @@ safe_chain_path="$(command -v safe-chain)"
 
 version_output="$(safe-chain --version)"
 printf '%s\n' "$version_output"
-[[ $version_output == *"1.5.12"* ]] || {
-  printf 'safe-chain-smoke: expected version 1.5.12, got %s\n' "$version_output" >&2
+[[ $version_output == *"$EXPECTED_SAFE_CHAIN_VERSION"* ]] || {
+  printf 'safe-chain-smoke: expected version %s, got %s\n' "$EXPECTED_SAFE_CHAIN_VERSION" "$version_output" >&2
   exit 1
 }
 
