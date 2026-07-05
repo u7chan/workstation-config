@@ -121,6 +121,25 @@ Herdr経由のCodexも通常の`HOME`にある`~/.codex/config.toml`を読みま
 
 マシン固有のworkspace aliasなどは、`~/.config/workstation/shell/local.bash`へ記述してください。このファイルはGitおよびchezmoiの管理対象外で、bootstrapは既存内容を変更せずmode 600を維持します。
 
+## Safe-chain
+
+[Aikido Safe-chain](https://github.com/AikidoSec/safe-chain)は、npm/yarn/pnpm/npx/pnpx、Bun、およびpip/uv/poetry経由でインストールされる悪意あるパッケージをブロックします。本体は[AikidoSec/safe-chain](https://github.com/AikidoSec/safe-chain)の公式GitHub Releaseから導入し、バージョンは`ansible/vars/main.yml`の`safe_chain_version`で固定します。現在のpin対象は**1.5.12**です。
+
+bootstrapは公式のバージョン付きインストールスクリプトをダウンロードし、チェックサムを検証してから実行します。再実行時は、既存のSafe-chainバージョンを確認し、pinと一致する場合はスキップします。従来のBun globalインストール（`~/.bun/bin/safe-chain`）が残っていれば、公式バイナリへ移行する際に削除します。
+
+shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理の`init.bash`から読み込みます。Safe-chainのインストーラーが`~/.bashrc`へ直接追加するsource行は、bootstrapが削除するため、 unmanagedな`~/.bashrc`への依存を残しません。
+
+`~/.safe-chain/`以下のバイナリ、生成されたCA証明書、malware list、取得データはすべて機器固有の生成物です。リポジトリおよびchezmoiの管理対象外とし、手動でコピーしません。
+
+更新時は、新しいリリースのバージョンとチェックサムを`ansible/vars/main.yml`へ記入し、Ubuntu 26.04 x86_64で次を実行して動作を確認してください。
+
+```bash
+./bootstrap base
+./tests/safe-chain-smoke.sh
+```
+
+Codex minimum-package-age例外はIssue #10のスコープ外とし、デフォルト設定のまま使用します。
+
 ## プロンプト
 
 シェルプロンプトはStarshipで一元管理します。本体はmise、設定はchezmoi管理の`~/.config/starship.toml`で行います。Bashは`init.bash`でStarshipを一度だけ初期化し、独自のPS1や`git_branch`関数は使用しません。設定を変更した場合は次を実行してください。
