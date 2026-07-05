@@ -11,6 +11,11 @@ elif command -v mise >/dev/null 2>&1; then
   eval "$(mise activate bash)"
 fi
 
+if [[ -f "$HOME/.safe-chain/scripts/init-posix.sh" && -r "$HOME/.safe-chain/scripts/init-posix.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$HOME/.safe-chain/scripts/init-posix.sh"
+fi
+
 alias g=git
 alias h=herdr
 

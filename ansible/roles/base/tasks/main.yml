@@ -58,3 +58,61 @@
     access_time: preserve
     modification_time: preserve
     mode: "0600"
+
+- name: Check for legacy Bun global safe-chain
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['user_dir'] }}/.bun/bin/safe-chain"
+  register: legacy_bun_safe_chain
+
+- name: Remove legacy Bun global safe-chain installation
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if [[ -x "{{ ansible_facts['user_dir'] }}/.local/bin/mise" ]]; then
+      MISE_YES=1 "{{ ansible_facts['user_dir'] }}/.local/bin/mise" exec -- \
+        bun remove -g @aikidosec/safe-chain
+    fi
+  args:
+    executable: /bin/bash
+  when: legacy_bun_safe_chain.stat.exists | default(false)
+  register: safe_chain_bun_remove
+  changed_when: safe_chain_bun_remove.rc == 0
+  failed_when: false
+
+- name: Check currently installed Safe-chain version
+  ansible.builtin.shell: |
+    set -o pipefail
+    if command -v safe-chain >/dev/null 2>&1; then
+      safe-chain -v 2>/dev/null | sed -n 's/.*Current safe-chain version: //p'
+    fi
+  args:
+    executable: /bin/bash
+  register: safe_chain_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Download official Safe-chain installer
+  ansible.builtin.get_url:
+    url: "{{ safe_chain_installer_url }}"
+    dest: "{{ ansible_facts['user_dir'] }}/.safe-chain-installer.sh"
+    checksum: "{{ safe_chain_installer_checksum }}"
+    mode: "0755"
+  when: safe_chain_installed_version.stdout != safe_chain_version
+
+- name: Install Safe-chain from official release
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts['user_dir'] }}/.safe-chain-installer.sh"
+  register: safe_chain_install_result
+  changed_when: "'already installed' not in safe_chain_install_result.stdout"
+  when: safe_chain_installed_version.stdout != safe_chain_version
+
+- name: Remove installer artifact
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.safe-chain-installer.sh"
+    state: absent
+  changed_when: false
+
+- name: Keep Safe-chain shell integration out of unmanaged .bashrc
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_facts['user_dir'] }}/.bashrc"
+    regexp: '^source\s+.*\.safe-chain/scripts/init-posix\.sh.*$'
+    state: absent

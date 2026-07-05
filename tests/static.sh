@@ -21,6 +21,7 @@ fi
 test -f "$ROOT_DIR/home/dot_config/nvim/init.lua"
 test -f "$ROOT_DIR/home/dot_config/nvim/lazy-lock.json"
 bash -n "$ROOT_DIR/tests/neovim-smoke.sh"
+bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
 
 bash -n "$ROOT_DIR/home/modify_dot_bashrc"
 bash -n "$ROOT_DIR/home/modify_dot_gitconfig"
@@ -30,6 +31,21 @@ bash -n "$ROOT_DIR/tests/herdr-integrations-smoke.sh"
 bash -n "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 
 grep -q 'mise.*activate bash' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+grep -q 'init-posix.sh' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+grep -q '^safe_chain_version:' "$ROOT_DIR/ansible/vars/main.yml"
+grep -q '^safe_chain_installer_url:' "$ROOT_DIR/ansible/vars/main.yml"
+grep -q '^safe_chain_installer_checksum:' "$ROOT_DIR/ansible/vars/main.yml"
+# Regression check: AikidoSec/safe-chain release tags do not use a "v" prefix.
+if grep -q 'v{{ safe_chain_version }}' "$ROOT_DIR/ansible/vars/main.yml"; then
+  printf 'safe_chain_installer_url must not use a v-prefixed release tag.\n' >&2
+  exit 1
+fi
+safe_chain_version="$(awk -F'"' '/^safe_chain_version:/{print $2}' "$ROOT_DIR/ansible/vars/main.yml")"
+safe_chain_url="https://github.com/AikidoSec/safe-chain/releases/download/${safe_chain_version}/install-safe-chain.sh"
+if ! curl -sI --fail --max-time 10 "$safe_chain_url" >/dev/null; then
+  printf 'Safe-chain installer URL is not reachable: %s\n' "$safe_chain_url" >&2
+  exit 1
+fi
 grep -q 'integration install' "$ROOT_DIR/scripts/install-herdr-integrations"
 grep -q 'integration status' "$ROOT_DIR/scripts/install-herdr-integrations"
 grep -q 'type -a herdr codex' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
@@ -126,6 +142,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/scripts/install-herdr-integrations" \
     "$ROOT_DIR/tests/herdr-integrations-smoke.sh" \
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
+    "$ROOT_DIR/tests/safe-chain-smoke.sh" \
     "$ROOT_DIR/tests/static.sh"
 fi
 

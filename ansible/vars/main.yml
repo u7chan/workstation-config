@@ -17,3 +17,7 @@ chezmoi_checksum: "sha256:da4f1346e3626c68cbe3620abc12134d886733420df92e32edb48d
 mise_version: "2026.7.0"
 mise_url: "https://github.com/jdx/mise/releases/download/v{{ mise_version }}/mise-v{{ mise_version }}-linux-x64"
 mise_checksum: "sha256:0744cb3c303baf0d308ff7b112ed41f22abb6029cb5644fd3a8ce74b29f16a68"
+
+safe_chain_version: "1.5.12"
+safe_chain_installer_url: "https://github.com/AikidoSec/safe-chain/releases/download/{{ safe_chain_version }}/install-safe-chain.sh"
+safe_chain_installer_checksum: "sha256:e40995d546160bf18788dbfc6e9a4a765152abeca92014adf85102cf6b13d890"
