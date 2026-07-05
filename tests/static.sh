@@ -11,6 +11,16 @@ grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
 test -s "$ROOT_DIR/mise/mise.lock"
+grep -q '^neovim = "0.12"' "$ROOT_DIR/mise/config.toml"
+if grep -R -Eiq 'apt(-get)?.*(install.*)?neovim|^[[:space:]]*-[[:space:]]*neovim$' \
+  "$ROOT_DIR/ansible" "$ROOT_DIR/bootstrap"; then
+  printf 'Neovim must not be managed by APT.\n' >&2
+  exit 1
+fi
+
+test -f "$ROOT_DIR/home/dot_config/nvim/init.lua"
+test -f "$ROOT_DIR/home/dot_config/nvim/lazy-lock.json"
+bash -n "$ROOT_DIR/tests/neovim-smoke.sh"
 
 bash -n "$ROOT_DIR/home/modify_dot_bashrc"
 bash -n "$ROOT_DIR/home/modify_dot_gitconfig"

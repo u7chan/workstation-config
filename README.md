@@ -81,6 +81,18 @@ MISE_CONFIG_FILE="$PWD/mise/config.toml" mise lock --platform linux-x64
 MISE_CONFIG_FILE="$PWD/mise/config.toml" MISE_LOCKED=1 mise install
 ```
 
+## Neovim
+
+設定はchezmoiが`~/.config/nvim`へ配置し、Neovim本体はmiseだけで管理します。初回起動時にプラグインを取得します。
+
+```bash
+./tests/neovim-smoke.sh
+type -a nvim
+mise which nvim
+```
+
+プラグイン更新の担当者は、Neovimで`:Lazy update`を実行し、生成された`lazy-lock.json`の差分と上記smoke testを確認してください。Masonで導入するLSP serverとTreesitter parserは生成物のためGit管理しません。
+
 ## Bashのローカル設定
 
 共通のBash初期化はchezmoi管理の`~/.config/workstation/shell/init.bash`から読み込みます。Ubuntu標準の`~/.bashrc`はそのまま残し、管理済み初期化ファイルを読み込むブロックだけを追加します。
