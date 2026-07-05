@@ -18,7 +18,11 @@ bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 test_dir="$(mktemp -d)"
 test_bashrc="$test_dir/bashrc"
 test_home="$test_dir/home"
-mkdir -p "$test_home"
+test_bin="$test_dir/bin"
+mkdir -p "$test_home/.config/workstation/shell" "$test_bin"
+printf '#!/usr/bin/env bash\nprintf "C:\\\\mock"\n' >"$test_bin/wslpath"
+chmod +x "$test_bin/wslpath"
+printf 'alias g=echo\n' >"$test_home/.config/workstation/shell/local.bash"
 trap 'rm -rf "$test_dir"' EXIT
 printf '# Ubuntu default\n' >"$test_bashrc"
 "$ROOT_DIR/home/modify_dot_bashrc" <"$test_bashrc" >"${test_bashrc}.first"
@@ -32,6 +36,7 @@ noninteractive_output="$(bash -c 'source "$1"' _ "$ROOT_DIR/home/dot_config/work
 
 interactive_output="$({
   HOME="$test_home" \
+  PATH="$test_bin:$PATH" \
   WT_SESSION=test \
   WSL_DISTRO_NAME=test \
     bash --noprofile --norc -ic '
@@ -43,7 +48,7 @@ interactive_output="$({
       [[ $prompt_state == *existing_hook* ]]
       [[ $(grep -o "__workstation_report_cwd" <<<"$prompt_state" | wc -l) -eq 1 ]]
       [[ $(grep -o "starship_precmd" <<<"$PROMPT_COMMAND" | wc -l) -le 1 ]]
-      alias g | grep -q "alias g=.*git"
+      alias g | grep -q "alias g=.*echo"
       alias h | grep -q "alias h=.*herdr"
     ' _ "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 } 2>&1)" || {

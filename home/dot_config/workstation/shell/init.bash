@@ -11,6 +11,9 @@ elif command -v mise >/dev/null 2>&1; then
   eval "$(mise activate bash)"
 fi
 
+alias g=git
+alias h=herdr
+
 if [[ -f "$HOME/.config/workstation/shell/local.bash" && -r "$HOME/.config/workstation/shell/local.bash" ]]; then
   # shellcheck disable=SC1091
   source "$HOME/.config/workstation/shell/local.bash"
@@ -36,6 +39,3 @@ if command -v starship >/dev/null 2>&1 && [[ -z ${__WORKSTATION_STARSHIP_INITIAL
   __WORKSTATION_STARSHIP_INITIALIZED=1
   eval "$(starship init bash)"
 fi
-
-alias g=git
-alias h=herdr
