@@ -121,6 +121,14 @@ Herdr経由のCodexも通常の`HOME`にある`~/.codex/config.toml`を読みま
 
 マシン固有のworkspace aliasなどは、`~/.config/workstation/shell/local.bash`へ記述してください。このファイルはGitおよびchezmoiの管理対象外で、bootstrapは既存内容を変更せずmode 600を維持します。
 
+## プロンプト
+
+シェルプロンプトはStarshipで一元管理します。本体はmise、設定はchezmoi管理の`~/.config/starship.toml`で行います。Bashは`init.bash`でStarshipを一度だけ初期化し、独自のPS1や`git_branch`関数は使用しません。設定を変更した場合は次を実行してください。
+
+```bash
+chezmoi apply ~/.config/starship.toml
+```
+
 ```bash
 # ~/.config/workstation/shell/local.bash
 alias work='cd "$HOME/src/example"'
