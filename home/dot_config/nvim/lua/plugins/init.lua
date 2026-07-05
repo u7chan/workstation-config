@@ -94,7 +94,10 @@ return {
         vim.lsp.config(server, { capabilities = capabilities })
         vim.lsp.enable(server)
       end
-      require("mason-lspconfig").setup({ automatic_enable = false })
+      require("mason-lspconfig").setup({
+        automatic_enable = false,
+        ensure_installed = { "lua_ls", "ts_ls", "jsonls" },
+      })
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)
           local map = function(lhs, rhs, desc)
@@ -114,7 +117,12 @@ return {
     "nvim-treesitter/nvim-treesitter",
     branch = "master",
     build = ":TSUpdate",
-    opts = { highlight = { enable = true }, indent = { enable = true }, auto_install = false },
+    opts = {
+      highlight = { enable = true },
+      indent = { enable = true },
+      auto_install = false,
+      ensure_installed = { "lua", "typescript", "tsx", "json", "bash", "vim", "vimdoc" },
+    },
     config = function(_, opts) require("nvim-treesitter.configs").setup(opts) end,
   },
 }

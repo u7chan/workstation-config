@@ -22,6 +22,44 @@ export MISE_LOCKED=1
 
 "$MISE" exec neovim -- nvim --headless "+Lazy! sync" +qa
 test -d "$XDG_DATA_HOME/nvim/lazy/lazy.nvim"
+
+# Mason LSP servers are installed even in an empty state.
+cat >"$test_dir/verify-mason.lua" <<'EOF'
+local registry = require("mason-registry")
+local required = {
+  "lua-language-server",
+  "typescript-language-server",
+  "json-lsp",
+}
+for _, name in ipairs(required) do
+  local pkg = registry.get_package(name)
+  if not pkg:is_installed() and not pkg:is_installing() then
+    pkg:install()
+  end
+end
+local ok = vim.wait(120000, function()
+  for _, name in ipairs(required) do
+    local pkg = registry.get_package(name)
+    if not pkg:is_installed() or pkg:is_installing() then
+      return false
+    end
+  end
+  return true
+end, 500)
+if not ok then
+  print("Timeout waiting for Mason LSP servers")
+  vim.cmd("cq!")
+end
+print("Mason LSP servers verified")
+EOF
+"$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-mason.lua" -c 'qa'
+
+# Treesitter parsers are installed even in an empty state.
+"$MISE" exec neovim -- nvim --headless -c 'TSInstallSync! lua typescript tsx json bash vim vimdoc' -c 'qa'
+for parser in lua typescript tsx json bash vim vimdoc; do
+  test -f "$XDG_DATA_HOME/nvim/lazy/nvim-treesitter/parser/$parser.so"
+done
+
 "$MISE" exec neovim -- nvim --headless "+checkhealth vim.deprecated" +qa
 
 printf 'Neovim empty-state smoke test passed.\n'
