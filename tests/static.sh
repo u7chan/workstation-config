@@ -7,6 +7,11 @@ readonly ROOT_DIR
 bash -n "$ROOT_DIR/bootstrap"
 "$ROOT_DIR/bootstrap" --help >/dev/null
 
+grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
+grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
+grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
+test -s "$ROOT_DIR/mise/mise.lock"
+
 if "$ROOT_DIR/bootstrap" invalid >/dev/null 2>&1; then
   printf 'Invalid profile was accepted.\n' >&2
   exit 1
