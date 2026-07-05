@@ -63,7 +63,7 @@ printf '==> Applying chezmoi source\n'
 "$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty
 
 printf '==> Installing mise tools\n'
-MISE_CONFIG_FILE="$ROOT_DIR/mise/config.toml" \
+MISE_LOCKED=1 \
 MISE_YES=1 \
   "$HOME/.local/bin/mise" install
 

@@ -26,3 +26,21 @@
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/mise"
     checksum: "{{ mise_checksum }}"
     mode: "0755"
+
+- name: Create mise configuration directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/mise"
+    state: directory
+    mode: "0755"
+
+- name: Install mise global configuration
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../mise/config.toml"
+    dest: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
+    mode: "0644"
+
+- name: Install mise lockfile
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../mise/mise.lock"
+    dest: "{{ ansible_facts['user_dir'] }}/.config/mise/mise.lock"
+    mode: "0644"

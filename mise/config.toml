@@ -1,2 +1,14 @@
-# Tools are added by the dedicated mise inventory issue.
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64"]
+
 [tools]
+node = "lts"
+bun = "1"
+uv = "latest"
+ripgrep = "latest"
+fd = "latest"
+neovim = "0.12"
+yazi = "latest"
+starship = "latest"
+herdr = "latest"
