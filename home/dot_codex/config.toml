@@ -1,0 +1,11 @@
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = true
+
+# Herdr's official Codex integration requires native hooks. Managing this value
+# up front prevents the integration installer from rewriting the file.
+[features]
+hooks = true
