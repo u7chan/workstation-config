@@ -93,3 +93,23 @@ alias work='cd "$HOME/src/example"'
 ```
 
 secret、認証情報、履歴、session stateは`local.bash`にも保存しないでください。
+
+## Git・GitHub設定
+
+GitHubへの接続はHTTPSへ統一します。bootstrapはAPTで`git`と`gh`を導入し、chezmoiは次の非機密設定だけを管理します。
+
+- `user.name`: `u7chan`
+- `user.email`: `34462401+u7chan@users.noreply.github.com`
+- default branch: `main`
+- global ignore: `~/.config/git/ignore`
+- GitHubのSSH形式URLからHTTPSへの書き換え
+
+認証とcredential helperは構成管理しません。初回clone前に次を手動で実行してください。
+
+```bash
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+gh auth status
+```
+
+chezmoiのGit設定は、`gh auth setup-git`が`~/.gitconfig`へ追加したcredential helperを保持します。token、credential、SSH鍵、ssh-agent、keychain、署名鍵はこのリポジトリへ保存しません。

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config_file="$(mktemp)"
+trap 'rm -f "$config_file"' EXIT
+
+cat >"$config_file"
+
+git config --file "$config_file" user.name u7chan
+git config --file "$config_file" user.email 34462401+u7chan@users.noreply.github.com
+git config --file "$config_file" init.defaultBranch main
+git config --file "$config_file" core.excludesFile '~/.config/git/ignore'
+
+# Rewrite GitHub SSH-style URLs before transport selection. Authentication and
+# credential helper settings remain owned by `gh auth login` / `gh auth setup-git`.
+git config --file "$config_file" --unset-all 'url.https://github.com/.insteadOf' || true
+git config --file "$config_file" --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+git config --file "$config_file" --add 'url.https://github.com/.insteadOf' 'ssh://git@github.com/'
+
+cat "$config_file"

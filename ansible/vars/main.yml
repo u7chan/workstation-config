@@ -8,6 +8,7 @@ base_apt_packages:
   - ca-certificates
   - curl
   - git
+  - gh
 
 chezmoi_version: "2.70.5"
 chezmoi_url: "https://github.com/twpayne/chezmoi/releases/download/v{{ chezmoi_version }}/chezmoi-linux-amd64"

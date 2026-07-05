@@ -13,9 +13,36 @@ grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
 test -s "$ROOT_DIR/mise/mise.lock"
 
 bash -n "$ROOT_DIR/home/modify_dot_bashrc"
+bash -n "$ROOT_DIR/home/modify_dot_gitconfig"
 bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 
+grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
+grep -q '^  - gh$' "$ROOT_DIR/ansible/vars/main.yml"
+
 test_dir="$(mktemp -d)"
+trap 'rm -rf "$test_dir"' EXIT
+
+gitconfig_input="$test_dir/gitconfig.input"
+gitconfig_first="$test_dir/gitconfig.first"
+gitconfig_second="$test_dir/gitconfig.second"
+cat >"$gitconfig_input" <<'EOF'
+[credential "https://github.com"]
+	helper = !/usr/bin/gh auth git-credential
+EOF
+"$ROOT_DIR/home/modify_dot_gitconfig" <"$gitconfig_input" >"$gitconfig_first"
+"$ROOT_DIR/home/modify_dot_gitconfig" <"$gitconfig_first" >"$gitconfig_second"
+cmp "$gitconfig_first" "$gitconfig_second"
+[[ $(git config --file "$gitconfig_second" user.name) == u7chan ]]
+[[ $(git config --file "$gitconfig_second" user.email) == 34462401+u7chan@users.noreply.github.com ]]
+[[ $(git config --file "$gitconfig_second" init.defaultBranch) == main ]]
+[[ $(git config --file "$gitconfig_second" core.excludesFile) == '~/.config/git/ignore' ]]
+[[ $(git config --file "$gitconfig_second" --get-all 'url.https://github.com/.insteadOf' | wc -l) -eq 2 ]]
+[[ $(GIT_CONFIG_GLOBAL="$gitconfig_second" GIT_CONFIG_NOSYSTEM=1 git ls-remote --get-url git@github.com:u7chan/workstation-config.git) == https://github.com/u7chan/workstation-config.git ]]
+[[ $(GIT_CONFIG_GLOBAL="$gitconfig_second" GIT_CONFIG_NOSYSTEM=1 git ls-remote --get-url ssh://git@github.com/u7chan/workstation-config.git) == https://github.com/u7chan/workstation-config.git ]]
+git config --file "$gitconfig_second" --get-all credential.https://github.com.helper |
+  grep -Fqx '!/usr/bin/gh auth git-credential'
+! grep -Eiq 'token|private.?key|sshcommand' "$gitconfig_second"
+
 test_bashrc="$test_dir/bashrc"
 test_home="$test_dir/home"
 test_bin="$test_dir/bin"
@@ -23,7 +50,6 @@ mkdir -p "$test_home/.config/workstation/shell" "$test_bin"
 printf '#!/usr/bin/env bash\nprintf "C:\\\\mock"\n' >"$test_bin/wslpath"
 chmod +x "$test_bin/wslpath"
 printf 'alias g=echo\n' >"$test_home/.config/workstation/shell/local.bash"
-trap 'rm -rf "$test_dir"' EXIT
 printf '# Ubuntu default\n' >"$test_bashrc"
 "$ROOT_DIR/home/modify_dot_bashrc" <"$test_bashrc" >"${test_bashrc}.first"
 "$ROOT_DIR/home/modify_dot_bashrc" <"${test_bashrc}.first" >"${test_bashrc}.second"
@@ -65,6 +91,7 @@ if command -v shellcheck >/dev/null 2>&1; then
   shellcheck \
     "$ROOT_DIR/bootstrap" \
     "$ROOT_DIR/home/modify_dot_bashrc" \
+    "$ROOT_DIR/home/modify_dot_gitconfig" \
     "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
     "$ROOT_DIR/tests/static.sh"
 fi
