@@ -80,3 +80,16 @@ MISE_CONFIG_FILE="$PWD/mise/config.toml" mise upgrade
 MISE_CONFIG_FILE="$PWD/mise/config.toml" mise lock --platform linux-x64
 MISE_CONFIG_FILE="$PWD/mise/config.toml" MISE_LOCKED=1 mise install
 ```
+
+## Bashのローカル設定
+
+共通のBash初期化はchezmoi管理の`~/.config/workstation/shell/init.bash`から読み込みます。Ubuntu標準の`~/.bashrc`はそのまま残し、管理済み初期化ファイルを読み込むブロックだけを追加します。
+
+マシン固有のworkspace aliasなどは、`~/.config/workstation/shell/local.bash`へ記述してください。このファイルはGitおよびchezmoiの管理対象外で、bootstrapは既存内容を変更せずmode 600を維持します。
+
+```bash
+# ~/.config/workstation/shell/local.bash
+alias work='cd "$HOME/src/example"'
+```
+
+secret、認証情報、履歴、session stateは`local.bash`にも保存しないでください。

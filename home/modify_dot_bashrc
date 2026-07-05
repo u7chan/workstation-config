@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+awk '
+  function emit_managed_block() {
+    print "# BEGIN workstation-config"
+    print "if [[ -r \"$HOME/.config/workstation/shell/init.bash\" ]]; then"
+    print "  source \"$HOME/.config/workstation/shell/init.bash\""
+    print "fi"
+    print "# END workstation-config"
+  }
+
+  $0 == "# BEGIN workstation-config" {
+    if (!emitted) {
+      emit_managed_block()
+      emitted = 1
+    }
+    in_managed_block = 1
+    next
+  }
+
+  $0 == "# END workstation-config" && in_managed_block {
+    in_managed_block = 0
+    next
+  }
+
+  !in_managed_block { print }
+
+  END {
+    if (!emitted) {
+      if (NR > 0) print ""
+      emit_managed_block()
+    }
+  }
+'

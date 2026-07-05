@@ -44,3 +44,17 @@
     src: "{{ playbook_dir }}/../mise/mise.lock"
     dest: "{{ ansible_facts['user_dir'] }}/.config/mise/mise.lock"
     mode: "0644"
+
+- name: Create workstation shell configuration directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/workstation/shell"
+    state: directory
+    mode: "0700"
+
+- name: Create machine-local Bash configuration
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/workstation/shell/local.bash"
+    state: touch
+    access_time: preserve
+    modification_time: preserve
+    mode: "0600"
