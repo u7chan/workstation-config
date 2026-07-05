@@ -12,8 +12,9 @@ resolution="$(bash --login -ic 'type -a herdr codex' 2>&1)" || {
 }
 printf '%s\n' "$resolution"
 
-paths="$(bash --login -ic 'command -v herdr; command -v codex' 2>/dev/null)"
-while IFS= read -r path; do
+paths_output="$(bash --login -ic 'command -v herdr; command -v codex' 2>/dev/null)"
+mapfile -t paths <<<"$paths_output"
+for path in "${paths[@]}"; do
   [[ $path == "$HOME/.local/share/mise/"* ]] || {
     printf 'wsl-restart-smoke: expected mise-managed Linux path, got %s\n' "$path" >&2
     exit 1
@@ -22,9 +23,9 @@ while IFS= read -r path; do
     printf 'wsl-restart-smoke: Windows shim resolved: %s\n' "$path" >&2
     exit 1
   }
-done <<<"$paths"
+done
 
-status="$(herdr integration status)"
+status="$("${paths[0]}" integration status)"
 for integration in codex claude opencode; do
   if ! grep -Eq "^${integration}: current \\(v[0-9]+\\) " <<<"$status"; then
     printf 'wsl-restart-smoke: %s integration is not current\n' "$integration" >&2
@@ -32,5 +33,5 @@ for integration in codex claude opencode; do
   fi
 done
 
-codex features list >/dev/null
+"${paths[1]}" features list >/dev/null
 printf 'WSL restart smoke checks passed.\n'
