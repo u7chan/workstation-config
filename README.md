@@ -271,7 +271,9 @@ Codexの更新だけは`update-ai`がminimum-package-age例外を一時指定し
 
 ## プロンプト
 
-シェルプロンプトはStarshipで一元管理します。本体はmise、設定はchezmoi管理の`~/.config/starship.toml`で行います。Bashは`init.bash`でStarshipを一度だけ初期化し、独自のPS1や`git_branch`関数は使用しません。設定を変更した場合は次を実行してください。
+シェルプロンプトはStarshipで一元管理します。本体はmise、設定はchezmoi管理の`~/.config/starship.toml`で行います。Bashは`init.bash`でStarshipを一度だけ初期化し、独自のPS1や`git_branch`関数は使用しません。
+
+現在のpresetはCatppuccin Mochaベースのpowerlineスタイルです。Nerd Font対応フォントがないとセパレーターやアイコンが文字化けするため、ターミナル側の設定を合わせてください。`line_break`を無効にしているため、プロンプトは1行で表示されます。設定を変更した場合は次を実行してください。
 
 ```bash
 chezmoi apply ~/.config/starship.toml
