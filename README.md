@@ -150,7 +150,9 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 Herdr本体はmiseで管理します。Codex、Claude Code、OpenCodeは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexはnpmをSafe-chain経由、Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
-更新入口は`update-ai`だけです。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
+`personal`プロファイルでは[`u7chan/agent-skills`](https://github.com/u7chan/agent-skills)を`~/workspace/agent-skills`へHTTPSでcloneし、`~/.claude/skills`と`~/.codex/skills`をそのリポジトリへのsymlinkとして作成します。personal bootstrapを再実行すると、agent-skillsは`main`ブランチの最新状態へ更新されます。既存の実ディレクトリやファイルは上書きしないため、同名のパスがある場合は内容を確認して退避してからbootstrapを再実行してください。
+
+Codex、Claude Code、OpenCode本体の更新入口は`update-ai`だけです。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
 ```bash
 update-ai

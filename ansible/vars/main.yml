@@ -14,6 +14,9 @@ base_apt_packages:
 # is not wanted on a personal workstation.
 personal_docker_ce_enabled: true
 
+agent_skills_repo_url: "https://github.com/u7chan/agent-skills.git"
+agent_skills_dest: "{{ ansible_facts['user_dir'] }}/workspace/agent-skills"
+
 docker_apt_key_url: "https://download.docker.com/linux/ubuntu/gpg"
 docker_apt_keyring: "/etc/apt/keyrings/docker.asc"
 docker_apt_repository: >-
