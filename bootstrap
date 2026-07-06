@@ -41,10 +41,6 @@ readonly MACHINE_ARCH
 command -v sudo >/dev/null 2>&1 || die "sudo is required"
 
 printf '==> Validating sudo access\n'
-if ! sudo -n true 2>/dev/null; then
-  sudo -v
-fi
-
 # Ubuntu 26.04 ships sudo-rs as the default sudo implementation, which does not
 # handle Ansible's become password prompt correctly. Use the compatibility
 # wrapper when it is available and the active sudo is sudo-rs.
@@ -53,10 +49,15 @@ if [[ -x /usr/bin/sudo.ws ]] && sudo --version 2>/dev/null | grep -q '^sudo-rs';
   SUDO_EXE="/usr/bin/sudo.ws"
 fi
 
+BECOME_SUDO="${SUDO_EXE:-sudo}"
+
 # Ansible needs a password prompt only when passwordless sudo is unavailable.
+# Capture this before sudo -v caches the ticket, otherwise the second check
+# would always succeed and ASK_PASS would never be set.
 ASK_PASS=""
-if ! sudo -n true 2>/dev/null; then
+if ! "$BECOME_SUDO" -n true 2>/dev/null; then
   ASK_PASS="True"
+  "$BECOME_SUDO" -v
 fi
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
