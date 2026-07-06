@@ -6,6 +6,17 @@ set -euo pipefail
   exit 1
 }
 
+user_unit="user@$(id -u).service"
+systemctl is-active --quiet "$user_unit" || {
+  printf 'wsl-restart-smoke: %s is not active\n' "$user_unit" >&2
+  exit 1
+}
+
+[[ $(systemctl --user is-system-running) == running ]] || {
+  printf 'wsl-restart-smoke: systemd user manager is not running\n' >&2
+  exit 1
+}
+
 resolution="$(bash --login -ic 'type -a herdr codex claude opencode' 2>&1)" || {
   printf '%s\n' "$resolution" >&2
   exit 1
