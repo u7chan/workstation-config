@@ -70,7 +70,8 @@ ansible_become_vars=()
 [[ -n $SUDO_EXE ]] && ansible_become_vars+=(ANSIBLE_BECOME_EXE="$SUDO_EXE")
 [[ -n $ASK_PASS ]] && ansible_become_vars+=(ANSIBLE_BECOME_ASK_PASS="$ASK_PASS")
 
-ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+env \
+  ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
   "${ansible_become_vars[@]}" \
   ansible-playbook \
   --inventory "$ROOT_DIR/ansible/inventory/localhost.yml" \

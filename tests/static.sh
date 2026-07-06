@@ -128,6 +128,18 @@ grep -Fq 'personal_docker_ce_enabled | bool' "$ROOT_DIR/ansible/playbook.yml"
 grep -Fq 'docker context show' "$ROOT_DIR/tests/docker-smoke.sh"
 grep -Fq 'docker buildx version' "$ROOT_DIR/tests/docker-smoke.sh"
 grep -Fq 'docker compose' "$ROOT_DIR/tests/docker-smoke.sh"
+grep -Fq 'env \' "$ROOT_DIR/bootstrap"
+grep -Fq 'ANSIBLE_BECOME_EXE="$SUDO_EXE"' "$ROOT_DIR/bootstrap"
+grep -Fq 'ANSIBLE_BECOME_ASK_PASS="$ASK_PASS"' "$ROOT_DIR/bootstrap"
+
+ansible_env_output="$(
+  env \
+    ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+    ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws \
+    ANSIBLE_BECOME_ASK_PASS=True \
+    bash -c 'printf "%s\n%s\n%s\n" "$ANSIBLE_CONFIG" "$ANSIBLE_BECOME_EXE" "$ANSIBLE_BECOME_ASK_PASS"'
+)"
+[[ $ansible_env_output == "$ROOT_DIR/ansible/ansible.cfg"$'\n'/usr/bin/sudo.ws$'\n'True ]]
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
