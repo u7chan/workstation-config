@@ -44,21 +44,27 @@ command -v gh >/dev/null 2>&1 || die "gh is not installed"
 gh auth status --hostname github.com >/dev/null 2>&1 || die "gh is not authenticated for github.com"
 
 pr_fields=$(gh pr view "$head_branch" \
-  --json state,mergedAt,baseRefName,headRefName \
-  --jq '[.state, .mergedAt, .baseRefName, .headRefName] | @tsv') \
+  --json state,mergedAt,baseRefName,headRefName,headRefOid \
+  --jq '[.state, .mergedAt, .baseRefName, .headRefName, .headRefOid] | @tsv') \
   || die "no GitHub PR found for branch: $head_branch"
-IFS=$'\t' read -r pr_state merged_at base_branch pr_head <<<"$pr_fields"
+IFS=$'\t' read -r pr_state merged_at base_branch pr_head head_ref_oid <<<"$pr_fields"
 
 [[ $pr_state == "MERGED" && -n $merged_at ]] || die "PR is not merged"
 [[ $pr_head == "$head_branch" ]] || die "PR head does not match current branch"
+[[ -n $head_ref_oid ]] || die "PR head OID is not available"
 case $base_branch in
   main | master | develop) ;;
   *) die "unsupported PR base branch: $base_branch" ;;
 esac
 
+local_head_oid=$(git rev-parse --verify "$head_branch") \
+  || die "failed to resolve local head OID"
+[[ $local_head_oid == "$head_ref_oid" ]] \
+  || die "local head has diverged from PR head; aborting to avoid discarding local commits"
+
 git switch "$base_branch"
 git pull --ff-only origin "$base_branch"
-git branch -d "$head_branch"
+git branch -D "$head_branch"
 
 printf 'Cleaned merged PR branch %s; now on %s at %s.\n' \
   "$head_branch" "$base_branch" "$(git rev-parse --short HEAD)"

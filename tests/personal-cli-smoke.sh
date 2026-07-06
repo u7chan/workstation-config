@@ -41,7 +41,9 @@ if [[ ${1:-} == auth && ${2:-} == status ]]; then
   exit 0
 fi
 if [[ ${1:-} == pr && ${2:-} == view && -n ${3:-} ]]; then
-  printf 'MERGED\t2026-07-06T00:00:00Z\tmain\t%s\n' "$3"
+  branch=${3}
+  head_oid=${GH_MOCK_HEAD_OID:-$(git rev-parse --verify "$branch")}
+  printf 'MERGED\t2026-07-06T00:00:00Z\tmain\t%s\t%s\n' "$branch" "$head_oid"
   exit 0
 fi
 exit 1
@@ -51,9 +53,6 @@ chmod +x "$mock_bin/gh"
 pr_repo=$(create_repo pr-repo)
 git -C "$pr_repo" switch -c feature/pr >/dev/null
 git -C "$pr_repo" commit --allow-empty -m feature >/dev/null
-git -C "$pr_repo" switch main >/dev/null
-git -C "$pr_repo" merge --ff-only feature/pr >/dev/null
-git -C "$pr_repo" switch feature/pr >/dev/null
 PATH="$mock_bin:$PATH" git -C "$pr_repo" status --short >/dev/null
 (
   cd "$pr_repo"
@@ -65,19 +64,20 @@ if git -C "$pr_repo" show-ref --verify --quiet refs/heads/feature/pr; then
   exit 1
 fi
 
-# Unmerged commits on the head branch stop deletion after switching to base.
-git -C "$pr_repo" switch -c feature/unmerged >/dev/null
-git -C "$pr_repo" commit --allow-empty -m extra >/dev/null
+# Local commits ahead of the PR head stop cleanup before switching to base.
+git -C "$pr_repo" switch -c feature/extra >/dev/null
+git -C "$pr_repo" commit --allow-empty -m pr-head >/dev/null
+expected_oid=$(git -C "$pr_repo" rev-parse --verify feature/extra)
+git -C "$pr_repo" commit --allow-empty -m local-extra >/dev/null
 if (
   cd "$pr_repo"
-  PATH="$mock_bin:$PATH" "$PR_CLEANUP" >/dev/null 2>&1
+  GH_MOCK_HEAD_OID="$expected_oid" PATH="$mock_bin:$PATH" "$PR_CLEANUP" >/dev/null 2>&1
 ); then
-  printf 'git-pr-cleanup deleted a head branch with unmerged commits.\n' >&2
+  printf 'git-pr-cleanup accepted a head branch with local commits ahead of PR head.\n' >&2
   exit 1
 fi
-[[ $(git -C "$pr_repo" branch --show-current) == main ]]
-git -C "$pr_repo" show-ref --verify --quiet refs/heads/feature/unmerged
-git -C "$pr_repo" branch -D feature/unmerged >/dev/null
+[[ $(git -C "$pr_repo" branch --show-current) == feature/extra ]]
+git -C "$pr_repo" show-ref --verify --quiet refs/heads/feature/extra
 
 # A dirty primary tree stops before any PR operation.
 git -C "$pr_repo" switch -c feature/pr >/dev/null
