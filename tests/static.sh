@@ -8,6 +8,7 @@ bash -n "$ROOT_DIR/bootstrap"
 "$ROOT_DIR/bootstrap" --help >/dev/null
 
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
+grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
 test -s "$ROOT_DIR/mise/mise.lock"
@@ -26,6 +27,11 @@ bash -n "$ROOT_DIR/tests/yazi-smoke.sh"
 bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
 bash -n "$ROOT_DIR/scripts/update-ai"
 bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
+bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
+for personal_cli in clp git-agent-cleanup git-pr-cleanup http http-lan; do
+  bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
+  grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+done
 
 test -f "$ROOT_DIR/home/dot_config/yazi/yazi.toml"
 test -f "$ROOT_DIR/home/dot_config/yazi/package.toml"
@@ -176,6 +182,12 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/ai-clis-smoke.sh" \
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \
+    "$ROOT_DIR/tests/personal-cli-smoke.sh" \
+    "$ROOT_DIR/scripts/personal-bin/clp" \
+    "$ROOT_DIR/scripts/personal-bin/git-agent-cleanup" \
+    "$ROOT_DIR/scripts/personal-bin/git-pr-cleanup" \
+    "$ROOT_DIR/scripts/personal-bin/http" \
+    "$ROOT_DIR/scripts/personal-bin/http-lan" \
     "$ROOT_DIR/tests/static.sh"
 fi
 

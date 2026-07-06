@@ -4,3 +4,15 @@
     src: "{{ playbook_dir }}/../scripts/update-ai"
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai"
     mode: "0755"
+
+- name: Install personal CLI scripts
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/personal-bin/{{ item }}"
+    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/{{ item }}"
+    mode: "0755"
+  loop:
+    - clp
+    - git-agent-cleanup
+    - git-pr-cleanup
+    - http
+    - http-lan

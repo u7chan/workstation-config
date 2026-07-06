@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: clp --list
+       clp <provider> [claude arguments...]
+
+Load ~/.config/envs/<provider>/.env and launch Claude Code.
+The file must be owned by the current user, have mode 600, and define exactly:
+  BASE_URL="..."
+  API_KEY="..."
+  MODEL="..."
+EOF
+}
+
+die() {
+  printf 'clp: %s\n' "$*" >&2
+  exit 1
+}
+
+envs_dir="$HOME/.config/envs"
+if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
+  usage
+  exit 0
+fi
+if [[ ${1:-} == "--list" ]]; then
+  (( $# == 1 )) || {
+    usage >&2
+    exit 2
+  }
+  if [[ ! -d $envs_dir ]]; then
+    exit 0
+  fi
+  while IFS= read -r file; do
+    provider=${file#"$envs_dir/"}
+    provider=${provider%/.env}
+    printf '%s\n' "$provider"
+  done < <(find "$envs_dir" -mindepth 2 -maxdepth 2 -type f -name .env | sort)
+  exit 0
+fi
+(( $# >= 1 )) || {
+  usage >&2
+  exit 2
+}
+
+provider=$1
+shift
+[[ $provider =~ ^[a-z0-9][a-z0-9_-]*$ ]] || die "invalid provider name: $provider"
+env_file="$envs_dir/$provider/.env"
+[[ -f $env_file && ! -L $env_file ]] || die "provider file is not a regular file: $env_file"
+[[ $(stat -c '%u' "$env_file") == "$EUID" ]] || die "provider file must be owned by the current user"
+[[ $(stat -c '%a' "$env_file") == "600" ]] || die "provider file must have mode 600: $env_file"
+
+base_url=""
+api_key=""
+model=""
+seen_base_url=0
+seen_api_key=0
+seen_model=0
+while IFS= read -r line || [[ -n $line ]]; do
+  line=${line%$'\r'}
+  [[ -z $line || $line == \#* ]] && continue
+  [[ $line =~ ^([A-Z_][A-Z0-9_]*)=(.*)$ ]] || die "invalid .env line (expected KEY=value)"
+  key=${BASH_REMATCH[1]}
+  value=${BASH_REMATCH[2]}
+  if [[ $value == \"* ]]; then
+    [[ $value == *\" && ${#value} -ge 2 ]] || die "unterminated double-quoted value: $key"
+    value=${value:1:${#value}-2}
+  elif [[ $value == \'* ]]; then
+    [[ $value == *\' && ${#value} -ge 2 ]] || die "unterminated single-quoted value: $key"
+    value=${value:1:${#value}-2}
+  elif [[ $value == *\" || $value == *\' ]]; then
+    die "unexpected trailing quote: $key"
+  fi
+  case $key in
+    BASE_URL)
+      (( seen_base_url == 0 )) || die "duplicate key: BASE_URL"
+      base_url=$value
+      seen_base_url=1
+      ;;
+    API_KEY)
+      (( seen_api_key == 0 )) || die "duplicate key: API_KEY"
+      api_key=$value
+      seen_api_key=1
+      ;;
+    MODEL)
+      (( seen_model == 0 )) || die "duplicate key: MODEL"
+      model=$value
+      seen_model=1
+      ;;
+    *) die "unsupported key in provider file: $key" ;;
+  esac
+done <"$env_file"
+
+(( seen_base_url == 1 && seen_api_key == 1 && seen_model == 1 )) \
+  || die "provider file must define BASE_URL, API_KEY, and MODEL"
+[[ -n $base_url && -n $api_key && -n $model ]] || die "provider values must not be empty"
+command -v claude >/dev/null 2>&1 || die "claude is not installed"
+
+printf 'Launching Claude Code with provider %s.\n' "$provider" >&2
+exec env \
+  ANTHROPIC_BASE_URL="$base_url" \
+  ANTHROPIC_AUTH_TOKEN="$api_key" \
+  ANTHROPIC_MODEL="$model" \
+  ANTHROPIC_DEFAULT_OPUS_MODEL="$model" \
+  ANTHROPIC_DEFAULT_SONNET_MODEL="$model" \
+  ANTHROPIC_DEFAULT_HAIKU_MODEL="$model" \
+  claude "$@"
