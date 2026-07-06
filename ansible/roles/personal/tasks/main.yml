@@ -16,3 +16,6 @@
     - git-pr-cleanup
     - http
     - http-lan
+
+- name: Configure shared agent skills
+  ansible.builtin.include_tasks: agent_skills.yml

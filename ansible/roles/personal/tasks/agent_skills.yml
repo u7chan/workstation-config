@@ -1,0 +1,32 @@
+---
+- name: Ensure agent-skills destination exists
+  ansible.builtin.file:
+    path: "{{ agent_skills_dest }}"
+    state: directory
+    mode: "0755"
+
+- name: Clone agent-skills repository
+  ansible.builtin.git:
+    repo: "{{ agent_skills_repo_url }}"
+    dest: "{{ agent_skills_dest }}"
+    version: main
+    update: true
+
+- name: Ensure AI CLI configuration directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - claude
+    - codex
+
+- name: Link AI CLI skills to agent-skills
+  ansible.builtin.file:
+    src: "{{ agent_skills_dest }}"
+    dest: "{{ ansible_facts['user_dir'] }}/.{{ item }}/skills"
+    state: link
+    force: false
+  loop:
+    - claude
+    - codex

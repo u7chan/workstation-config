@@ -29,6 +29,7 @@ bash -n "$ROOT_DIR/scripts/update-ai"
 bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
 bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 bash -n "$ROOT_DIR/tests/docker-smoke.sh"
+bash -n "$ROOT_DIR/tests/agent-skills-smoke.sh"
 for personal_cli in clp git-agent-cleanup git-pr-cleanup http http-lan; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
   grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
@@ -104,6 +105,16 @@ fi
 
 grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
 grep -q '^  - gh$' "$ROOT_DIR/ansible/vars/main.yml"
+
+agent_skills_tasks="$ROOT_DIR/ansible/roles/personal/tasks/agent_skills.yml"
+grep -Fq 'agent_skills_repo_url: "https://github.com/u7chan/agent-skills.git"' \
+  "$ROOT_DIR/ansible/vars/main.yml"
+grep -Fq "agent_skills_dest: \"{{ ansible_facts['user_dir'] }}/workspace/agent-skills\"" \
+  "$ROOT_DIR/ansible/vars/main.yml"
+grep -Fq 'repo: "{{ agent_skills_repo_url }}"' "$agent_skills_tasks"
+grep -Fq 'src: "{{ agent_skills_dest }}"' "$agent_skills_tasks"
+grep -Fq 'dest: "{{ ansible_facts['"'"'user_dir'"'"'] }}/.{{ item }}/skills"' "$agent_skills_tasks"
+grep -Fq 'force: false' "$agent_skills_tasks"
 
 docker_tasks="$ROOT_DIR/ansible/roles/docker_ce/tasks/main.yml"
 grep -Fq 'download.docker.com/linux/ubuntu' "$ROOT_DIR/ansible/vars/main.yml"
@@ -198,6 +209,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \
     "$ROOT_DIR/tests/personal-cli-smoke.sh" \
     "$ROOT_DIR/tests/docker-smoke.sh" \
+    "$ROOT_DIR/tests/agent-skills-smoke.sh" \
     "$ROOT_DIR/scripts/personal-bin/clp" \
     "$ROOT_DIR/scripts/personal-bin/git-agent-cleanup" \
     "$ROOT_DIR/scripts/personal-bin/git-pr-cleanup" \
