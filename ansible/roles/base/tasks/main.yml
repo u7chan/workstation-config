@@ -88,7 +88,7 @@
   ansible.builtin.file:
     path: "{{ ansible_facts['user_dir'] }}/.config/workstation/shell"
     state: directory
-    mode: "0700"
+    mode: "0755"
 
 - name: Create machine-local Bash configuration
   ansible.builtin.file:
@@ -124,9 +124,10 @@
 
 - name: Check currently installed Safe-chain version
   ansible.builtin.shell: |
-    set -o pipefail
-    if command -v safe-chain >/dev/null 2>&1; then
-      safe-chain -v 2>/dev/null | sed -n 's/.*Current safe-chain version: //p'
+    set -euo pipefail
+    safe_chain_bin="{{ ansible_facts['user_dir'] }}/.safe-chain/bin/safe-chain"
+    if [[ -x "$safe_chain_bin" ]]; then
+      "$safe_chain_bin" -v 2>/dev/null | sed -n 's/.*Current safe-chain version: //p'
     fi
   args:
     executable: /bin/bash
