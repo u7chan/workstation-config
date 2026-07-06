@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+die() {
+  printf 'update-ai: %s\n' "$*" >&2
+  exit 1
+}
+
+command -v npm >/dev/null 2>&1 || die "npm is required"
+command -v curl >/dev/null 2>&1 || die "curl is required"
+[[ -r "$HOME/.safe-chain/scripts/init-posix.sh" ]] || die "Safe-chain shell integration is required"
+
+# Load Safe-chain's npm wrapper. Only Codex bypasses the package-age gate;
+# malware inspection remains active because Safe-chain itself is not bypassed.
+# shellcheck disable=SC1091
+source "$HOME/.safe-chain/scripts/init-posix.sh"
+export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
+
+printf '==> Updating Codex CLI through Safe-chain\n'
+SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex" \
+  npm install --global @openai/codex@latest
+
+printf '==> Updating Claude Code from the official native installer\n'
+curl -fsSL https://claude.ai/install.sh | bash
+
+printf '==> Updating OpenCode from the official binary installer\n'
+curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path
+
+printf '==> AI CLI versions\n'
+codex --version
+claude --version
+opencode --version

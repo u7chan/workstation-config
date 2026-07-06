@@ -5,7 +5,6 @@ sandbox_mode = "workspace-write"
 [sandbox_workspace_write]
 network_access = true
 
-# Herdr's official Codex integration requires native hooks. Managing this value
-# up front prevents the integration installer from rewriting the file.
+# Enable Codex native hooks for hook commands.
 [features]
 hooks = true

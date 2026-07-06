@@ -1,4 +1,10 @@
 ---
+- name: Install the AI CLI update entrypoint
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/update-ai"
+    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai"
+    mode: "0755"
+
 - name: Install personal CLI scripts
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../scripts/personal-bin/{{ item }}"

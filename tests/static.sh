@@ -24,6 +24,8 @@ test -f "$ROOT_DIR/home/dot_config/nvim/lazy-lock.json"
 bash -n "$ROOT_DIR/tests/neovim-smoke.sh"
 bash -n "$ROOT_DIR/tests/yazi-smoke.sh"
 bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
+bash -n "$ROOT_DIR/scripts/update-ai"
+bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
 bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 for personal_cli in clp git-agent-cleanup git-pr-cleanup http http-lan; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
@@ -44,9 +46,19 @@ fi
 bash -n "$ROOT_DIR/home/modify_dot_bashrc"
 bash -n "$ROOT_DIR/home/modify_dot_gitconfig"
 bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
-bash -n "$ROOT_DIR/scripts/install-herdr-integrations"
-bash -n "$ROOT_DIR/tests/herdr-integrations-smoke.sh"
 bash -n "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+
+workaround_tasks="$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+workaround_handlers="$ROOT_DIR/ansible/roles/base/handlers/main.yml"
+grep -Fq '/etc/systemd/system/user@.service.d/wsl-cgroup-workaround.conf' "$workaround_tasks"
+grep -Fq 'DelegateSubgroup=' "$workaround_tasks"
+grep -Fq 'distribution_version"] is version("26.04", "==")' "$workaround_tasks"
+grep -Fq '"microsoft" in ansible_facts["kernel"] | lower' "$workaround_tasks"
+grep -Fq 'systemd 259' "$workaround_tasks"
+grep -Fq 'check_mode: false' "$workaround_tasks"
+grep -Fq 'daemon_reload: true' "$workaround_handlers"
+grep -Fq 'systemctl is-active --quiet "$user_unit"' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -Fq 'systemctl --user is-system-running' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 
 grep -q 'mise.*activate bash' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -q 'init-posix.sh' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
@@ -64,15 +76,23 @@ if ! curl -sI --fail --max-time 10 "$safe_chain_url" >/dev/null; then
   printf 'Safe-chain installer URL is not reachable: %s\n' "$safe_chain_url" >&2
   exit 1
 fi
-grep -q 'integration install' "$ROOT_DIR/scripts/install-herdr-integrations"
-grep -q 'integration status' "$ROOT_DIR/scripts/install-herdr-integrations"
-grep -q 'type -a herdr codex' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex"' "$ROOT_DIR/scripts/update-ai"
+grep -q 'npm install --global @openai/codex@latest' "$ROOT_DIR/scripts/update-ai"
+grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
+grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"
+grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"
+grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
+grep -q 'type -a herdr codex claude opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 if find "$ROOT_DIR/home" -type f \( \
   -name 'herdr-agent-state.*' -o \
   -name 'hooks.json' -o \
-  -name 'settings.json' -o \
+  -name 'auth.json' -o \
+  -name 'history.jsonl' -o \
+  -name '*.db' -o \
   -name 'session.json' -o \
   -name '*.log' \
 \) | grep -q .; then
@@ -157,8 +177,8 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/home/modify_dot_bashrc" \
     "$ROOT_DIR/home/modify_dot_gitconfig" \
     "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
-    "$ROOT_DIR/scripts/install-herdr-integrations" \
-    "$ROOT_DIR/tests/herdr-integrations-smoke.sh" \
+    "$ROOT_DIR/scripts/update-ai" \
+    "$ROOT_DIR/tests/ai-clis-smoke.sh" \
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \
     "$ROOT_DIR/tests/personal-cli-smoke.sh" \
