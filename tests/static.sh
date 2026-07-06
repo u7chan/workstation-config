@@ -28,6 +28,7 @@ bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
 bash -n "$ROOT_DIR/scripts/update-ai"
 bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
 bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
+bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 for personal_cli in clp git-agent-cleanup git-pr-cleanup http http-lan; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
   grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
@@ -103,6 +104,19 @@ fi
 
 grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
 grep -q '^  - gh$' "$ROOT_DIR/ansible/vars/main.yml"
+
+docker_tasks="$ROOT_DIR/ansible/roles/docker_ce/tasks/main.yml"
+grep -Fq 'download.docker.com/linux/ubuntu' "$ROOT_DIR/ansible/vars/main.yml"
+for docker_package in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
+  grep -Fq -- "- $docker_package" "$ROOT_DIR/ansible/vars/main.yml"
+done
+grep -Fq 'containerd.service' "$docker_tasks"
+grep -Fq 'docker.service' "$docker_tasks"
+grep -Fq 'groups:' "$docker_tasks"
+grep -Fq 'personal_docker_ce_enabled | bool' "$ROOT_DIR/ansible/playbook.yml"
+grep -Fq 'docker context show' "$ROOT_DIR/tests/docker-smoke.sh"
+grep -Fq 'docker buildx version' "$ROOT_DIR/tests/docker-smoke.sh"
+grep -Fq 'docker compose' "$ROOT_DIR/tests/docker-smoke.sh"
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
@@ -183,6 +197,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \
     "$ROOT_DIR/tests/personal-cli-smoke.sh" \
+    "$ROOT_DIR/tests/docker-smoke.sh" \
     "$ROOT_DIR/scripts/personal-bin/clp" \
     "$ROOT_DIR/scripts/personal-bin/git-agent-cleanup" \
     "$ROOT_DIR/scripts/personal-bin/git-pr-cleanup" \

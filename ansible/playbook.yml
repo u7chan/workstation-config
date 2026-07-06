@@ -23,3 +23,7 @@
     - role: base
     - role: personal
       when: workstation_profile == "personal"
+    - role: docker_ce
+      when:
+        - workstation_profile == "personal"
+        - personal_docker_ce_enabled | bool
