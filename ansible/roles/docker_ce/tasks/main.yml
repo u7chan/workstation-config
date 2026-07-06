@@ -12,7 +12,7 @@
     url: "{{ docker_apt_key_url }}"
     dest: "{{ docker_apt_keyring }}"
     mode: "0644"
-    force: true
+    force: false
 
 - name: Configure Docker stable APT repository
   become: true
