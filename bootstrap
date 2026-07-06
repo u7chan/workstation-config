@@ -49,15 +49,13 @@ if [[ -x /usr/bin/sudo.ws ]] && sudo --version 2>/dev/null | grep -q '^sudo-rs';
   SUDO_EXE="/usr/bin/sudo.ws"
 fi
 
-BECOME_SUDO="${SUDO_EXE:-sudo}"
-
 # Ansible needs a password prompt only when passwordless sudo is unavailable.
-# Capture this before sudo -v caches the ticket, otherwise the second check
+# Detect this before sudo -v caches the ticket, otherwise the second check
 # would always succeed and ASK_PASS would never be set.
 ASK_PASS=""
-if ! "$BECOME_SUDO" -n true 2>/dev/null; then
+if ! sudo -n true 2>/dev/null; then
   ASK_PASS="True"
-  "$BECOME_SUDO" -v
+  sudo -v
 fi
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
