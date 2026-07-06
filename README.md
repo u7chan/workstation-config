@@ -41,6 +41,24 @@ bootstrapは次の条件を事前検査します。
 
 AnsibleはUbuntuのAPT版`ansible-core`を使用し、OS Pythonへpipで導入しません。
 
+### Ubuntu 26.04 WSLのsystemd user session回避策
+
+検証・運用には、Ubuntu 24.04など既存環境と区別できる専用distro名
+`workstation-test-ubuntu26`を使用してください。
+
+Ubuntu 26.04 WSL2のsystemd 259では、一度終了した`user@1000.service`が
+WSLのcgroup再利用と衝突して再起動できない既知問題があります。base Roleは対象環境に限り
+`/etc/systemd/system/user@.service.d/wsl-cgroup-workaround.conf`を配置し、
+`DelegateSubgroup`を解除します。Ubuntu 24.04および非WSL環境には適用しません。
+
+これは一時的な回避策です。Ubuntuまたはsystemd upstreamで問題が解消した後は、
+systemdのバージョン条件とdrop-inの撤去を判断してください。適用後はWindows側で
+`wsl.exe --terminate workstation-test-ubuntu26`を実行して再接続し、次を確認します。
+
+```bash
+./tests/wsl-restart-smoke.sh
+```
+
 ## 構成
 
 ```text

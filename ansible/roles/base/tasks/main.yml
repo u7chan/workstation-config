@@ -1,4 +1,42 @@
 ---
+- name: Read systemd version
+  ansible.builtin.command: systemctl --version
+  register: systemd_version
+  changed_when: false
+  when:
+    - ansible_facts["distribution"] == "Ubuntu"
+    - ansible_facts["distribution_version"] is version("26.04", "==")
+    - '"microsoft" in ansible_facts["kernel"] | lower'
+
+- name: Create user service override directory
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/system/user@.service.d
+    state: directory
+    mode: "0755"
+  when:
+    - ansible_facts["distribution"] == "Ubuntu"
+    - ansible_facts["distribution_version"] is version("26.04", "==")
+    - '"microsoft" in ansible_facts["kernel"] | lower'
+    - systemd_version.stdout is match("^systemd 259(\\s|$)")
+
+- name: Work around systemd user session restart failure on Ubuntu 26.04 WSL2
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/user@.service.d/wsl-cgroup-workaround.conf
+    content: |
+      # Temporary workaround for systemd 259 on Ubuntu 26.04 WSL2.
+      # Remove after the upstream DelegateSubgroup/cgroup reuse issue is fixed.
+      [Service]
+      DelegateSubgroup=
+    mode: "0644"
+  when:
+    - ansible_facts["distribution"] == "Ubuntu"
+    - ansible_facts["distribution_version"] is version("26.04", "==")
+    - '"microsoft" in ansible_facts["kernel"] | lower'
+    - systemd_version.stdout is match("^systemd 259(\\s|$)")
+  notify: Reload systemd manager configuration
+
 - name: Install explicit base package allowlist
   become: true
   ansible.builtin.apt:
