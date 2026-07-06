@@ -60,7 +60,7 @@ ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
   "$ROOT_DIR/ansible/playbook.yml"
 
 printf '==> Applying chezmoi source\n'
-"$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty
+"$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force
 
 printf '==> Installing mise tools\n'
 MISE_LOCKED=1 \
