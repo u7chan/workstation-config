@@ -3,6 +3,7 @@
   ansible.builtin.command: systemctl --version
   register: systemd_version
   changed_when: false
+  check_mode: false
   when:
     - ansible_facts["distribution"] == "Ubuntu"
     - ansible_facts["distribution_version"] is version("26.04", "==")
