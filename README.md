@@ -131,6 +131,73 @@ Herdr経由のCodexも通常の`HOME`にある`~/.codex/config.toml`を読みま
 
 マシン固有のworkspace aliasなどは、`~/.config/workstation/shell/local.bash`へ記述してください。このファイルはGitおよびchezmoiの管理対象外で、bootstrapは既存内容を変更せずmode 600を維持します。
 
+## 個人CLI
+
+`personal`プロファイルは、リポジトリの`scripts/personal-bin/`から次のCLIを`~/.local/bin`へ配置します。`base`プロファイルには配置しません。
+
+### Git cleanup
+
+マージ済みPRのローカル作業ブランチを片付ける場合は、そのブランチをcheckoutしたprimary worktreeで実行します。
+
+```bash
+git-pr-cleanup
+# Gitの外部サブコマンドとしても同じ処理
+git pr-cleanup
+```
+
+未追跡ファイルを含むdirty tree、linked worktree、未マージPR、PRのhead不一致、`main`・`master`・`develop`以外のbaseでは停止します。成功時だけbaseへ切り替え、`origin`からfast-forwardして、対象PRのローカルhead branchだけを削除します。remote branch、他のローカルブランチ、worktree、stashは変更しません。
+
+Agent worktreeの一括整理は、primary worktreeから実行します。既定はdry-runです。
+
+```bash
+git-agent-cleanup
+git-agent-cleanup --apply
+git-agent-cleanup --apply --force
+```
+
+対象はGitに登録されている`../<repo-name>-worktrees/`配下のworktreeと、それぞれに紐づくローカルブランチだけです。名前だけで推定したブランチ、別パスのworktree、remote branchは対象にしません。`--apply`は削除前に全対象を検査し、dirty worktreeまたは既定remote branchへ未マージのブランチが一つでもあれば、何も削除せず停止します。`--force`はこの検査を上書きしますが、検出範囲は広げません。
+
+### HTTP server
+
+カレントディレクトリをlocalhostだけへ公開する場合は`http`、LANへ公開する場合は`http-lan`を使います。引数はPython標準の`http.server`へ渡します。
+
+```bash
+http 8000
+http-lan 8000
+```
+
+`http-lan`は確認なしで`0.0.0.0`へbindし、起動時に警告とLAN用URLを表示します。Windows Firewallなどホスト側の設定は変更しません。
+
+### Claude provider launcher
+
+`clp`はprovider別設定を読み、同じmodelをClaude Codeの各model tierへ割り当てて起動します。
+
+```bash
+clp --list
+clp zai
+clp deepseek --version
+```
+
+設定はGit管理外の`~/.config/envs/<provider>/.env`へ置きます。ファイルは現在ユーザー所有の通常ファイルかつmode 600でなければ実行を拒否します。
+
+```dotenv
+BASE_URL="https://provider.example"
+API_KEY="replace-with-secret"
+MODEL="provider/model-name"
+```
+
+```bash
+chmod 600 ~/.config/envs/<provider>/.env
+```
+
+`.env`はshellとしてsourceせず、`BASE_URL`、`API_KEY`、`MODEL`の3キーだけを解析します。値やAPI keyは表示せず、secretファイル自体もリポジトリやchezmoiでは管理しません。
+
+開発時のfixture testは次で実行します。破壊操作は一時Gitリポジトリ内だけで行います。
+
+```bash
+./tests/personal-cli-smoke.sh
+```
+
 ## Safe-chain
 
 [Aikido Safe-chain](https://github.com/AikidoSec/safe-chain)は、npm/yarn/pnpm/npx/pnpx、Bun、およびpip/uv/poetry経由でインストールされる悪意あるパッケージをブロックします。本体は[AikidoSec/safe-chain](https://github.com/AikidoSec/safe-chain)の公式GitHub Releaseから導入し、バージョンは`ansible/vars/main.yml`の`safe_chain_version`で固定します。現在のpin対象は**1.5.12**です。

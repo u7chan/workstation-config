@@ -24,6 +24,11 @@ test -f "$ROOT_DIR/home/dot_config/nvim/lazy-lock.json"
 bash -n "$ROOT_DIR/tests/neovim-smoke.sh"
 bash -n "$ROOT_DIR/tests/yazi-smoke.sh"
 bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
+bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
+for personal_cli in clp git-agent-cleanup git-pr-cleanup http http-lan; do
+  bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
+  grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+done
 
 test -f "$ROOT_DIR/home/dot_config/yazi/yazi.toml"
 test -f "$ROOT_DIR/home/dot_config/yazi/package.toml"
@@ -156,6 +161,12 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/herdr-integrations-smoke.sh" \
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \
+    "$ROOT_DIR/tests/personal-cli-smoke.sh" \
+    "$ROOT_DIR/scripts/personal-bin/clp" \
+    "$ROOT_DIR/scripts/personal-bin/git-agent-cleanup" \
+    "$ROOT_DIR/scripts/personal-bin/git-pr-cleanup" \
+    "$ROOT_DIR/scripts/personal-bin/http" \
+    "$ROOT_DIR/scripts/personal-bin/http-lan" \
     "$ROOT_DIR/tests/static.sh"
 fi
 
