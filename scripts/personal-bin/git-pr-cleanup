@@ -58,7 +58,7 @@ esac
 
 git switch "$base_branch"
 git pull --ff-only origin "$base_branch"
-git branch -D "$head_branch"
+git branch -d "$head_branch"
 
 printf 'Cleaned merged PR branch %s; now on %s at %s.\n' \
   "$head_branch" "$base_branch" "$(git rev-parse --short HEAD)"
