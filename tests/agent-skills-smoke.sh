@@ -37,7 +37,7 @@ run_playbook() {
 
 normal_home="$test_dir/normal-home"
 first_output="$(run_playbook "$normal_home")"
-grep -Fq 'changed=' <<<"$first_output"
+grep -Eq 'changed=[1-9][0-9]*([[:space:]]|$)' <<<"$first_output"
 [[ $(git -C "$normal_home/workspace/agent-skills" remote get-url origin) == \
   https://github.com/u7chan/agent-skills.git ]]
 [[ $(readlink "$normal_home/.claude/skills") == "$normal_home/workspace/agent-skills" ]]
@@ -49,19 +49,21 @@ grep -Eq 'changed=0([[:space:]]|$)' <<<"$second_output"
 file_home="$test_dir/existing-file-home"
 mkdir -p "$file_home/.claude"
 printf 'keep me\n' >"$file_home/.claude/skills"
-if run_playbook "$file_home" >/dev/null 2>&1; then
+if file_output="$(run_playbook "$file_home" 2>&1)"; then
   printf 'Existing skills file was unexpectedly overwritten.\n' >&2
   exit 1
 fi
+grep -Fq 'Link AI CLI skills to agent-skills' <<<"$file_output"
 grep -Fqx 'keep me' "$file_home/.claude/skills"
 
 directory_home="$test_dir/existing-directory-home"
 mkdir -p "$directory_home/.codex/skills"
 printf 'keep me too\n' >"$directory_home/.codex/skills/content"
-if run_playbook "$directory_home" >/dev/null 2>&1; then
+if directory_output="$(run_playbook "$directory_home" 2>&1)"; then
   printf 'Existing skills directory was unexpectedly overwritten.\n' >&2
   exit 1
 fi
+grep -Fq 'Link AI CLI skills to agent-skills' <<<"$directory_output"
 grep -Fqx 'keep me too' "$directory_home/.codex/skills/content"
 
 printf 'Agent skills smoke checks passed.\n'
