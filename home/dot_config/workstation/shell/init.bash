@@ -16,6 +16,10 @@ if [[ -f "$HOME/.safe-chain/scripts/init-posix.sh" && -r "$HOME/.safe-chain/scri
   source "$HOME/.safe-chain/scripts/init-posix.sh"
 fi
 
+# Claude Code updates are owned by update-ai, not by the CLI background updater.
+export DISABLE_AUTOUPDATER=1
+export PATH="$HOME/.opencode/bin:$PATH"
+
 alias g=git
 alias h=herdr
 

@@ -1,6 +1,6 @@
 ---
-# Optional personal roles are added here by their dedicated issues.
-- name: Report personal profile activation
-  ansible.builtin.debug:
-    msg: "Personal profile enabled; base configuration is already applied."
-  changed_when: false
+- name: Install the AI CLI update entrypoint
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/update-ai"
+    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai"
+    mode: "0755"

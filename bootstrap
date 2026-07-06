@@ -68,10 +68,10 @@ MISE_YES=1 \
   "$HOME/.local/bin/mise" install
 
 if [[ $PROFILE == "personal" ]]; then
-  printf '==> Installing Herdr AI CLI integrations\n'
+  printf '==> Installing personal AI CLIs\n'
   MISE_LOCKED=1 \
     "$HOME/.local/bin/mise" exec -- \
-    "$ROOT_DIR/scripts/install-herdr-integrations"
+    "$HOME/.local/bin/update-ai"
 fi
 
 printf '==> Bootstrap complete: %s\n' "$PROFILE"
