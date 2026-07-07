@@ -7,6 +7,16 @@ readonly ROOT_DIR
 bash -n "$ROOT_DIR/bootstrap"
 "$ROOT_DIR/bootstrap" --help >/dev/null
 
+grep -Fq 'Bootstrap前の初期セットアップ' "$ROOT_DIR/README.md"
+grep -Fq 'Workstation構成ガイド' "$ROOT_DIR/README.md"
+grep -Fq 'wsl --install Ubuntu-26.04 --name sandbox' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+grep -Fq 'wsl --unregister sandbox' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+grep -Fq '破壊的操作' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+grep -Fq 'ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+grep -Fq 'sudo-rs' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+test -f "$ROOT_DIR/docs/workstation.md"
+grep -Fq '[初期セットアップ手順](bootstrap-prerequisites.md)' "$ROOT_DIR/docs/workstation.md"
+
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
@@ -132,6 +142,8 @@ grep -Fq 'docker compose' "$ROOT_DIR/tests/docker-smoke.sh"
 grep -Fq 'env \' "$ROOT_DIR/bootstrap"
 grep -Fq 'ANSIBLE_BECOME_EXE="$SUDO_EXE"' "$ROOT_DIR/bootstrap"
 grep -Fq 'ANSIBLE_BECOME_ASK_PASS="$ASK_PASS"' "$ROOT_DIR/bootstrap"
+grep -q '^"${SUDO_EXE:-sudo}" -v$' "$ROOT_DIR/bootstrap"
+grep -q '\[\[ -n \$SUDO_EXE \]\]' "$ROOT_DIR/bootstrap"
 
 ansible_env_output="$(
   env \

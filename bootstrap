@@ -49,19 +49,23 @@ if [[ -x /usr/bin/sudo.ws ]] && sudo --version 2>/dev/null | grep -q '^sudo-rs';
   SUDO_EXE="/usr/bin/sudo.ws"
 fi
 
-# Ansible needs a password prompt only when passwordless sudo is unavailable.
-# Detect this before sudo -v caches the ticket, otherwise the second check
-# would always succeed and ASK_PASS would never be set.
+# When sudo-rs is the default and we use sudo.ws for become, the credential
+# cache created by sudo.ws -v does not reliably survive into Ansible's become
+# subprocess. Always ask for become password in that case so Ansible can prompt
+# the user directly. For plain sudo, detect password requirements and refresh
+# the credential cache for direct sudo calls (apt, etc.).
 ASK_PASS=""
-if ! sudo -n true 2>/dev/null; then
+if [[ -n $SUDO_EXE ]]; then
   ASK_PASS="True"
-  sudo -v
+elif ! "${SUDO_EXE:-sudo}" -n true 2>/dev/null; then
+  ASK_PASS="True"
 fi
+"${SUDO_EXE:-sudo}" -v
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   printf '==> Installing Ubuntu ansible-core\n'
-  sudo env DEBIAN_FRONTEND=noninteractive apt-get update
-  sudo env DEBIAN_FRONTEND=noninteractive \
+  "${SUDO_EXE:-sudo}" env DEBIAN_FRONTEND=noninteractive apt-get update
+  "${SUDO_EXE:-sudo}" env DEBIAN_FRONTEND=noninteractive \
     apt-get install --yes --no-install-recommends ansible-core
 fi
 
