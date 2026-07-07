@@ -11,7 +11,7 @@ bootstrapは次の作業を自動化しません。
 3. `gh auth login`によるGitHub HTTPS認証
 4. このprivateリポジトリのclone
 
-具体的なコマンドは[初期セットアップ手順](docs/bootstrap-prerequisites.md)を参照してください。
+具体的なコマンドは[初期セットアップ手順](bootstrap-prerequisites.md)を参照してください。
 
 secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。
 
