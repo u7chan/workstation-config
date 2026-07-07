@@ -17,13 +17,13 @@ systemctl is-active --quiet "$user_unit" || {
   exit 1
 }
 
-resolution="$(bash --login -ic 'type -a herdr codex claude opencode' 2>&1)" || {
+resolution="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'type -a herdr codex claude opencode' 2>&1)" || {
   printf '%s\n' "$resolution" >&2
   exit 1
 }
 printf '%s\n' "$resolution"
 
-paths_output="$(bash --login -ic 'command -v herdr; command -v codex; command -v claude; command -v opencode' 2>/dev/null)"
+paths_output="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'command -v herdr; command -v codex; command -v claude; command -v opencode' 2>/dev/null)"
 mapfile -t paths <<<"$paths_output"
 for path in "${paths[@]:0:2}"; do
   [[ $path == "$HOME/.local/share/mise/"* ]] || {
@@ -45,5 +45,5 @@ done
   exit 1
 }
 
-"${paths[1]}" features list >/dev/null
+MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'codex features list' >/dev/null
 printf 'WSL restart smoke checks passed.\n'

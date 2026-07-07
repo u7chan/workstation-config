@@ -41,7 +41,20 @@ readonly MACHINE_ARCH
 command -v sudo >/dev/null 2>&1 || die "sudo is required"
 
 printf '==> Validating sudo access\n'
+# Ubuntu 26.04 ships sudo-rs as the default sudo implementation, which does not
+# handle Ansible's become password prompt correctly. Use the compatibility
+# wrapper when it is available and the active sudo is sudo-rs.
+SUDO_EXE=""
+if [[ -x /usr/bin/sudo.ws ]] && sudo --version 2>/dev/null | grep -q '^sudo-rs'; then
+  SUDO_EXE="/usr/bin/sudo.ws"
+fi
+
+# Ansible needs a password prompt only when passwordless sudo is unavailable.
+# Detect this before sudo -v caches the ticket, otherwise the second check
+# would always succeed and ASK_PASS would never be set.
+ASK_PASS=""
 if ! sudo -n true 2>/dev/null; then
+  ASK_PASS="True"
   sudo -v
 fi
 
@@ -53,7 +66,13 @@ if ! command -v ansible-playbook >/dev/null 2>&1; then
 fi
 
 printf '==> Applying Ansible profile: %s\n' "$PROFILE"
-ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+ansible_become_vars=()
+[[ -n $SUDO_EXE ]] && ansible_become_vars+=(ANSIBLE_BECOME_EXE="$SUDO_EXE")
+[[ -n $ASK_PASS ]] && ansible_become_vars+=(ANSIBLE_BECOME_ASK_PASS="$ASK_PASS")
+
+env \
+  ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+  "${ansible_become_vars[@]}" \
   ansible-playbook \
   --inventory "$ROOT_DIR/ansible/inventory/localhost.yml" \
   --extra-vars "workstation_profile=$PROFILE" \
@@ -61,6 +80,9 @@ ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
 
 printf '==> Applying chezmoi source\n'
 "$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force
+
+printf '==> Trusting mise configuration\n'
+"$HOME/.local/bin/mise" trust "$HOME/.config/mise/config.toml"
 
 printf '==> Installing mise tools\n'
 MISE_LOCKED=1 \

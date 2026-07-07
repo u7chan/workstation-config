@@ -19,6 +19,9 @@ export MISE_DATA_DIR="${MISE_DATA_DIR:-$test_dir/mise-data}"
 export MISE_CACHE_DIR="${MISE_CACHE_DIR:-$test_dir/mise-cache}"
 export MISE_STATE_DIR="${MISE_STATE_DIR:-$test_dir/mise-state}"
 export MISE_LOCKED=1
+# Trust all mise configs in this isolated HOME so the smoke test does not
+# prompt or fail on the trust mechanism.
+export MISE_TRUSTED_CONFIG_PATHS="/"
 
 "$MISE" exec neovim -- nvim --headless "+Lazy! sync" +qa
 test -d "$XDG_DATA_HOME/nvim/lazy/lazy.nvim"

@@ -5,6 +5,7 @@ workstation_profiles:
 
 # Keep this list small. Add packages only for a documented role need.
 base_apt_packages:
+  - build-essential
   - ca-certificates
   - curl
   - git
