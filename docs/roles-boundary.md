@@ -10,7 +10,7 @@
 
 | 責務 | base | personal | 備考 |
 |---|---|---|---|
-| 対象環境の事前検査（Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo） | 担当 | 担当 | `bootstrap` と `ansible/playbook.yml` で共通して実施 |
+| 対象環境の事前検査（Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo） | 担当 | 担当 | `bootstrap` で Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo を検証。<br>`ansible/playbook.yml` では Ubuntu 26.04 / x86_64 と `workstation_profile` を検証。 |
 | Ansible profile の選択 | `base` | `personal` | `workstation_profile` extra var で制御 |
 | Ubuntu 26.04 WSL2 の systemd 259 回避策 | 担当 | — | `base` role。対象環境（Ubuntu 26.04 WSL2 + systemd 259）のみ適用 |
 | ベース APT パッケージ（build-essential, ca-certificates, curl, git, gh） | 担当 | — | `base` role の `base_apt_packages` |
