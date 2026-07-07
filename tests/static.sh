@@ -88,6 +88,7 @@ grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -q 'type -a herdr codex claude opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 if find "$ROOT_DIR/home" -type f \( \

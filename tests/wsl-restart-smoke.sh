@@ -45,5 +45,5 @@ done
   exit 1
 }
 
-"${paths[1]}" features list >/dev/null
+MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'codex features list' >/dev/null
 printf 'WSL restart smoke checks passed.\n'
