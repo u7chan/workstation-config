@@ -99,7 +99,7 @@ cd workstation-config
 
 ## 5. sudo-rs対応済みbootstrapを確認する
 
-Ubuntu 26.04では`sudo-rs`が標準の`sudo`になっている場合があります。`sudo-rs`はAnsibleのbecomeパスワードプロンプトと相性が悪いため、bootstrapは`/usr/bin/sudo.ws`が存在する環境ではAnsibleに`ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws`を渡します。
+Ubuntu 26.04では`sudo-rs`が標準の`sudo`になっている場合があります。`sudo-rs`はAnsibleのbecomeパスワードプロンプトと相性が悪いため、現在の`sudo`が`sudo-rs`で、かつ`/usr/bin/sudo.ws`が存在する環境では、bootstrapはAnsibleに`ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws`を渡します。
 
 clone後、bootstrap実行前に次で確認できます。
 

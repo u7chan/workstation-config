@@ -61,8 +61,8 @@ fi
 
 if ! command -v ansible-playbook >/dev/null 2>&1; then
   printf '==> Installing Ubuntu ansible-core\n'
-  sudo env DEBIAN_FRONTEND=noninteractive apt-get update
-  sudo env DEBIAN_FRONTEND=noninteractive \
+  "${SUDO_EXE:-sudo}" env DEBIAN_FRONTEND=noninteractive apt-get update
+  "${SUDO_EXE:-sudo}" env DEBIAN_FRONTEND=noninteractive \
     apt-get install --yes --no-install-recommends ansible-core
 fi
 

@@ -15,6 +15,7 @@ grep -Fq '破壊的操作' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
 grep -Fq 'ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
 grep -Fq 'sudo-rs' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
 test -f "$ROOT_DIR/docs/workstation.md"
+grep -Fq '[初期セットアップ手順](bootstrap-prerequisites.md)' "$ROOT_DIR/docs/workstation.md"
 
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"

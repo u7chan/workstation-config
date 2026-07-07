@@ -1,4 +1,4 @@
-# workstation-config
+# Workstation構成ガイド
 
 Ubuntu 26.04 WSL2を再現可能なワークステーションへ収束させるための構成です。
 
