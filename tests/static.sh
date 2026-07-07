@@ -143,6 +143,7 @@ grep -Fq 'env \' "$ROOT_DIR/bootstrap"
 grep -Fq 'ANSIBLE_BECOME_EXE="$SUDO_EXE"' "$ROOT_DIR/bootstrap"
 grep -Fq 'ANSIBLE_BECOME_ASK_PASS="$ASK_PASS"' "$ROOT_DIR/bootstrap"
 grep -q '^"${SUDO_EXE:-sudo}" -v$' "$ROOT_DIR/bootstrap"
+grep -q '\[\[ -n \$SUDO_EXE \]\]' "$ROOT_DIR/bootstrap"
 
 ansible_env_output="$(
   env \

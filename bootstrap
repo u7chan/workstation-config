@@ -49,11 +49,15 @@ if [[ -x /usr/bin/sudo.ws ]] && sudo --version 2>/dev/null | grep -q '^sudo-rs';
   SUDO_EXE="/usr/bin/sudo.ws"
 fi
 
-# Detect whether sudo requires a password. Refresh the credential cache
-# unconditionally so Ansible's become can pick it up even on repeated runs.
-# Using the same sudo implementation that Ansible will use keeps caches consistent.
+# When sudo-rs is the default and we use sudo.ws for become, the credential
+# cache created by sudo.ws -v does not reliably survive into Ansible's become
+# subprocess. Always ask for become password in that case so Ansible can prompt
+# the user directly. For plain sudo, detect password requirements and refresh
+# the credential cache for direct sudo calls (apt, etc.).
 ASK_PASS=""
-if ! "${SUDO_EXE:-sudo}" -n true 2>/dev/null; then
+if [[ -n $SUDO_EXE ]]; then
+  ASK_PASS="True"
+elif ! "${SUDO_EXE:-sudo}" -n true 2>/dev/null; then
   ASK_PASS="True"
 fi
 "${SUDO_EXE:-sudo}" -v
