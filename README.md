@@ -30,3 +30,7 @@ cd workstation-config
 ```
 
 secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。
+
+## Public 化前の gate
+
+Public 化前は、PR と `main` ブランチへの push で gitleaks による secret scan CI を通してください。検出された場合は `.gitleaks.toml` で最小限の allowlist を検討するか、secret を取り除いてからマージしてください。visibility 変更や credential ローテーション、履歴 rewrite はこの CI では行いません。
