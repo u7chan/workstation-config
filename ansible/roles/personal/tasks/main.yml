@@ -1,9 +1,27 @@
 ---
+- name: Ensure git config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/git"
+    state: directory
+    mode: "0755"
+
+- name: Configure personal git user settings
+  ansible.builtin.template:
+    src: git_config.j2
+    dest: "{{ ansible_facts['user_dir'] }}/.config/git/config"
+    mode: "0644"
+
 - name: Install the AI CLI update entrypoint
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../scripts/update-ai"
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai"
     mode: "0755"
+
+- name: Update selected AI CLI tools
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai{{ personal_ai_tools | map('regex_replace', '^(.*)$', ' --\\1') | join('') }}"
+  when: personal_ai_tools | length > 0
+  changed_when: false
 
 - name: Install personal CLI scripts
   ansible.builtin.copy:
@@ -19,3 +37,4 @@
 
 - name: Configure shared agent skills
   ansible.builtin.include_tasks: agent_skills.yml
+  when: personal_agent_skills_enabled | bool
