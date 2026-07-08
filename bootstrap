@@ -93,11 +93,4 @@ MISE_LOCKED=1 \
 MISE_YES=1 \
   "$HOME/.local/bin/mise" install
 
-if [[ $PROFILE == "personal" ]]; then
-  printf '==> Installing personal AI CLIs\n'
-  MISE_LOCKED=1 \
-    "$HOME/.local/bin/mise" exec -- \
-    "$HOME/.local/bin/update-ai"
-fi
-
 printf '==> Bootstrap complete: %s\n' "$PROFILE"

@@ -17,6 +17,14 @@
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai"
     mode: "0755"
 
+- name: Validate personal_ai_tools values
+  ansible.builtin.assert:
+    that:
+      - item in ['codex', 'claude', 'opencode']
+    fail_msg: "personal_ai_tools contains invalid value: {{ item }}"
+  loop: "{{ personal_ai_tools }}"
+  when: personal_ai_tools | length > 0
+
 - name: Update selected AI CLI tools
   ansible.builtin.command:
     cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai{{ personal_ai_tools | map('regex_replace', '^(.*)$', ' --\\1') | join('') }}"
