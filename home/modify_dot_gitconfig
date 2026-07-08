@@ -37,7 +37,7 @@ git config --file "$config_file" alias.fp 'fetch --prune --verbose'
 git config --file "$config_file" alias.fap 'fetch --all --prune --verbose'
 git config --file "$config_file" alias.pl 'pull --verbose'
 git config --file "$config_file" alias.plr 'pull --rebase --verbose'
-git config --file "$config_file" alias.plm '!git fetch origin main:main --verbose'
+git config --file "$config_file" alias.plm '!git fetch origin main --verbose'
 git config --file "$config_file" alias.p 'push --verbose'
 git config --file "$config_file" alias.puo 'push -u origin HEAD'
 git config --file "$config_file" alias.cm commit
