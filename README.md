@@ -46,7 +46,9 @@ cd workstation-config
 | AI CLI | Codex / Claude Code / OpenCode / Herdr |
 | CI | GitHub Actions + gitleaks |
 
-## Development
+## Development Checks
+
+ローカルで静的チェックを実行します。
 
 ```bash
 ./tests/static.sh
