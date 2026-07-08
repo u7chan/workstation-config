@@ -6,6 +6,14 @@ trap 'rm -f "$config_file"' EXIT
 
 cat >"$config_file"
 
+# Remove managed keys first so re-applying produces identical output.
+git config --file "$config_file" --unset-all user.name 2>/dev/null || true
+git config --file "$config_file" --unset-all user.email 2>/dev/null || true
+git config --file "$config_file" --unset-all init.defaultBranch 2>/dev/null || true
+git config --file "$config_file" --unset-all core.excludesFile 2>/dev/null || true
+git config --file "$config_file" --unset-all 'url.https://github.com/.insteadOf' 2>/dev/null || true
+git config --file "$config_file" --remove-section alias 2>/dev/null || true
+
 git config --file "$config_file" user.name u7chan
 git config --file "$config_file" user.email 34462401+u7chan@users.noreply.github.com
 git config --file "$config_file" init.defaultBranch main
@@ -13,8 +21,30 @@ git config --file "$config_file" core.excludesFile '~/.config/git/ignore'
 
 # Rewrite GitHub SSH-style URLs before transport selection. Authentication and
 # credential helper settings remain owned by `gh auth login` / `gh auth setup-git`.
-git config --file "$config_file" --unset-all 'url.https://github.com/.insteadOf' || true
 git config --file "$config_file" --add 'url.https://github.com/.insteadOf' 'git@github.com:'
 git config --file "$config_file" --add 'url.https://github.com/.insteadOf' 'ssh://git@github.com/'
+
+# Aliases managed by chezmoi. Any aliases not listed here are removed on apply.
+git config --file "$config_file" alias.s status
+git config --file "$config_file" alias.ss 'status -s'
+git config --file "$config_file" alias.b branch
+git config --file "$config_file" alias.sw switch
+git config --file "$config_file" alias.swc 'switch -c'
+git config --file "$config_file" alias.swm 'switch main'
+git config --file "$config_file" alias.f 'fetch --verbose'
+git config --file "$config_file" alias.fa 'fetch --all --verbose'
+git config --file "$config_file" alias.fp 'fetch --prune --verbose'
+git config --file "$config_file" alias.fap 'fetch --all --prune --verbose'
+git config --file "$config_file" alias.pl 'pull --verbose'
+git config --file "$config_file" alias.plr 'pull --rebase --verbose'
+git config --file "$config_file" alias.plm '!git fetch origin main:main --verbose'
+git config --file "$config_file" alias.p 'push --verbose'
+git config --file "$config_file" alias.puo 'push -u origin HEAD'
+git config --file "$config_file" alias.cm commit
+git config --file "$config_file" alias.cma 'commit --amend --no-edit'
+git config --file "$config_file" alias.lg 'log --oneline --graph --decorate'
+git config --file "$config_file" alias.last 'log -1 HEAD'
+git config --file "$config_file" alias.unstage 'restore --staged .'
+git config --file "$config_file" alias.discard 'restore .'
 
 cat "$config_file"
