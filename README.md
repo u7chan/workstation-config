@@ -31,7 +31,7 @@ cd workstation-config
 - [Workstation構成ガイド](docs/workstation.md): profile、Ansible role、mise、chezmoi、Docker、Neovim、Yazi、AI CLI、開発時の検証。
 - [base / personal の責務分界](docs/roles-boundary.md): 各プロファイルの担当範囲と適用条件。
 
-## 技術スタック
+## Tech Stack
 
 | カテゴリ | 使用技術 |
 |---|---|
@@ -46,12 +46,13 @@ cd workstation-config
 | AI CLI | Codex / Claude Code / OpenCode / Herdr |
 | CI | GitHub Actions + gitleaks |
 
-## 開発時の確認
+## Development
 
 ```bash
 ./tests/static.sh
 ```
 
-## Secret 管理
+## Secret Management
 
-secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。
+> [!IMPORTANT]
+> secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。
