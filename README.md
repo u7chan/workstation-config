@@ -9,6 +9,21 @@
 
 Ubuntu 26.04 WSL2 上の開発環境を、コードで定義し再現可能にするための IaC 構成です。
 
+## Tech Stack
+
+| カテゴリ | 使用技術 |
+|---|---|
+| OS | Ubuntu 26.04 on WSL2 |
+| Provisioning | Ansible |
+| Dotfiles | chezmoi |
+| ランタイム管理 | mise |
+| Shell | Bash + Starship |
+| コンテナ | Docker CE |
+| エディタ | Neovim |
+| ファイルマネージャ | Yazi |
+| AI CLI | Codex / Claude Code / OpenCode / Herdr |
+| CI | GitHub Actions + gitleaks |
+
 ## Quick start
 
 初回はWindowsホスト側でWSLディストリビューション、Linuxユーザー、GitHub認証を準備してからcloneします。
@@ -30,21 +45,6 @@ cd workstation-config
 - [Bootstrap前の初期セットアップ](docs/bootstrap-prerequisites.md): WSL作成、distro名指定、削除時の注意、GitHub認証、bootstrap前の確認。
 - [Workstation構成ガイド](docs/workstation.md): profile、Ansible role、mise、chezmoi、Docker、Neovim、Yazi、AI CLI、開発時の検証。
 - [base / personal の責務分界](docs/roles-boundary.md): 各プロファイルの担当範囲と適用条件。
-
-## Tech Stack
-
-| カテゴリ | 使用技術 |
-|---|---|
-| OS | Ubuntu 26.04 on WSL2 |
-| Provisioning | Ansible |
-| Dotfiles | chezmoi |
-| ランタイム管理 | mise |
-| Shell | Bash + Starship |
-| コンテナ | Docker CE |
-| エディタ | Neovim |
-| ファイルマネージャ | Yazi |
-| AI CLI | Codex / Claude Code / OpenCode / Herdr |
-| CI | GitHub Actions + gitleaks |
 
 ## Development Checks
 
