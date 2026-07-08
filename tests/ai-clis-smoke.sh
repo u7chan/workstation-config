@@ -65,11 +65,11 @@ for flag in codex claude opencode; do
   cat >"$flag_home/.safe-chain/scripts/init-posix.sh" <<EOF
 npm() {
   printf 'npm exclusion=%s args=%s\n' "\${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "\$*" >>"\$TEST_INSTALL_LOG"
-  cat >"\$flag_home/.local/bin/codex" <<'SCRIPT'
+  cat >"\$HOME/.local/bin/codex" <<'SCRIPT'
 #!/usr/bin/env bash
 printf 'codex test\n'
 SCRIPT
-  chmod +x "\$flag_home/.local/bin/codex"
+  chmod +x "\$HOME/.local/bin/codex"
 }
 EOF
 
