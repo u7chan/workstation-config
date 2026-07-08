@@ -4,56 +4,35 @@
 
 ## 1. Ubuntu 26.04 WSL2を作成する
 
-PowerShellで実行します。
+PowerShellで管理者権限を開き、利用可能なディストリビューションを確認します。
 
 ```powershell
-wsl --install Ubuntu-26.04
-wsl -d Ubuntu-26.04
+wsl --list --online
 ```
 
-ディストリビューション名を明示する場合は、`--name`を指定します。以降の
-`wsl -d`、`wsl --terminate`、`wsl --unregister`では、ここで指定した名前を使います。
+`Ubuntu-26.04` が含まれていることを確認し、任意の名前でインストールします。以下は `sandbox` という名前の例です。
 
 ```powershell
 wsl --install Ubuntu-26.04 --name sandbox
+```
+
+> [!NOTE]
+> `wsl --install` は初回実行時に WSL 本体もインストールするため、再起動を求められたら再起動し、もう一度同じコマンドを実行してください。
+
+インストール後、指定した名前で起動します。
+
+```powershell
 wsl -d sandbox
 ```
 
-初回起動時の案内に従ってLinuxのユーザー名とパスワードを設定します。このユーザーはrootではなく、sudoを利用できる必要があります。
+以降の `wsl -d`、`wsl --terminate`、`wsl --unregister` では、ここで指定した名前を使います。
 
-次のコマンドが`0`以外を表示することを確認します。
+初回起動時の案内に従って、Linuxのユーザー名とパスワードを設定します。このユーザーはrootではなく、sudoを利用できる必要があります。
 
-```bash
-id -u
-```
+作り直す場合は`wsl --unregister`で削除できます。
 
-初回起動がrootになり一般ユーザーが存在しない場合は、root shellで作成します。`<username>`は実際のユーザー名へ置き換えてください。
-
-```bash
-adduser <username>
-usermod --append --groups sudo <username>
-```
-
-既存の`/etc/wsl.conf`へ次を追記した後、PowerShellからディストリビューションを再起動します。
-
-```ini
-[user]
-default=<username>
-```
-
-```powershell
-wsl --terminate Ubuntu-26.04
-wsl -d Ubuntu-26.04
-```
-
-ディストリビューション名を変えた場合は、実際の名前へ読み替えてください。
-
-```powershell
-wsl --terminate sandbox
-wsl -d sandbox
-```
-
-作り直す場合は`wsl --unregister`で削除できます。これは対象ディストリビューションのLinuxファイルシステム、home、インストール済みパッケージ、設定、未退避データをすべて削除する破壊的操作です。対象名を確認し、必要なファイルを退避してから実行してください。
+> [!WARNING]
+> `wsl --unregister` は対象ディストリビューションのLinuxファイルシステム、home、インストール済みパッケージ、設定、未退避データをすべて削除する破壊的操作です。対象名を確認し、必要なファイルを退避してから実行してください。
 
 ```powershell
 wsl --list --verbose
@@ -81,6 +60,11 @@ gh auth setup-git
 gh auth status
 ```
 
+> [!NOTE]
+> `gh auth setup-git` は、Git の HTTPS 認証を `gh` に委譲する設定を行います。これにより、`git clone https://github.com/...` などを実行した際に毎回パスワードや token を入力する必要がなくなります。
+>
+> `gh auth status` は、GitHub への認証状態を確認するコマンドです。`Logged in to github.com as <username>` と表示されれば成功です。
+
 token、credential、認証stateはこのリポジトリへ保存しません。
 
 ## 4. リポジトリをcloneしてbootstrapする
@@ -91,22 +75,11 @@ cd workstation-config
 ./bootstrap
 ```
 
-引数なしでは`personal`プロファイルを適用します。個人用Roleを含めない場合は`./bootstrap base`を明示してください。
+> [!TIP]
+> 引数なしでは`personal`プロファイルを適用します。個人用Roleを含めない場合は`./bootstrap base`を明示してください。各プロファイルの違いは [base / personal の責務分界](roles-boundary.md) を参照してください。
 
 ```bash
 ./bootstrap base
 ```
 
-## 5. sudo-rs対応済みbootstrapを確認する
 
-Ubuntu 26.04では`sudo-rs`が標準の`sudo`になっている場合があります。`sudo-rs`はAnsibleのbecomeパスワードプロンプトと相性が悪いため、現在の`sudo`が`sudo-rs`で、かつ`/usr/bin/sudo.ws`が存在する環境では、bootstrapはAnsibleに`ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws`を渡します。
-
-clone後、bootstrap実行前に次で確認できます。
-
-```bash
-grep -n 'SUDO_EXE\|sudo.ws\|ANSIBLE_BECOME_EXE\|ANSIBLE_BECOME_ASK_PASS\|env \\' bootstrap
-sudo --version | head -1
-test -x /usr/bin/sudo.ws && echo 'sudo.ws exists'
-```
-
-`sudo --version | head -1`が`sudo-rs ...`で、`sudo.ws exists`も表示される場合は、`bootstrap`内に`sudo.ws`と`ANSIBLE_BECOME_EXE`が含まれている必要があります。含まれていない場合は古いcheckoutや手動コピーの可能性があるため、最新の`main`を取り直してください。
