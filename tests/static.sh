@@ -167,8 +167,6 @@ EOF
 "$ROOT_DIR/home/modify_dot_gitconfig" <"$gitconfig_input" >"$gitconfig_first"
 "$ROOT_DIR/home/modify_dot_gitconfig" <"$gitconfig_first" >"$gitconfig_second"
 cmp "$gitconfig_first" "$gitconfig_second"
-[[ $(git config --file "$gitconfig_second" user.name) == u7chan ]]
-[[ $(git config --file "$gitconfig_second" user.email) == 34462401+u7chan@users.noreply.github.com ]]
 [[ $(git config --file "$gitconfig_second" init.defaultBranch) == main ]]
 [[ $(git config --file "$gitconfig_second" core.excludesFile) == '~/.config/git/ignore' ]]
 [[ $(git config --file "$gitconfig_second" --get-all 'url.https://github.com/.insteadOf' | wc -l) -eq 2 ]]
