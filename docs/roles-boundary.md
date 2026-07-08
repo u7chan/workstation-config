@@ -11,6 +11,11 @@
 | 責務 | base | personal | 備考 |
 |---|---|---|---|
 | 対象環境の事前検査（Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo） | 担当 | 担当 | `bootstrap` で Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo を検証。<br>`ansible/playbook.yml` では Ubuntu 26.04 / x86_64 と `workstation_profile` を検証。 |
+| Git パッケージ導入 | 担当 | 担当（継承） | `base_apt_packages` |
+| Git 共通設定（`init.defaultBranch`, `core.excludesFile`, GitHub URL rewrite） | 担当 | 担当（継承） | `home/modify_dot_gitconfig` |
+| Git alias（#39 で追加予定） | 担当 | 担当（継承） | 比較的標準的な運用 alias |
+| Git ユーザー設定（`user.name` / `user.email`） | — | 担当 | 理想状態。現状は `modify_dot_gitconfig` にハードコードされており、#39 で修正予定 |
+| credential helper / auth state / `safe.directory=*` | — | — | いずれの role も管理しない |
 | Ansible profile の選択 | `base` | `personal` | `workstation_profile` extra var で制御 |
 | Ubuntu 26.04 WSL2 の systemd 259 回避策 | 担当 | — | `base` role。対象環境（Ubuntu 26.04 WSL2 + systemd 259）のみ適用 |
 | ベース APT パッケージ（build-essential, ca-certificates, curl, git, gh） | 担当 | — | `base` role の `base_apt_packages` |
@@ -31,6 +36,8 @@
 
 - `base` に含まれない責務は `personal` にも含まれません。`personal` は `base` を包含するため、
   `personal` プロファイルでは上表の `base` 列が「担当」の項目もすべて適用されます。
+- 将来的に work プロファイルを追加する場合は `personal` を継承し、`user.name` / `user.email` を上書きする想定。
+- 現状の `modify_dot_gitconfig` における `user.name` / `user.email` のハードコードは、理想の責務分界との既知の乖離として注記する。
 - Docker CE は `personal` の任意 Role です。`personal` 適用時も
   `--extra-vars personal_docker_ce_enabled=false` で導入をスキップできます。
 - `base` では Docker repository、package、service、group を一切変更しません。
