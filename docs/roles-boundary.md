@@ -13,7 +13,7 @@
 | 対象環境の事前検査（Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo） | 担当 | 担当 | `bootstrap` で Ubuntu 26.04 / WSL2 / x86_64 / 一般ユーザー / sudo を検証。<br>`ansible/playbook.yml` では Ubuntu 26.04 / x86_64 と `workstation_profile` を検証。 |
 | Git パッケージ導入 | 担当 | 担当（継承） | `base_apt_packages` |
 | Git 共通設定（`init.defaultBranch`, `core.excludesFile`, GitHub URL rewrite） | 担当 | 担当（継承） | `home/modify_dot_gitconfig` |
-| Git alias（#39 で追加予定） | 担当 | 担当（継承） | 比較的標準的な運用 alias |
+| Git alias | 担当 | 担当（継承） | 比較的標準的な運用 alias。`home/modify_dot_gitconfig` で管理 |
 | Git ユーザー設定（`user.name` / `user.email`） | — | 担当 | 理想状態。現状は `modify_dot_gitconfig` にハードコードされており、#39 で修正予定 |
 | credential helper / auth state / `safe.directory=*` | — | — | いずれの role も管理しない |
 | Ansible profile の選択 | `base` | `personal` | `workstation_profile` extra var で制御 |

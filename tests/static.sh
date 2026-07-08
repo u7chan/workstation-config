@@ -178,6 +178,50 @@ git config --file "$gitconfig_second" --get-all credential.https://github.com.he
   grep -Fqx '!/usr/bin/gh auth git-credential'
 ! grep -Eiq 'token|private.?key|sshcommand' "$gitconfig_second"
 
+[[ $(git config --file "$gitconfig_second" alias.s) == status ]]
+[[ $(git config --file "$gitconfig_second" alias.ss) == 'status -s' ]]
+[[ $(git config --file "$gitconfig_second" alias.b) == branch ]]
+[[ $(git config --file "$gitconfig_second" alias.sw) == switch ]]
+[[ $(git config --file "$gitconfig_second" alias.swc) == 'switch -c' ]]
+[[ $(git config --file "$gitconfig_second" alias.swm) == 'switch main' ]]
+[[ $(git config --file "$gitconfig_second" alias.f) == 'fetch --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.fa) == 'fetch --all --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.fp) == 'fetch --prune --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.fap) == 'fetch --all --prune --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.pl) == 'pull --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.plr) == 'pull --rebase --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.plm) == '!git fetch origin main --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.p) == 'push --verbose' ]]
+[[ $(git config --file "$gitconfig_second" alias.puo) == 'push -u origin HEAD' ]]
+[[ $(git config --file "$gitconfig_second" alias.cm) == commit ]]
+[[ $(git config --file "$gitconfig_second" alias.cma) == 'commit --amend --no-edit' ]]
+[[ $(git config --file "$gitconfig_second" alias.lg) == 'log --oneline --graph --decorate' ]]
+[[ $(git config --file "$gitconfig_second" alias.last) == 'log -1 HEAD' ]]
+[[ $(git config --file "$gitconfig_second" alias.unstage) == 'restore --staged .' ]]
+[[ $(git config --file "$gitconfig_second" alias.discard) == 'restore .' ]]
+
+expected_aliases=(
+  alias.s alias.ss alias.b alias.sw alias.swc alias.swm
+  alias.f alias.fa alias.fp alias.fap
+  alias.pl alias.plr alias.plm
+  alias.p alias.puo
+  alias.cm alias.cma
+  alias.lg alias.last
+  alias.unstage alias.discard
+)
+mapfile -t actual_aliases < <(git config --file "$gitconfig_second" --get-regexp '^alias\.' 2>/dev/null | awk '{print $1}')
+for key in "${actual_aliases[@]}"; do
+  if ! printf '%s\n' "${expected_aliases[@]}" | grep -Fqx "$key"; then
+    printf 'Unexpected alias %s found; only allowlisted aliases may be managed.\n' "$key" >&2
+    exit 1
+  fi
+done
+
+if git config --file "$gitconfig_second" --get-all safe.directory 2>/dev/null | grep -Fqx '*'; then
+  printf 'safe.directory=* must not be set by chezmoi.\n' >&2
+  exit 1
+fi
+
 test_bashrc="$test_dir/bashrc"
 test_home="$test_dir/home"
 test_bin="$test_dir/bin"
