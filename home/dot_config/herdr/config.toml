@@ -1,5 +1,19 @@
-# Non-secret preferences only. Runtime data remains owned by Herdr.
 onboarding = false
 
-[experimental]
-pane_history = false
+[ui]
+agent_panel_sort = "spaces"
+show_agent_labels_on_pane_borders = true  # パネル枠にエージェントラベルを表示
+
+[theme]
+name = "catppuccin"
+
+[[keys.command]]
+key     = "prefix+f"
+type    = "pane"
+command = "yazi"
+
+[keys]
+prefix           = "ctrl+q"
+split_vertical   = "prefix+v"   # 左右分割
+split_horizontal = "prefix+h"   # 上下分割
+close_pane       = "ctrl+w"     # ペインを閉じる
