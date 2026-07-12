@@ -1,7 +1,6 @@
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
 sandbox_mode = "workspace-write"
-service_tier = "default"
 
 # gpt-5.6-sol は 272K 超えるとコスト2倍になるため制限
 # https://developers.openai.com/api/docs/models/gpt-5.6-sol
