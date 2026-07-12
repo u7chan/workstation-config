@@ -1,7 +1,3 @@
-model = "gpt-5.6-sol"
-model_reasoning_effort = "high"
-plan_mode_reasoning_effort = "high"
-personality = "pragmatic"
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
 sandbox_mode = "workspace-write"
@@ -17,20 +13,6 @@ network_access = true
 
 [tui]
 status_line = ["model-with-reasoning", "context-remaining", "context-used", "five-hour-limit", "weekly-limit", "context-window-size", "approval-mode"]
-terminal_title = ["spinner", "project"]
-status_line_use_colors = true
-
-[tui.model_availability_nux]
-"gpt-5.5" = 4
-"gpt-5.6-sol" = 4
-
-[notice.model_migrations]
-"gpt-5.1-codex-mini" = "gpt-5.3-codex"
-"gpt-5.3-codex" = "gpt-5.4"
-"gpt-5.4" = "gpt-5.5"
-
-[plugins."github@openai-curated"]
-enabled = true
 
 [features]
 hooks = true
