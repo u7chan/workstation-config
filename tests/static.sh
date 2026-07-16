@@ -175,6 +175,8 @@ trap 'rm -rf "$test_dir"' EXIT
 windows_terminal_doc="$ROOT_DIR/docs/windows-terminal.md"
 test -f "$windows_terminal_doc"
 grep -Fq 'Windows Terminal設定' "$ROOT_DIR/README.md"
+grep -Fq '"source": "Microsoft.Terminal.Wsl"' "$windows_terminal_doc"
+! grep -Fq '"source": "Microsoft.WSL"' "$windows_terminal_doc"
 windows_terminal_json_dir="$test_dir/windows-terminal-json"
 mkdir -p "$windows_terminal_json_dir"
 awk -v output_dir="$windows_terminal_json_dir" '
