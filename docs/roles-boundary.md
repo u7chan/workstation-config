@@ -25,9 +25,9 @@
 | Safe-chain の導入・更新 | 担当 | — | `base` role。バージョンは `ansible/vars/main.yml` で固定 |
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
-| mise 管理ツール（Node.js LTS, Bun 1.x, uv, ripgrep, fd, Neovim 0.12.x, Yazi, Starship, Herdr） | 担当 | 担当 | mise は `base` で導入。両プロファイルで有効 |
+| mise 管理ツール（Node.js LTS, Bun 1.x, uv, ripgrep, fd, Neovim 0.12.x, Yazi, Starship, Herdr, cagent） | 担当 | 担当 | mise は `base` で導入。`cagent`はlockedなGitHub Release assetで両プロファイルに導入 |
 | AI CLI（Codex / Claude Code / OpenCode）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
-| AI CLI 設定（Codex / OpenCode） | — | 担当 | chezmoi source として配置。使用主体は `personal` |
+| AI CLI 設定（Codex / OpenCode / cagent） | — | 担当 | chezmoi source として配置。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
 | 個人 CLI スクリプト（clp, git-agent-cleanup, git-pr-cleanup, http, http-lan） | — | 担当 | `personal` role の `scripts/personal-bin/` |
 | agent-skills リポジトリの clone と AI CLI への symlink | — | 担当 | `personal` role の `agent_skills.yml`。`personal_agent_skills_enabled=false` で無効化可能 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |

@@ -2,6 +2,9 @@
 lockfile = true
 lockfile_platforms = ["linux-x64"]
 
+[tool_alias]
+cagent = "github:u7chan/code-agent-launcher"
+
 [tools]
 node = "lts"
 bun = "1"
@@ -12,3 +15,4 @@ neovim = "0.12"
 yazi = "latest"
 starship = "latest"
 herdr = "latest"
+cagent = { version = "0.1.1", filter_bins = "cagent" }
