@@ -19,6 +19,8 @@ grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
+grep -Fq 'cagent = "github:u7chan/code-agent-launcher"' "$ROOT_DIR/mise/config.toml"
+grep -Fq 'cagent = { version = "0.1.2", filter_bins = "cagent" }' "$ROOT_DIR/mise/config.toml"
 test -s "$ROOT_DIR/mise/mise.lock"
 grep -q '^neovim = "0.12"' "$ROOT_DIR/mise/config.toml"
 grep -q '^yazi = "latest"' "$ROOT_DIR/mise/config.toml"
@@ -38,6 +40,7 @@ bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
 bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 bash -n "$ROOT_DIR/tests/agent-skills-smoke.sh"
+bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
 for personal_cli in clp git-agent-cleanup git-pr-cleanup http http-lan; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
   grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
@@ -95,10 +98,24 @@ grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"
 grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
-grep -q 'type -a herdr codex claude opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'type -a herdr cagent codex claude opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
+test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -Fq 'default_agent: codex' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -Fq 'default_level: mid' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -A 1 -F 'models: [gpt-5.6-luna]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: xhigh'
+grep -A 1 -F 'models: [gpt-5.6-terra]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: high'
+grep -A 1 -F 'models: [gpt-5.6-sol]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: xhigh'
+grep -Fq '  opencode-go:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -Fq '    start_command_template: "cagent {level}"' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -Fq '    run_command_template: "cagent run {level} -- {prompt}"' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+if grep -Eq '^version:[[:space:]]*2$' "$ROOT_DIR/home/dot_config/cagent/config.yaml"; then
+  printf 'cagent config must not declare version: 2.\n' >&2
+  exit 1
+fi
 if find "$ROOT_DIR/home" -type f \( \
   -name 'herdr-agent-state.*' -o \
   -name 'hooks.json' -o \
@@ -275,6 +292,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/personal-cli-smoke.sh" \
     "$ROOT_DIR/tests/docker-smoke.sh" \
     "$ROOT_DIR/tests/agent-skills-smoke.sh" \
+    "$ROOT_DIR/tests/cagent-smoke.sh" \
     "$ROOT_DIR/scripts/personal-bin/clp" \
     "$ROOT_DIR/scripts/personal-bin/git-agent-cleanup" \
     "$ROOT_DIR/scripts/personal-bin/git-pr-cleanup" \
