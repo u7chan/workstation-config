@@ -148,7 +148,7 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 ## Herdr、cagentとAI CLI
 
-Herdrと`cagent`本体はmiseで管理します。`cagent`は`github:u7chan/code-agent-launcher` backendからv0.1.1のLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCodeは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexはnpmをSafe-chain経由、Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdrと`cagent`本体はmiseで管理します。`cagent`は`github:u7chan/code-agent-launcher` backendからv0.1.2のLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCodeは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexはnpmをSafe-chain経由、Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
 `personal`プロファイルでは[`u7chan/agent-skills`](https://github.com/u7chan/agent-skills)を`~/workspace/agent-skills`へHTTPSでcloneし、`~/.claude/skills`と`~/.codex/skills`をそのリポジトリへのsymlinkとして作成します。personal bootstrapを再実行すると、agent-skillsは`main`ブランチの最新状態へ更新されます。既存の実ディレクトリやファイルは上書きしないため、同名のパスがある場合は内容を確認して退避してからbootstrapを再実行してください。
 

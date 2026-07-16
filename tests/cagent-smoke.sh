@@ -31,8 +31,8 @@ cagent_bin="$("$mise_bin" which cagent)"
 }
 
 version_output="$("$cagent_bin" --version)"
-[[ $version_output == 0.1.1 ]] || {
-  printf 'cagent-smoke: expected version 0.1.1, got %s\n' "$version_output" >&2
+[[ $version_output == 0.1.2 ]] || {
+  printf 'cagent-smoke: expected version 0.1.2, got %s\n' "$version_output" >&2
   exit 1
 }
 
@@ -64,7 +64,9 @@ grep -Fq '[OK] multiplexer adapter "herdr" has start/run command templates' <<<"
 
 codex_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run low)"
 grep -Fq '# Resolved level: low' <<<"$codex_output"
+grep -Fq '# Resolved effort: xhigh' <<<"$codex_output"
 grep -Fq 'codex --model gpt-5.6-luna' <<<"$codex_output"
+grep -Fq 'model_reasoning_effort=\"xhigh\"' <<<"$codex_output"
 
 opencode_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --agent opencode-go --dry-run low)"
 grep -Fq '# Resolved level: low' <<<"$opencode_output"

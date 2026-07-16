@@ -20,7 +20,7 @@ grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
 grep -Fq 'cagent = "github:u7chan/code-agent-launcher"' "$ROOT_DIR/mise/config.toml"
-grep -Fq 'cagent = { version = "0.1.1", filter_bins = "cagent" }' "$ROOT_DIR/mise/config.toml"
+grep -Fq 'cagent = { version = "0.1.2", filter_bins = "cagent" }' "$ROOT_DIR/mise/config.toml"
 test -s "$ROOT_DIR/mise/mise.lock"
 grep -q '^neovim = "0.12"' "$ROOT_DIR/mise/config.toml"
 grep -q '^yazi = "latest"' "$ROOT_DIR/mise/config.toml"
@@ -106,11 +106,14 @@ test -f "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_agent: codex' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_level: mid' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -A 1 -F 'models: [gpt-5.6-luna]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: xhigh'
+grep -A 1 -F 'models: [gpt-5.6-terra]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: high'
+grep -A 1 -F 'models: [gpt-5.6-sol]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: xhigh'
 grep -Fq '  opencode-go:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq '    start_command_template: "cagent {level}"' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq '    run_command_template: "cagent run {level} -- {prompt}"' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 if grep -Eq '^version:[[:space:]]*2$' "$ROOT_DIR/home/dot_config/cagent/config.yaml"; then
-  printf 'cagent config must use the v0.1.1 format without version: 2.\n' >&2
+  printf 'cagent config must not declare version: 2.\n' >&2
   exit 1
 fi
 if find "$ROOT_DIR/home" -type f \( \
