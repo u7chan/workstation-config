@@ -172,6 +172,49 @@ ansible_env_output="$(
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
 
+windows_terminal_doc="$ROOT_DIR/docs/windows-terminal.md"
+test -f "$windows_terminal_doc"
+grep -Fq 'Windows Terminal設定' "$ROOT_DIR/README.md"
+grep -Fq '"source": "Microsoft.Terminal.Wsl"' "$windows_terminal_doc"
+! grep -Fq '"source": "Microsoft.WSL"' "$windows_terminal_doc"
+windows_terminal_json_dir="$test_dir/windows-terminal-json"
+mkdir -p "$windows_terminal_json_dir"
+awk -v output_dir="$windows_terminal_json_dir" '
+  /^```json[[:space:]]*$/ {
+    if (in_block) {
+      printf "Nested JSON code block in %s.\n", FILENAME > "/dev/stderr"
+      failed = 1
+      next
+    }
+    in_block = 1
+    output_path = sprintf("%s/block-%d.json", output_dir, ++block_count)
+    next
+  }
+  /^```[[:space:]]*$/ {
+    if (in_block) {
+      in_block = 0
+    }
+    next
+  }
+  in_block {
+    print > output_path
+  }
+  END {
+    if (in_block) {
+      printf "Unterminated JSON code block in %s.\n", FILENAME > "/dev/stderr"
+      failed = 1
+    }
+    if (block_count != 2) {
+      printf "Expected exactly 2 JSON code blocks in %s, found %d.\n", FILENAME, block_count > "/dev/stderr"
+      failed = 1
+    }
+    exit failed
+  }
+' "$windows_terminal_doc"
+for windows_terminal_json in "$windows_terminal_json_dir"/*.json; do
+  jq empty "$windows_terminal_json"
+done
+
 gitconfig_input="$test_dir/gitconfig.input"
 gitconfig_first="$test_dir/gitconfig.first"
 gitconfig_second="$test_dir/gitconfig.second"
