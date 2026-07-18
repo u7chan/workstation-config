@@ -137,6 +137,7 @@ fi
 
 grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
 grep -q '^  - gh$' "$ROOT_DIR/ansible/vars/main.yml"
+grep -q '^  - jq$' "$ROOT_DIR/ansible/vars/main.yml"
 
 agent_skills_tasks="$ROOT_DIR/ansible/roles/personal/tasks/agent_skills.yml"
 grep -Fq 'agent_skills_repo_url: "https://github.com/u7chan/agent-skills.git"' \

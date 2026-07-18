@@ -18,7 +18,7 @@
 | credential helper / auth state / `safe.directory=*` | — | — | いずれの role も管理しない |
 | Ansible profile の選択 | `base` | `personal` | `workstation_profile` extra var で制御 |
 | Ubuntu 26.04 WSL2 の systemd 259 回避策 | 担当 | — | `base` role。対象環境（Ubuntu 26.04 WSL2 + systemd 259）のみ適用 |
-| ベース APT パッケージ（build-essential, ca-certificates, curl, git, gh） | 担当 | — | `base` role の `base_apt_packages` |
+| ベース APT パッケージ（build-essential, ca-certificates, curl, git, gh, jq） | 担当 | — | `base` role の `base_apt_packages` |
 | `~/.local/bin` の作成 | 担当 | — | `base` role |
 | chezmoi バイナリの導入 | 担当 | — | `base` role。chezmoi source の適用は `bootstrap` で共通 |
 | mise バイナリ・設定・lockfile の導入 | 担当 | — | `base` role。`mise/config.toml` / `mise.lock` |

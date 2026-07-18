@@ -91,6 +91,14 @@
       {{ ansible_facts['user_dir'] }}/.config/mise/config.toml
   changed_when: false
 
+- name: Resolve latest Herdr release before locked mise install
+  ansible.builtin.command:
+    cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/mise upgrade herdr"
+  environment:
+    MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
+    MISE_YES: "1"
+  changed_when: false
+
 - name: Install locked mise tools before personal role tasks
   ansible.builtin.command:
     cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/mise install"
