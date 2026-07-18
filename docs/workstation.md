@@ -114,14 +114,14 @@ Compose、およびsmoke containerを検証します。
 
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 
-`mise/config.toml`は更新範囲、`mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
+`provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
 ```bash
-MISE_CONFIG_FILE="$PWD/mise/config.toml" mise upgrade
-MISE_CONFIG_FILE="$PWD/mise/config.toml" mise lock --platform linux-x64
-MISE_CONFIG_FILE="$PWD/mise/config.toml" MISE_LOCKED=1 mise install
+MISE_CONFIG_FILE="$PWD/provisioning/mise/config.toml" mise upgrade
+MISE_CONFIG_FILE="$PWD/provisioning/mise/config.toml" mise lock --platform linux-x64
+MISE_CONFIG_FILE="$PWD/provisioning/mise/config.toml" MISE_LOCKED=1 mise install
 ```
 
 ## Neovim

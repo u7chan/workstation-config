@@ -17,13 +17,19 @@ grep -Fq '[初期セットアップ手順](bootstrap-prerequisites.md)' "$ROOT_D
 
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
-grep -q '^node = "lts"' "$ROOT_DIR/mise/config.toml"
-grep -q '^herdr = "latest"' "$ROOT_DIR/mise/config.toml"
-grep -Fq 'cagent = "github:u7chan/code-agent-launcher"' "$ROOT_DIR/mise/config.toml"
-grep -Fq 'cagent = { version = "0.1.2", filter_bins = "cagent" }' "$ROOT_DIR/mise/config.toml"
-test -s "$ROOT_DIR/mise/mise.lock"
-grep -q '^neovim = "0.12"' "$ROOT_DIR/mise/config.toml"
-grep -q '^yazi = "latest"' "$ROOT_DIR/mise/config.toml"
+grep -q '^node = "lts"' "$ROOT_DIR/provisioning/mise/config.toml"
+grep -q '^herdr = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
+grep -Fq 'cagent = "github:u7chan/code-agent-launcher"' "$ROOT_DIR/provisioning/mise/config.toml"
+grep -Fq 'cagent = { version = "0.1.2", filter_bins = "cagent" }' "$ROOT_DIR/provisioning/mise/config.toml"
+test -s "$ROOT_DIR/provisioning/mise/mise.lock"
+grep -q '^neovim = "0.12"' "$ROOT_DIR/provisioning/mise/config.toml"
+grep -q '^yazi = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
+test ! -e "$ROOT_DIR/mise/config.toml"
+test ! -e "$ROOT_DIR/mise/mise.lock"
+grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/config.toml"' \
+  "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/mise.lock"' \
+  "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 if grep -R -Eiq 'apt(-get)?.*(install.*)?neovim|^[[:space:]]*-[[:space:]]*neovim$' \
   "$ROOT_DIR/ansible" "$ROOT_DIR/bootstrap"; then
   printf 'Neovim must not be managed by APT.\n' >&2

@@ -21,7 +21,7 @@
 | ベース APT パッケージ（build-essential, ca-certificates, curl, git, gh, jq） | 担当 | — | `base` role の `base_apt_packages` |
 | `~/.local/bin` の作成 | 担当 | — | `base` role |
 | chezmoi バイナリの導入 | 担当 | — | `base` role。chezmoi source の適用は `bootstrap` で共通 |
-| mise バイナリ・設定・lockfile の導入 | 担当 | — | `base` role。`mise/config.toml` / `mise.lock` |
+| mise バイナリ・設定・lockfile の導入 | 担当 | — | `base` role。`provisioning/mise/config.toml` / `mise.lock` |
 | Safe-chain の導入・更新 | 担当 | — | `base` role。バージョンは `ansible/vars/main.yml` で固定 |
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |

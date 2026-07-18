@@ -74,13 +74,13 @@
 
 - name: Install mise global configuration
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../mise/config.toml"
+    src: "{{ playbook_dir }}/../provisioning/mise/config.toml"
     dest: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
     mode: "0644"
 
 - name: Install mise lockfile
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../mise/mise.lock"
+    src: "{{ playbook_dir }}/../provisioning/mise/mise.lock"
     dest: "{{ ansible_facts['user_dir'] }}/.config/mise/mise.lock"
     mode: "0644"
 
