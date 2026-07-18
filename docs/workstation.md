@@ -152,7 +152,7 @@ Herdrと`cagent`本体はmiseで管理します。`cagent`は`github:u7chan/code
 
 `personal`プロファイルでは[`u7chan/agent-skills`](https://github.com/u7chan/agent-skills)を`~/workspace/agent-skills`へHTTPSでcloneし、`~/.claude/skills`と`~/.codex/skills`をそのリポジトリへのsymlinkとして作成します。personal bootstrapを再実行すると、agent-skillsは`main`ブランチの最新状態へ更新されます。既存の実ディレクトリやファイルは上書きしないため、同名のパスがある場合は内容を確認して退避してからbootstrapを再実行してください。
 
-Codex、Claude Code、OpenCode本体の更新入口は`update-ai`だけです。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
+Codex、Claude Code、OpenCode本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
 ```bash
 update-ai

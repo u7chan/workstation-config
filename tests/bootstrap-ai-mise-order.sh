@@ -31,7 +31,7 @@ grep -Fqx '    MISE_LOCKED: "1"' <<<"$locked_install_task" || {
   exit 1
 }
 
-grep -Fq 'mise exec node --' "$personal_tasks"
+grep -Fq '/.local/bin/update-ai' "$personal_tasks"
 grep -Fq 'MISE_LOCKED: "1"' "$personal_tasks"
 
 base_role_line="$(line_number '- role: base' "$playbook")"
@@ -75,6 +75,11 @@ cat >"$linux_bin/npm" <<'EOF'
 printf 'linux npm %s\n' "$*" >>"$TEST_INSTALL_LOG"
 EOF
 
+cat >"$linux_bin/node" <<'EOF'
+#!/usr/bin/env bash
+printf 'linux node %s\n' "$*" >>"$TEST_INSTALL_LOG"
+EOF
+
 cat >"$linux_bin/codex" <<'EOF'
 #!/usr/bin/env bash
 printf 'linux codex %s\n' "$*" >>"$TEST_INSTALL_LOG"
@@ -91,14 +96,14 @@ cat >"$windows_bin/codex" <<'EOF'
 printf 'node: not found\n' >&2
 exit 127
 EOF
-chmod +x "$test_home/.local/bin/mise" "$linux_bin/npm" "$linux_bin/codex" \
+chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/codex" \
   "$windows_bin/npm" "$windows_bin/codex"
 
 HOME="$test_home" \
 PATH="$windows_bin:$PATH" \
 TEST_INSTALL_LOG="$log" \
 TEST_LINUX_BIN="$linux_bin" \
-  "$test_home/.local/bin/mise" exec node -- "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
+  "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
 
 grep -Fqx 'mise exec node' "$log"
 grep -Fqx 'linux npm install --global @openai/codex@latest' "$log"

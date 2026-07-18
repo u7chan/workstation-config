@@ -12,6 +12,7 @@ log="$test_dir/install.log"
 mkdir -p "$HOME/.safe-chain/scripts" "$HOME/.local/bin" "$test_bin"
 export PATH="$test_bin:$HOME/.local/bin:$PATH"
 export TEST_INSTALL_LOG="$log"
+export UPDATE_AI_MISE_ACTIVE=1
 
 cat >"$HOME/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
@@ -25,6 +26,10 @@ SCRIPT
 EOF
 
 cat >"$test_bin/npm" <<'EOF'
+#!/usr/bin/env bash
+exit 99
+EOF
+cat >"$test_bin/node" <<'EOF'
 #!/usr/bin/env bash
 exit 99
 EOF
@@ -42,7 +47,7 @@ printf '#!/usr/bin/env bash\\nprintf "${name} test\\\\n"\\n' >"\$HOME/.local/bin
 chmod +x "\$HOME/.local/bin/${name}"
 SCRIPT
 EOF
-chmod +x "$test_bin/npm" "$test_bin/curl"
+chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
 
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 

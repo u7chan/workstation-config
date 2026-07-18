@@ -27,9 +27,7 @@
 
 - name: Update selected AI CLI tools
   ansible.builtin.command:
-    cmd: >-
-      {{ ansible_facts['user_dir'] }}/.local/bin/mise exec node --
-      {{ ansible_facts['user_dir'] }}/.local/bin/update-ai{{ personal_ai_tools | map('regex_replace', '^(.*)$', ' --\\1') | join('') }}
+    cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai{{ personal_ai_tools | map('regex_replace', '^(.*)$', ' --\\1') | join('') }}"
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
     MISE_LOCKED: "1"

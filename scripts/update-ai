@@ -6,6 +6,14 @@ die() {
   exit 1
 }
 
+if [[ ${UPDATE_AI_MISE_ACTIVE:-} != 1 ]]; then
+  mise_bin="$HOME/.local/bin/mise"
+  [[ -x $mise_bin ]] || die "mise is required"
+  UPDATE_AI_MISE_ACTIVE=1 exec "$mise_bin" exec node -- "$0" "$@"
+fi
+unset UPDATE_AI_MISE_ACTIVE
+
+command -v node >/dev/null 2>&1 || die "mise-managed Node.js is required"
 command -v npm >/dev/null 2>&1 || die "npm is required"
 command -v curl >/dev/null 2>&1 || die "curl is required"
 [[ -r "$HOME/.safe-chain/scripts/init-posix.sh" ]] || die "Safe-chain shell integration is required"
