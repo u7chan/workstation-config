@@ -177,6 +177,8 @@ test -f "$windows_terminal_doc"
 grep -Fq 'Windows Terminal設定' "$ROOT_DIR/README.md"
 grep -Fq 'wsl.exe --distribution {WSLディストリビューション名}' "$windows_terminal_doc"
 grep -Fq '"defaultProfile": "{11111111-1111-1111-1111-111111111111}"' "$windows_terminal_doc"
+grep -Fq '"commandline": "powershell.exe"' "$windows_terminal_doc"
+grep -Fq '"Windows.Terminal.Wsl"' "$windows_terminal_doc"
 windows_terminal_json_dir="$test_dir/windows-terminal-json"
 mkdir -p "$windows_terminal_json_dir"
 awk -v output_dir="$windows_terminal_json_dir" '

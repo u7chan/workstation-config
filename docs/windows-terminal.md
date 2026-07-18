@@ -55,6 +55,9 @@ wsl -l
   "copyOnSelect": false,
   "defaultInputScope": "alphanumericHalfWidth",
   "defaultProfile": "{11111111-1111-1111-1111-111111111111}",
+  "disabledProfileSources": [
+    "Windows.Terminal.Wsl"
+  ],
   "keybindings": [
     {
       "id": "Terminal.CopyToClipboard",
@@ -95,6 +98,7 @@ wsl -l
     },
     "list": [
       {
+        "commandline": "powershell.exe",
         "elevate": false,
         "guid": "{11111111-1111-1111-1111-111111111111}",
         "hidden": false,
@@ -125,6 +129,8 @@ wsl -l
 | `font.face: JetBrainsMono Nerd Font Mono` | Starshipなどが使うNerd Fontアイコンを正しく表示する。 |
 | `opacity: 50` / `useAcrylic: true` | 背景を半透明のアクリル表示にする。 |
 | `defaultProfile` | 固定GUIDの`Windows PowerShell`プロファイルを既定にする。 |
+| `Windows PowerShell`の`commandline` | 手動プロファイルが`cmd.exe`ではなく`powershell.exe`を起動するようにする。 |
+| `disabledProfileSources` | WSLの動的プロファイル自動生成を無効化し、手動プロファイルとの重複を防ぐ。 |
 | WSLの`commandline` | 自動検出プロファイルに依存せず、指定したディストリビューションを起動する。 |
 
 フォントの導入手順は[workstation-notes](https://github.com/u7chan/workstation-notes)を参照してください。フォント未導入の状態では、アイコンや区切り文字が正しく表示されません。
