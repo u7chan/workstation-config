@@ -15,11 +15,26 @@ line_number() {
 config_line="$(line_number '- name: Install mise global configuration' "$base_tasks")"
 lockfile_line="$(line_number '- name: Install mise lockfile' "$base_tasks")"
 trust_line="$(line_number '- name: Trust mise global configuration' "$base_tasks")"
+herdr_upgrade_line="$(line_number '- name: Resolve latest Herdr release before locked mise install' "$base_tasks")"
 install_line="$(line_number '- name: Install locked mise tools before personal role tasks' "$base_tasks")"
-[[ $config_line -lt $lockfile_line && $lockfile_line -lt $trust_line && $trust_line -lt $install_line ]] || {
-  printf 'bootstrap-ai-mise-order: mise configuration, lock, trust, and install must be ordered.\n' >&2
+[[ $config_line -lt $lockfile_line && $lockfile_line -lt $trust_line && $trust_line -lt $herdr_upgrade_line && $herdr_upgrade_line -lt $install_line ]] || {
+  printf 'bootstrap-ai-mise-order: mise configuration, lock, trust, Herdr upgrade, and install must be ordered.\n' >&2
   exit 1
 }
+
+herdr_upgrade_task="$(awk '
+  $0 == "- name: Resolve latest Herdr release before locked mise install" { capture = 1 }
+  capture && /^- name: / && $0 != "- name: Resolve latest Herdr release before locked mise install" { exit }
+  capture { print }
+' "$base_tasks")"
+grep -Fqx '    cmd: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/mise upgrade herdr"' <<<"$herdr_upgrade_task" || {
+  printf 'bootstrap-ai-mise-order: Herdr must be upgraded through mise before locked install.\n' >&2
+  exit 1
+}
+if grep -Fq 'MISE_LOCKED:' <<<"$herdr_upgrade_task"; then
+  printf 'bootstrap-ai-mise-order: Herdr latest resolution must not use locked mode.\n' >&2
+  exit 1
+fi
 
 locked_install_task="$(awk '
   $0 == "- name: Install locked mise tools before personal role tasks" { capture = 1 }

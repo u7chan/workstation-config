@@ -10,6 +10,7 @@ base_apt_packages:
   - curl
   - git
   - gh
+  - jq
 
 # Optional personal role. Set this to false with Ansible extra vars when Docker
 # is not wanted on a personal workstation.

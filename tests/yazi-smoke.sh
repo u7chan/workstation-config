@@ -25,7 +25,7 @@ else
 fi
 
 if [[ -n $mise_bin ]]; then
-  export MISE_CONFIG_FILE="$ROOT_DIR/mise/config.toml"
+  export MISE_CONFIG_FILE="$ROOT_DIR/provisioning/mise/config.toml"
   export MISE_LOCKED=1
   yazi_bin="$($mise_bin which yazi)"
   [[ $yazi_bin == "$HOME/.local/share/mise/"* ]]

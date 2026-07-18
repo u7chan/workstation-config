@@ -22,7 +22,7 @@ fi
   exit 1
 }
 
-export MISE_CONFIG_FILE="$ROOT_DIR/mise/config.toml"
+export MISE_CONFIG_FILE="$ROOT_DIR/provisioning/mise/config.toml"
 export MISE_LOCKED=1
 cagent_bin="$("$mise_bin" which cagent)"
 [[ -x $cagent_bin ]] || {
