@@ -21,6 +21,16 @@ install_line="$(line_number '- name: Install locked mise tools before personal r
   exit 1
 }
 
+locked_install_task="$(awk '
+  $0 == "- name: Install locked mise tools before personal role tasks" { capture = 1 }
+  capture && /^- name: / && $0 != "- name: Install locked mise tools before personal role tasks" { exit }
+  capture { print }
+' "$base_tasks")"
+grep -Fqx '    MISE_LOCKED: "1"' <<<"$locked_install_task" || {
+  printf 'bootstrap-ai-mise-order: locked base mise install must set MISE_LOCKED=1.\n' >&2
+  exit 1
+}
+
 grep -Fq 'mise exec node --' "$personal_tasks"
 grep -Fq 'MISE_LOCKED: "1"' "$personal_tasks"
 
