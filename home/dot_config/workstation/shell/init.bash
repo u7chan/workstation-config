@@ -20,6 +20,34 @@ fi
 export DISABLE_AUTOUPDATER=1
 export PATH="$HOME/.opencode/bin:$PATH"
 
+__workstation_update_state="$HOME/.local/state/workstation-update/state.tsv"
+if [[ -r $__workstation_update_state ]]; then
+  __workstation_update_status="$(
+    awk -F '\t' '$1 == "status" { print $2; exit }' "$__workstation_update_state"
+  )"
+  case $__workstation_update_status in
+    running)
+      __workstation_update_step="$(
+        awk -F '\t' '$1 == "step_index" { print $2; exit }' "$__workstation_update_state"
+      )"
+      __workstation_update_label="$(
+        awk -F '\t' '$1 == "step_label" { print $2; exit }' "$__workstation_update_state"
+      )"
+      printf '\033[36m⟳ %s/3 %s — watch-update\033[0m\n' \
+        "${__workstation_update_step:-0}" "${__workstation_update_label:-preparing}" >&2
+      ;;
+    failed)
+      __workstation_update_failed_step="$(
+        awk -F '\t' '$1 == "failed_step" { print $2; exit }' "$__workstation_update_state"
+      )"
+      printf '\033[31m✗ %s update failed — watch-update --verbose\033[0m\n' \
+        "${__workstation_update_failed_step:-workstation}" >&2
+      ;;
+  esac
+fi
+unset __workstation_update_state __workstation_update_status __workstation_update_step
+unset __workstation_update_label __workstation_update_failed_step
+
 alias g=git
 alias h=herdr
 

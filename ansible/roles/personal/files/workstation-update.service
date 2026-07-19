@@ -1,0 +1,11 @@
+[Unit]
+Description=Update personal workstation development tools
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/workstation-update-runner
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

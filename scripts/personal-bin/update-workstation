@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: update-workstation
+
+Start the workstation update user service in the background.
+EOF
+}
+
+if [[ ${1:-} == -h || ${1:-} == --help ]]; then
+  usage
+  exit 0
+fi
+(( $# == 0 )) || {
+  printf 'update-workstation: no arguments are accepted\n' >&2
+  exit 2
+}
+
+command -v systemctl >/dev/null 2>&1 || {
+  printf 'update-workstation: systemctl is required\n' >&2
+  exit 1
+}
+
+systemctl --user start --no-block workstation-update.service
+printf 'Workstation update requested in the background. Run watch-update to follow it.\n'
