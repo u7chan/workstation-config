@@ -26,8 +26,6 @@
 gpc
 ```
 
-`gpc`は`git-pr-cleanup`の短縮名です。`git pr-cleanup`でも同じ本体を実行できます。
-
 実行前に次を満たす必要があります。
 
 - primary worktreeで実行している
@@ -54,7 +52,7 @@ gac --apply
 gac --apply --force
 ```
 
-`gac`は`git-agent-cleanup`の短縮名です。最初は必ず引数なしのdry-runで対象を確認してください。
+最初は必ず引数なしのdry-runで対象を確認してください。
 
 通常の`--apply`は、対象内にdirty worktreeまたは既定remote branchへ未マージのbranchが一つでもあれば、何も削除せず停止します。`--force`はこの安全性チェックだけを上書きし、探索範囲を広げません。base branch、別ディレクトリのworktree、remote branchは削除対象外です。
 

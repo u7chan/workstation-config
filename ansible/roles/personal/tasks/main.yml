@@ -43,8 +43,6 @@
     - clp
     - gac
     - gpc
-    - git-agent-cleanup
-    - git-pr-cleanup
     - http
     - http-lan
 

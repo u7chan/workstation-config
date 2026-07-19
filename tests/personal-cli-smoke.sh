@@ -3,8 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
-readonly PR_CLEANUP="$ROOT_DIR/scripts/personal-bin/git-pr-cleanup"
-readonly AGENT_CLEANUP="$ROOT_DIR/scripts/personal-bin/git-agent-cleanup"
 readonly GPC="$ROOT_DIR/scripts/personal-bin/gpc"
 readonly GAC="$ROOT_DIR/scripts/personal-bin/gac"
 readonly CLP="$ROOT_DIR/scripts/personal-bin/clp"
@@ -33,7 +31,7 @@ create_repo() {
   printf '%s\n' "$repo"
 }
 
-# git-pr-cleanup: merged PR cleanup succeeds and deletes only its local head.
+# gpc: merged PR cleanup succeeds and deletes only its local head.
 mock_bin="$test_dir/mock-bin"
 mkdir -p "$mock_bin"
 cat >"$mock_bin/gh" <<'EOF'
@@ -52,8 +50,8 @@ exit 1
 EOF
 chmod +x "$mock_bin/gh"
 
-[[ $($GPC --help) == *'Usage: git-pr-cleanup'* ]]
-[[ $($GAC --help) == *'Usage: git-agent-cleanup'* ]]
+[[ $($GPC --help) == *'Usage: gpc'* ]]
+[[ $($GAC --help) == *'Usage: gac'* ]]
 
 pr_repo=$(create_repo pr-repo)
 git -C "$pr_repo" switch -c feature/pr >/dev/null
@@ -61,11 +59,11 @@ git -C "$pr_repo" commit --allow-empty -m feature >/dev/null
 PATH="$mock_bin:$PATH" git -C "$pr_repo" status --short >/dev/null
 (
   cd "$pr_repo"
-  PATH="$mock_bin:$PATH" "$PR_CLEANUP" >/dev/null
+  PATH="$mock_bin:$PATH" "$GPC" >/dev/null
 )
 [[ $(git -C "$pr_repo" branch --show-current) == main ]]
 if git -C "$pr_repo" show-ref --verify --quiet refs/heads/feature/pr; then
-  printf 'git-pr-cleanup left its merged head branch.\n' >&2
+  printf 'gpc left its merged head branch.\n' >&2
   exit 1
 fi
 
@@ -76,9 +74,9 @@ expected_oid=$(git -C "$pr_repo" rev-parse --verify feature/extra)
 git -C "$pr_repo" commit --allow-empty -m local-extra >/dev/null
 if (
   cd "$pr_repo"
-  GH_MOCK_HEAD_OID="$expected_oid" PATH="$mock_bin:$PATH" "$PR_CLEANUP" >/dev/null 2>&1
+  GH_MOCK_HEAD_OID="$expected_oid" PATH="$mock_bin:$PATH" "$GPC" >/dev/null 2>&1
 ); then
-  printf 'git-pr-cleanup accepted a head branch with local commits ahead of PR head.\n' >&2
+  printf 'gpc accepted a head branch with local commits ahead of PR head.\n' >&2
   exit 1
 fi
 [[ $(git -C "$pr_repo" branch --show-current) == feature/extra ]]
@@ -89,9 +87,9 @@ git -C "$pr_repo" switch -c feature/pr >/dev/null
 touch "$pr_repo/untracked"
 if (
   cd "$pr_repo"
-  PATH="$mock_bin:$PATH" "$PR_CLEANUP" >/dev/null 2>&1
+  PATH="$mock_bin:$PATH" "$GPC" >/dev/null 2>&1
 ); then
-  printf 'git-pr-cleanup accepted a dirty worktree.\n' >&2
+  printf 'gpc accepted a dirty worktree.\n' >&2
   exit 1
 fi
 [[ $(git -C "$pr_repo" branch --show-current) == feature/pr ]]
@@ -99,20 +97,20 @@ rm "$pr_repo/untracked"
 git -C "$pr_repo" switch main >/dev/null
 git -C "$pr_repo" branch -D feature/pr >/dev/null
 
-# A linked worktree is outside git-pr-cleanup's responsibility.
+# A linked worktree is outside gpc's responsibility.
 git -C "$pr_repo" branch feature/linked
 git -C "$pr_repo" worktree add "$test_dir/pr-linked" feature/linked >/dev/null
 if (
   cd "$test_dir/pr-linked"
-  PATH="$mock_bin:$PATH" "$PR_CLEANUP" >/dev/null 2>&1
+  PATH="$mock_bin:$PATH" "$GPC" >/dev/null 2>&1
 ); then
-  printf 'git-pr-cleanup accepted a linked worktree.\n' >&2
+  printf 'gpc accepted a linked worktree.\n' >&2
   exit 1
 fi
 git -C "$pr_repo" worktree remove "$test_dir/pr-linked"
 git -C "$pr_repo" branch -D feature/linked >/dev/null
 
-# git-agent-cleanup: dry-run changes nothing; apply removes only managed worktrees.
+# gac: dry-run changes nothing; apply removes only managed worktrees.
 agent_repo=$(create_repo agent-repo)
 agent_parent="$test_dir/agent-repo-worktrees"
 mkdir -p "$agent_parent"
@@ -122,17 +120,17 @@ git -C "$agent_repo" worktree add "$agent_parent/managed" feature/managed >/dev/
 git -C "$agent_repo" worktree add "$test_dir/outside-worktree" feature/outside >/dev/null
 (
   cd "$agent_repo"
-  "$AGENT_CLEANUP" >/dev/null
+  "$GAC" >/dev/null
 )
 [[ -d $agent_parent/managed ]]
 git -C "$agent_repo" show-ref --verify --quiet refs/heads/feature/managed
 (
   cd "$agent_repo"
-  "$AGENT_CLEANUP" --apply >/dev/null
+  "$GAC" --apply >/dev/null
 )
 [[ ! -e $agent_parent/managed ]]
 if git -C "$agent_repo" show-ref --verify --quiet refs/heads/feature/managed; then
-  printf 'git-agent-cleanup left its managed branch.\n' >&2
+  printf 'gac left its managed branch.\n' >&2
   exit 1
 fi
 [[ -d $test_dir/outside-worktree ]]
@@ -147,9 +145,9 @@ git -C "$agent_parent/dirty" commit --allow-empty -m unmerged >/dev/null
 touch "$agent_parent/dirty/untracked"
 if (
   cd "$agent_repo"
-  "$AGENT_CLEANUP" --apply >/dev/null 2>&1
+  "$GAC" --apply >/dev/null 2>&1
 ); then
-  printf 'git-agent-cleanup accepted unsafe targets without --force.\n' >&2
+  printf 'gac accepted unsafe targets without --force.\n' >&2
   exit 1
 fi
 [[ -d $agent_parent/clean && -d $agent_parent/dirty ]]
@@ -157,12 +155,12 @@ git -C "$agent_repo" show-ref --verify --quiet refs/heads/feature/clean
 git -C "$agent_repo" show-ref --verify --quiet refs/heads/feature/dirty
 (
   cd "$agent_repo"
-  "$AGENT_CLEANUP" --apply --force >/dev/null
+  "$GAC" --apply --force >/dev/null
 )
 [[ ! -e $agent_parent/clean && ! -e $agent_parent/dirty ]]
 if git -C "$agent_repo" show-ref --verify --quiet refs/heads/feature/clean \
   || git -C "$agent_repo" show-ref --verify --quiet refs/heads/feature/dirty; then
-  printf 'git-agent-cleanup left a force-cleaned branch.\n' >&2
+  printf 'gac left a force-cleaned branch.\n' >&2
   exit 1
 fi
 [[ -d $test_dir/outside-worktree ]]
@@ -172,9 +170,9 @@ git -C "$agent_repo" switch -c feature/primary >/dev/null
 git -C "$agent_repo" worktree add "$agent_parent/main" main >/dev/null
 if (
   cd "$agent_repo"
-  "$AGENT_CLEANUP" --apply --force >/dev/null 2>&1
+  "$GAC" --apply --force >/dev/null 2>&1
 ); then
-  printf 'git-agent-cleanup accepted a protected base branch.\n' >&2
+  printf 'gac accepted a protected base branch.\n' >&2
   exit 1
 fi
 [[ -d $agent_parent/main ]]

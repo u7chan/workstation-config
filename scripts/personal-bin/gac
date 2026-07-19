@@ -1,4 +1,162 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-exec "$(dirname -- "${BASH_SOURCE[0]}")/git-agent-cleanup" "$@"
+usage() {
+  cat <<'EOF'
+Usage: gac [--apply] [--force]
+
+Preview cleanup of registered Agent worktrees under:
+  ../<repository-name>-worktrees/
+
+Options:
+  --apply  Remove the detected worktrees and their attached local branches.
+  --force  Allow --apply to remove dirty worktrees and unmerged branches.
+           It never expands the detected path or branch scope.
+EOF
+}
+
+die() {
+  printf 'gac: %s\n' "$*" >&2
+  exit 1
+}
+
+apply=0
+force=0
+while (( $# > 0 )); do
+  case $1 in
+    --apply) apply=1 ;;
+    --force) force=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not in a Git worktree"
+root=$(git rev-parse --show-toplevel)
+git_dir=$(git rev-parse --path-format=absolute --git-dir)
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
+[[ $git_dir == "$common_dir" ]] || die "run this command from the primary worktree"
+[[ -z $(git status --porcelain) ]] || die "primary worktree is dirty (including untracked files)"
+
+repo_name=$(basename "$root")
+managed_parent=$(realpath -m "$(dirname "$root")/${repo_name}-worktrees")
+
+git fetch origin
+if base_ref=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null); then
+  :
+else
+  base_ref=""
+  for candidate in origin/main origin/master origin/develop; do
+    if git show-ref --verify --quiet "refs/remotes/$candidate"; then
+      base_ref=$candidate
+      break
+    fi
+  done
+fi
+[[ -n $base_ref ]] || die "cannot resolve the remote base branch"
+base_branch=${base_ref#refs/remotes/origin/}
+base_branch=${base_branch#origin/}
+
+declare -a paths=()
+declare -a branches=()
+current_path=""
+current_branch=""
+record_worktree() {
+  if [[ -n $current_path && $current_path != "$root" && $current_path == "$managed_parent/"* ]]; then
+    paths+=("$current_path")
+    branches+=("$current_branch")
+  fi
+  current_path=""
+  current_branch=""
+}
+
+while IFS= read -r line || [[ -n $line ]]; do
+  case $line in
+    "worktree "*)
+      record_worktree
+      current_path=${line#worktree }
+      ;;
+    "branch refs/heads/"*) current_branch=${line#branch refs/heads/} ;;
+    "") record_worktree ;;
+  esac
+done < <(git worktree list --porcelain)
+record_worktree
+
+if (( ${#paths[@]} == 0 )); then
+  printf 'No registered Agent worktrees under %s.\n' "$managed_parent"
+  exit 0
+fi
+
+declare -a dirty=()
+declare -a unmerged=()
+declare -a protected=()
+for i in "${!paths[@]}"; do
+  path=${paths[$i]}
+  branch=${branches[$i]}
+  if [[ -d $path && -n $(git -C "$path" status --porcelain) ]]; then
+    dirty+=("$path")
+  fi
+  if [[ -n $branch ]] && ! git merge-base --is-ancestor "$branch" "$base_ref"; then
+    unmerged+=("$branch")
+  fi
+  case $branch in
+    "$base_branch" | main | master | develop) protected+=("$branch") ;;
+  esac
+done
+
+printf 'Agent cleanup scope (base: %s):\n' "$base_ref"
+for i in "${!paths[@]}"; do
+  printf '  worktree: %s\n' "${paths[$i]}"
+  if [[ -n ${branches[$i]} ]]; then
+    printf '  branch:   %s\n' "${branches[$i]}"
+  fi
+done
+
+if (( ${#dirty[@]} > 0 )); then
+  printf 'Dirty worktrees:\n' >&2
+  printf '  %s\n' "${dirty[@]}" >&2
+fi
+if (( ${#unmerged[@]} > 0 )); then
+  printf 'Unmerged branches:\n' >&2
+  printf '  %s\n' "${unmerged[@]}" >&2
+fi
+if (( ${#protected[@]} > 0 )); then
+  printf 'Protected branches:\n' >&2
+  printf '  %s\n' "${protected[@]}" >&2
+  die "protected branches are never cleanup targets; no worktrees or branches were removed"
+fi
+
+if (( apply == 0 )); then
+  if (( force == 1 )); then
+    printf 'Dry run only; --apply --force would remove every item listed above.\n'
+  else
+    printf 'Dry run only; use --apply after resolving any unsafe items.\n'
+  fi
+  exit 0
+fi
+
+if (( force == 0 && (${#dirty[@]} > 0 || ${#unmerged[@]} > 0) )); then
+  die "preflight failed; no worktrees or branches were removed (use --apply --force to override)"
+fi
+
+for i in "${!paths[@]}"; do
+  path=${paths[$i]}
+  branch=${branches[$i]}
+  if (( force == 1 )); then
+    git worktree remove --force "$path"
+  else
+    git worktree remove "$path"
+  fi
+  if [[ -n $branch ]] && git show-ref --verify --quiet "refs/heads/$branch"; then
+    git branch -D "$branch"
+  fi
+done
+
+printf 'Removed %d Agent worktree(s) and their attached local branches.\n' "${#paths[@]}"

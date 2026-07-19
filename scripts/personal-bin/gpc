@@ -1,4 +1,70 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-exec "$(dirname -- "${BASH_SOURCE[0]}")/git-pr-cleanup" "$@"
+usage() {
+  cat <<'EOF'
+Usage: gpc
+
+Clean up the merged GitHub PR associated with the current local branch.
+The command must run from the primary worktree with a completely clean tree.
+EOF
+}
+
+die() {
+  printf 'gpc: %s\n' "$*" >&2
+  exit 1
+}
+
+if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
+  usage
+  exit 0
+fi
+(( $# == 0 )) || {
+  usage >&2
+  exit 2
+}
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not in a Git worktree"
+
+git_dir=$(git rev-parse --path-format=absolute --git-dir)
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
+[[ $git_dir == "$common_dir" ]] || die "run this command from the primary worktree"
+
+[[ -z $(git status --porcelain) ]] || die "worktree is dirty (including untracked files)"
+
+head_branch=$(git branch --show-current)
+[[ -n $head_branch ]] || die "detached HEAD is not supported"
+case $head_branch in
+  main | master | develop)
+    die "current branch is a protected base branch: $head_branch"
+    ;;
+esac
+
+command -v gh >/dev/null 2>&1 || die "gh is not installed"
+gh auth status --hostname github.com >/dev/null 2>&1 || die "gh is not authenticated for github.com"
+
+pr_fields=$(gh pr view "$head_branch" \
+  --json state,mergedAt,baseRefName,headRefName,headRefOid \
+  --jq '[.state, .mergedAt, .baseRefName, .headRefName, .headRefOid] | @tsv') \
+  || die "no GitHub PR found for branch: $head_branch"
+IFS=$'\t' read -r pr_state merged_at base_branch pr_head head_ref_oid <<<"$pr_fields"
+
+[[ $pr_state == "MERGED" && -n $merged_at ]] || die "PR is not merged"
+[[ $pr_head == "$head_branch" ]] || die "PR head does not match current branch"
+[[ -n $head_ref_oid ]] || die "PR head OID is not available"
+case $base_branch in
+  main | master | develop) ;;
+  *) die "unsupported PR base branch: $base_branch" ;;
+esac
+
+local_head_oid=$(git rev-parse --verify "$head_branch") \
+  || die "failed to resolve local head OID"
+[[ $local_head_oid == "$head_ref_oid" ]] \
+  || die "local head has diverged from PR head; aborting to avoid discarding local commits"
+
+git switch "$base_branch"
+git pull --ff-only origin "$base_branch"
+git branch -D "$head_branch"
+
+printf 'Cleaned merged PR branch %s; now on %s at %s.\n' \
+  "$head_branch" "$base_branch" "$(git rev-parse --short HEAD)"

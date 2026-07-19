@@ -48,7 +48,7 @@ bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 bash -n "$ROOT_DIR/tests/agent-skills-smoke.sh"
 bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
-for personal_cli in clp gac gpc git-agent-cleanup git-pr-cleanup http http-lan; do
+for personal_cli in clp gac gpc http http-lan; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
   grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 done
@@ -354,8 +354,6 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/scripts/personal-bin/clp" \
     "$ROOT_DIR/scripts/personal-bin/gac" \
     "$ROOT_DIR/scripts/personal-bin/gpc" \
-    "$ROOT_DIR/scripts/personal-bin/git-agent-cleanup" \
-    "$ROOT_DIR/scripts/personal-bin/git-pr-cleanup" \
     "$ROOT_DIR/scripts/personal-bin/http" \
     "$ROOT_DIR/scripts/personal-bin/http-lan" \
     "$ROOT_DIR/tests/static.sh"
