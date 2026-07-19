@@ -49,9 +49,12 @@ wsl --unregister sandbox
 
 </details>
 
-## 任意: Windows Terminalを設定する
+<details>
+<summary>Windows Terminalを設定する</summary>
 
 ディストリビューションを作成した後、Windows Terminalのプロファイルやキー操作などを設定する場合は、[Windows Terminal設定](windows-terminal.md)を参照してください。
+
+</details>
 
 ## 2. GitとGitHub CLIを準備する
 
