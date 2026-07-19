@@ -17,6 +17,7 @@ grep -Fq '[初期セットアップ手順](bootstrap-prerequisites.md)' "$ROOT_D
 test -f "$ROOT_DIR/docs/cli-tools.md"
 grep -Fq '[CLIツールガイド](cli-tools.md)' "$ROOT_DIR/docs/workstation.md"
 grep -Fq '[CLIツールガイド](docs/cli-tools.md)' "$ROOT_DIR/README.md"
+grep -Fq 'WSL sessionには反映されません' "$ROOT_DIR/docs/cli-tools.md"
 
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"

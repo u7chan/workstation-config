@@ -35,6 +35,8 @@ git config --global core.pager "hunk pager"
 
 Docker CEを導入した`personal`プロファイルでは、Docker daemonが利用可能な状態で`lazydocker`を起動します。
 
+初回の`personal`適用でユーザーが`docker` groupへ追加された場合は、現在のWSL sessionには反映されません。すべての当該WSL sessionを終了して再接続してから`lazydocker`を起動してください。
+
 ```bash
 lazydocker
 ```
