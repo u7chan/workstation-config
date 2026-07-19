@@ -35,6 +35,9 @@ wsl -d sandbox
 cd
 ```
 
+<details>
+<summary>作り直す場合（破壊的操作）</summary>
+
 作り直す場合は`wsl --unregister`で削除できます。
 
 > [!WARNING]
@@ -44,6 +47,8 @@ cd
 wsl --list --verbose
 wsl --unregister sandbox
 ```
+
+</details>
 
 ## 任意: Windows Terminalを設定する
 
