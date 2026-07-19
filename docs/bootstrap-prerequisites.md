@@ -29,6 +29,12 @@ wsl -d sandbox
 
 初回起動時の案内に従って、Linuxのユーザー名とパスワードを設定します。このユーザーはrootではなく、sudoを利用できる必要があります。
 
+初回セットアップ後のシェルは、Windowsホスト側のディレクトリから始まる場合があります。以降の作業をLinuxホームディレクトリで行うため、次を実行します。
+
+```bash
+cd
+```
+
 作り直す場合は`wsl --unregister`で削除できます。
 
 > [!WARNING]
@@ -48,10 +54,7 @@ wsl --unregister sandbox
 検証時のUbuntu 26.04イメージにはGitが含まれていましたが、イメージ差を吸収するためAPTでGitと`gh`の存在を保証します。
 
 ```bash
-sudo apt-get update
-sudo apt-get install --yes git gh
-git --version
-gh --version
+sudo apt update && sudo apt upgrade -y && sudo apt install -y git gh && git --version && gh --version
 ```
 
 ## 3. GitHubへHTTPSで認証する
@@ -59,9 +62,7 @@ gh --version
 ブラウザ認証を行い、Gitのcredential helperを設定します。
 
 ```bash
-gh auth login --hostname github.com --git-protocol https --web
-gh auth setup-git
-gh auth status
+gh auth login --hostname github.com --git-protocol https --web && gh auth setup-git && gh auth status
 ```
 
 > [!NOTE]
@@ -74,9 +75,7 @@ token、credential、認証stateはこのリポジトリへ保存しません。
 ## 4. リポジトリをcloneしてbootstrapする
 
 ```bash
-git clone https://github.com/u7chan/workstation-config.git
-cd workstation-config
-./bootstrap
+git clone https://github.com/u7chan/workstation-config.git && cd workstation-config && ./bootstrap
 ```
 
 > [!TIP]
@@ -85,4 +84,3 @@ cd workstation-config
 ```bash
 ./bootstrap base
 ```
-
