@@ -41,8 +41,8 @@
     mode: "0755"
   loop:
     - clp
-    - git-agent-cleanup
-    - git-pr-cleanup
+    - gac
+    - gpc
     - http
     - http-lan
 

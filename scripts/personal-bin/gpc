@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: git-pr-cleanup
+Usage: gpc
 
 Clean up the merged GitHub PR associated with the current local branch.
 The command must run from the primary worktree with a completely clean tree.
@@ -11,7 +11,7 @@ EOF
 }
 
 die() {
-  printf 'git-pr-cleanup: %s\n' "$*" >&2
+  printf 'gpc: %s\n' "$*" >&2
   exit 1
 }
 

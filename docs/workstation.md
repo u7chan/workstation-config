@@ -194,14 +194,14 @@ Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart 
 
 `personal`プロファイルは、リポジトリの`scripts/personal-bin/`から次のCLIを`~/.local/bin`へ配置します。`base`プロファイルには配置しません。
 
+日常的な使い方と短縮コマンドは[個人CLIコマンドガイド](personal-cli.md)を参照してください。
+
 ### Git cleanup
 
 マージ済みPRのローカル作業ブランチを片付ける場合は、そのブランチをcheckoutしたprimary worktreeで実行します。
 
 ```bash
-git-pr-cleanup
-# Gitの外部サブコマンドとしても同じ処理
-git pr-cleanup
+gpc
 ```
 
 未追跡ファイルを含むdirty tree、linked worktree、未マージPR、PRのhead不一致、`main`・`master`・`develop`以外のbaseでは停止します。成功時だけbaseへ切り替え、`origin`からfast-forwardして、対象PRのローカルhead branchだけを削除します。remote branch、他のローカルブランチ、worktree、stashは変更しません。
@@ -209,9 +209,9 @@ git pr-cleanup
 Agent worktreeの一括整理は、primary worktreeから実行します。既定はdry-runです。
 
 ```bash
-git-agent-cleanup
-git-agent-cleanup --apply
-git-agent-cleanup --apply --force
+gac
+gac --apply
+gac --apply --force
 ```
 
 対象はGitに登録されている`../<repo-name>-worktrees/`配下のworktreeと、それぞれに紐づくローカルブランチだけです。名前だけで推定したブランチ、別パスのworktree、remote branchは対象にしません。`--apply`は削除前に全対象を検査し、dirty worktreeまたは既定remote branchへ未マージのブランチが一つでもあれば、何も削除せず停止します。`--force`はこの検査を上書きしますが、検出範囲は広げません。

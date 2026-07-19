@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: git-agent-cleanup [--apply] [--force]
+Usage: gac [--apply] [--force]
 
 Preview cleanup of registered Agent worktrees under:
   ../<repository-name>-worktrees/
@@ -16,7 +16,7 @@ EOF
 }
 
 die() {
-  printf 'git-agent-cleanup: %s\n' "$*" >&2
+  printf 'gac: %s\n' "$*" >&2
   exit 1
 }
 
