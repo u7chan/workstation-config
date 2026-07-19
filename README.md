@@ -1,6 +1,6 @@
 # workstation-config
 
-[![Secret Scan](https://img.shields.io/github/actions/workflow/status/u7chan/workstation-config/secret-scan.yml?branch=main&label=Secret%20Scan&style=flat&logo=github)](https://github.com/u7chan/workstation-config/actions/workflows/secret-scan.yml)
+[![Secret Scan](https://github.com/u7chan/workstation-config/actions/workflows/secret-scan.yml/badge.svg?branch=main)](https://github.com/u7chan/workstation-config/actions/workflows/secret-scan.yml)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-26.04-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 [![Ansible](https://img.shields.io/badge/Ansible-EE0000?logo=ansible&logoColor=white)](https://www.ansible.com/)
 [![Bash](https://img.shields.io/badge/Bash-4EAA25?logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
