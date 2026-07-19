@@ -44,6 +44,7 @@ cd workstation-config
 
 - [Bootstrap前の初期セットアップ](docs/bootstrap-prerequisites.md): WSL作成、distro名指定、削除時の注意、GitHub認証、bootstrap前の確認。
 - [Workstation構成ガイド](docs/workstation.md): profile、Ansible role、mise、chezmoi、Docker、Neovim、Yazi、AI CLI、開発時の検証。
+- [個人CLIコマンドガイド](docs/personal-cli.md): Git cleanup、簡易HTTP server、Claude provider launcherの早見表と使い方。
 - [base / personal の責務分界](docs/roles-boundary.md): 各プロファイルの担当範囲と適用条件。
 - [Windows Terminal設定](docs/windows-terminal.md): 設定雛形の意図、WSLディストリビューション名の確認、反映・復元手順。
 

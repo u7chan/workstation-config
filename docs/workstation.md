@@ -194,11 +194,14 @@ Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart 
 
 `personal`プロファイルは、リポジトリの`scripts/personal-bin/`から次のCLIを`~/.local/bin`へ配置します。`base`プロファイルには配置しません。
 
+日常的な使い方と短縮コマンドは[個人CLIコマンドガイド](personal-cli.md)を参照してください。
+
 ### Git cleanup
 
 マージ済みPRのローカル作業ブランチを片付ける場合は、そのブランチをcheckoutしたprimary worktreeで実行します。
 
 ```bash
+gpc
 git-pr-cleanup
 # Gitの外部サブコマンドとしても同じ処理
 git pr-cleanup
@@ -209,6 +212,7 @@ git pr-cleanup
 Agent worktreeの一括整理は、primary worktreeから実行します。既定はdry-runです。
 
 ```bash
+gac
 git-agent-cleanup
 git-agent-cleanup --apply
 git-agent-cleanup --apply --force

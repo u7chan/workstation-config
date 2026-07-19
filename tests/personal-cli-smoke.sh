@@ -5,6 +5,8 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
 readonly PR_CLEANUP="$ROOT_DIR/scripts/personal-bin/git-pr-cleanup"
 readonly AGENT_CLEANUP="$ROOT_DIR/scripts/personal-bin/git-agent-cleanup"
+readonly GPC="$ROOT_DIR/scripts/personal-bin/gpc"
+readonly GAC="$ROOT_DIR/scripts/personal-bin/gac"
 readonly CLP="$ROOT_DIR/scripts/personal-bin/clp"
 
 test_dir=$(mktemp -d)
@@ -49,6 +51,9 @@ fi
 exit 1
 EOF
 chmod +x "$mock_bin/gh"
+
+[[ $($GPC --help) == *'Usage: git-pr-cleanup'* ]]
+[[ $($GAC --help) == *'Usage: git-agent-cleanup'* ]]
 
 pr_repo=$(create_repo pr-repo)
 git -C "$pr_repo" switch -c feature/pr >/dev/null
