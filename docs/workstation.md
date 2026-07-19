@@ -110,9 +110,11 @@ Compose、およびsmoke containerを検証します。
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。
 
 - Node.js LTS、Bun 1.x、uv
-- ripgrep、fd、Neovim 0.12.x、Yazi、Starship、Herdr、cagent
+- ripgrep、fd、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent
 
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
+
+CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-tools.md)を参照してください。
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
