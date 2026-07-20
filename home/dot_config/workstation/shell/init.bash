@@ -57,14 +57,7 @@ if [[ -r $__workstation_update_state ]]; then
       if [[ $__workstation_update_liveness == dead ]]; then
         printf '\033[31m✗ workstation update stopped unexpectedly — watch-update\033[0m\n' >&2
       else
-        __workstation_update_step="$(
-          awk -F '\t' '$1 == "step_index" { print $2; exit }' "$__workstation_update_state"
-        )"
-        __workstation_update_label="$(
-          awk -F '\t' '$1 == "step_label" { print $2; exit }' "$__workstation_update_state"
-        )"
-        printf '\033[36m⟳ %s/3 %s — watch-update\033[0m\n' \
-          "${__workstation_update_step:-0}" "${__workstation_update_label:-preparing}" >&2
+        printf '\033[36m⟳ 非同期で更新中です...（watch-update で詳細を確認できます）\033[0m\n' >&2
       fi
       ;;
     failed)
@@ -76,8 +69,8 @@ if [[ -r $__workstation_update_state ]]; then
       ;;
   esac
 fi
-unset __workstation_update_state __workstation_update_status __workstation_update_step
-unset __workstation_update_label __workstation_update_failed_step __workstation_update_liveness
+unset __workstation_update_state __workstation_update_status
+unset __workstation_update_failed_step __workstation_update_liveness
 unset -f __workstation_update_runner_liveness
 
 alias g=git

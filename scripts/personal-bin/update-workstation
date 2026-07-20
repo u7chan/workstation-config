@@ -66,6 +66,8 @@ if [[ -r $STATE_FILE ]]; then
   fi
 fi
 
+printf '非同期で更新中です...（watch-update で詳細を確認できます）\n'
+
 systemctl --user start --no-block workstation-update.service
 
 start_deadline=$((SECONDS + START_TIMEOUT))
@@ -87,5 +89,3 @@ while :; do
   fi
   sleep "$START_POLL_INTERVAL"
 done
-
-printf 'バックグラウンドで更新を開始しました。watch-update で進行状況を確認できます。\n'
