@@ -40,6 +40,24 @@ cd workstation-config
 ./bootstrap base
 ```
 
+## Tools auto-update
+
+`personal` プロファイル適用時、WSL セッション開始ごとに AI CLI（Codex/Claude Code/OpenCode）・Herdr・agent-skills を自動更新します。処理はバックグラウンドで動き、シェル操作を妨げません。
+
+```bash
+update-workstation   # 手動実行（即座に戻る）
+watch-update         # 進行状況を監視
+watch-update --verbose  # 生ログを追跡
+```
+
+| データ | パス |
+|---|---|
+| ログ | `~/.local/state/workstation-update/runs/<run_id>.log` |
+| サマリ | `~/.local/state/workstation-update/runs/<run_id>.summary.tsv` |
+| 最新の状態 | `~/.local/state/workstation-update/state.tsv` |
+
+直近5回分のログが保持され、古いものは自動削除されます。詳細は [Workstation構成ガイド](docs/workstation.md#開発ツールの自動更新) を参照してください。
+
 ## Docs
 
 - [Bootstrap前の初期セットアップ](docs/bootstrap-prerequisites.md): WSL作成、distro名指定、削除時の注意、GitHub認証、bootstrap前の確認。
