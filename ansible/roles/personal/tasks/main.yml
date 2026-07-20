@@ -43,7 +43,7 @@
       {{
         ['/usr/bin/flock', ansible_facts['user_dir'] + '/.local/state/workstation-update/update.lock',
          ansible_facts['user_dir'] + '/.local/bin/update-ai']
-        + (personal_ai_tools | map('regex_replace', '^(.*)$', '--\\1') | list)
+        + (personal_ai_tools | map('regex_replace', '^', '--') | list)
       }}
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
