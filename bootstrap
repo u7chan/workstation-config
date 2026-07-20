@@ -91,6 +91,7 @@ printf '==> Trusting mise configuration\n'
 printf '==> Installing mise tools\n'
 MISE_LOCKED=1 \
 MISE_YES=1 \
-  "$HOME/.local/bin/mise" install
+  /usr/bin/flock "$HOME/.local/state/workstation-update/update.lock" \
+    "$HOME/.local/bin/mise" install
 
 printf '==> Bootstrap complete: %s\n' "$PROFILE"

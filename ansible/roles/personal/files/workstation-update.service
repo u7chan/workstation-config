@@ -1,0 +1,12 @@
+[Unit]
+Description=Update personal workstation development tools
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/systemd/user/workstation-update.env
+ExecStart=%h/.local/bin/workstation-update-runner
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

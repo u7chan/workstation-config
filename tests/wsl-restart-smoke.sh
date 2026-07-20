@@ -17,6 +17,22 @@ systemctl is-active --quiet "$user_unit" || {
   exit 1
 }
 
+systemctl --user is-enabled --quiet workstation-update.service || {
+  printf 'wsl-restart-smoke: workstation-update.service is not enabled\n' >&2
+  exit 1
+}
+update_invocation_id="$(
+  systemctl --user show workstation-update.service --property=InvocationID --value
+)"
+[[ $update_invocation_id =~ ^[0-9a-f]{32}$ && $update_invocation_id != 00000000000000000000000000000000 ]] || {
+  printf 'wsl-restart-smoke: workstation-update.service did not start in this user session\n' >&2
+  exit 1
+}
+[[ -r "$HOME/.local/state/workstation-update/state.tsv" ]] || {
+  printf 'wsl-restart-smoke: workstation update state was not created\n' >&2
+  exit 1
+}
+
 resolution="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'type -a herdr cagent codex claude opencode' 2>&1)" || {
   printf '%s\n' "$resolution" >&2
   exit 1

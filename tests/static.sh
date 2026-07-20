@@ -58,7 +58,10 @@ bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 bash -n "$ROOT_DIR/tests/agent-skills-smoke.sh"
 bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
-for personal_cli in clp gac gpc http http-lan; do
+bash -n "$ROOT_DIR/scripts/workstation-update-runner"
+bash -n "$ROOT_DIR/scripts/workstation-update-locked-git"
+bash -n "$ROOT_DIR/tests/workstation-update-smoke.sh"
+for personal_cli in clp gac gpc http http-lan update-workstation watch-update; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
   grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 done
@@ -123,6 +126,7 @@ grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -q 'type -a herdr cagent codex claude opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -Fq 'workstation-update.service' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
@@ -361,6 +365,11 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/docker-smoke.sh" \
     "$ROOT_DIR/tests/agent-skills-smoke.sh" \
     "$ROOT_DIR/tests/cagent-smoke.sh" \
+    "$ROOT_DIR/scripts/workstation-update-runner" \
+    "$ROOT_DIR/scripts/workstation-update-locked-git" \
+    "$ROOT_DIR/scripts/personal-bin/update-workstation" \
+    "$ROOT_DIR/scripts/personal-bin/watch-update" \
+    "$ROOT_DIR/tests/workstation-update-smoke.sh" \
     "$ROOT_DIR/scripts/personal-bin/clp" \
     "$ROOT_DIR/scripts/personal-bin/gac" \
     "$ROOT_DIR/scripts/personal-bin/gpc" \

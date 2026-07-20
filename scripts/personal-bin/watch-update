@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly STATE_DIR="${WORKSTATION_UPDATE_STATE_DIR:-$HOME/.local/state/workstation-update}"
+readonly STATE_FILE="$STATE_DIR/state.tsv"
+readonly LOCK_FILE="$STATE_DIR/update.lock"
+readonly WATCH_INTERVAL="${WORKSTATION_UPDATE_WATCH_INTERVAL_SECONDS:-1}"
+
+umask 077
+
+usage() {
+  cat <<'EOF'
+Usage: watch-update [--verbose]
+
+Follow the current or most recent workstation update.
+  --verbose  Show the update commands' raw standard output and error log.
+EOF
+}
+
+verbose=false
+case ${1:-} in
+  '') ;;
+  --verbose) verbose=true ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    printf 'watch-update: unknown option: %s\n' "$1" >&2
+    exit 2
+    ;;
+esac
+(( $# <= 1 )) || {
+  printf 'watch-update: expected at most one option\n' >&2
+  exit 2
+}
+[[ $WATCH_INTERVAL =~ ^[0-9]+([.][0-9]+)?$ ]] || {
+  printf 'watch-update: watch interval must be a non-negative number\n' >&2
+  exit 2
+}
+
+read_field() {
+  local key=$1
+  local file=$2
+  awk -F '\t' -v key="$key" '$1 == key { sub(/^[^\t]*\t/, ""); print; exit }' "$file"
+}
+
+[[ -r $STATE_FILE ]] || {
+  printf 'watch-update: no workstation update history found in %s\n' "$STATE_DIR" >&2
+  exit 1
+}
+
+run_id="$(read_field run_id "$STATE_FILE")"
+[[ $run_id =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && $run_id != *..* ]] || {
+  printf 'watch-update: invalid run identifier in state file\n' >&2
+  exit 1
+}
+readonly RUN_ID="$run_id"
+readonly LOG_FILE="$STATE_DIR/runs/$RUN_ID.log"
+readonly SUMMARY_FILE="$STATE_DIR/runs/$RUN_ID.summary.tsv"
+
+format_elapsed() {
+  local seconds=$1
+  printf '%02d:%02d' "$((seconds / 60))" "$((seconds % 60))"
+}
+
+runner_is_alive() {
+  local runner_pid runner_start_time proc_stat actual_start_time
+
+  runner_pid="$(read_field runner_pid "$STATE_FILE")"
+  runner_start_time="$(read_field runner_start_time "$STATE_FILE")"
+  [[ $runner_pid =~ ^[1-9][0-9]*$ && $runner_start_time =~ ^[0-9]+$ ]] || return 1
+  [[ -r /proc/$runner_pid/stat ]] || return 1
+  proc_stat="$(<"/proc/$runner_pid/stat")" || return 1
+  proc_stat=${proc_stat##*) }
+  actual_start_time="$(awk '{ print $20 }' <<<"$proc_stat")"
+  [[ $actual_start_time == "$runner_start_time" ]]
+}
+
+mark_stale_run_failed() {
+  local lock_fd current_run_id current_status failed_step temporary_file updated_at
+
+  command -v flock >/dev/null 2>&1 || return 1
+  exec {lock_fd}>"$LOCK_FILE" || return 1
+  if ! flock -n "$lock_fd"; then
+    exec {lock_fd}>&-
+    return 1
+  fi
+
+  current_run_id="$(read_field run_id "$STATE_FILE")"
+  current_status="$(read_field status "$STATE_FILE")"
+  if [[ $current_run_id != "$RUN_ID" || $current_status != running ]] || runner_is_alive; then
+    exec {lock_fd}>&-
+    return 1
+  fi
+
+  failed_step="$(read_field step_label "$STATE_FILE")"
+  failed_step=${failed_step:-workstation}
+  updated_at="$(date +%s)"
+  temporary_file="$STATE_DIR/.state.watch.$BASHPID.tmp"
+  awk -F '\t' -v OFS='\t' -v failed_step="$failed_step" -v updated_at="$updated_at" '
+    $1 == "status" { $2 = "failed" }
+    $1 == "step_status" { $2 = "failed" }
+    $1 == "updated_at_epoch" { $2 = updated_at }
+    $1 == "failed_step" { $2 = failed_step }
+    $1 == "message" { $2 = "runner process is no longer alive" }
+    { print }
+  ' "$STATE_FILE" >"$temporary_file"
+  mv -f -- "$temporary_file" "$STATE_FILE"
+  printf '[%s] runner process is no longer alive; stale state marked failed\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$LOG_FILE"
+  exec {lock_fd}>&-
+}
+
+state_for_run() {
+  local current_run_id status
+
+  [[ -r $STATE_FILE ]] || {
+    printf 'unknown\n'
+    return
+  }
+  current_run_id="$(read_field run_id "$STATE_FILE")"
+  if [[ $current_run_id != "$RUN_ID" ]]; then
+    printf 'superseded\n'
+    return
+  fi
+
+  status="$(read_field status "$STATE_FILE")"
+  if [[ $status == running ]] && ! runner_is_alive; then
+    mark_stale_run_failed || true
+    current_run_id="$(read_field run_id "$STATE_FILE")"
+    if [[ $current_run_id != "$RUN_ID" ]]; then
+      printf 'superseded\n'
+      return
+    fi
+    status="$(read_field status "$STATE_FILE")"
+  fi
+  printf '%s\n' "$status"
+}
+
+if [[ $verbose == true ]]; then
+  shown_bytes=0
+  output_new_log_bytes() {
+    local current_size
+
+    [[ -r $LOG_FILE ]] || return
+    current_size="$(stat -c %s "$LOG_FILE")"
+    if ((current_size > shown_bytes)); then
+      dd if="$LOG_FILE" iflag=skip_bytes,count_bytes \
+        skip="$shown_bytes" count="$((current_size - shown_bytes))" status=none
+      shown_bytes=$current_size
+    fi
+  }
+
+  while :; do
+    output_new_log_bytes
+
+    status="$(state_for_run)"
+    if [[ $status != running ]]; then
+      output_new_log_bytes
+      break
+    fi
+    sleep "$WATCH_INTERVAL"
+  done
+  exit 0
+fi
+
+shown_lines=0
+last_signature=
+print_new_summaries() {
+  local current_lines start_line
+  local index label result attempts elapsed exit_code symbol
+
+  [[ -r $SUMMARY_FILE ]] || return
+  current_lines="$(wc -l <"$SUMMARY_FILE")"
+  if ((current_lines <= shown_lines)); then
+    return
+  fi
+
+  start_line=$((shown_lines + 1))
+  while IFS=$'\t' read -r index label result attempts elapsed exit_code; do
+    [[ -n $index ]] || continue
+    if [[ $result == success ]]; then
+      symbol='✓'
+    else
+      symbol='✗'
+    fi
+    printf '%s [%s] %s/3 %s — %s attempt(s)' \
+      "$symbol" "$(format_elapsed "$elapsed")" "$index" "$label" "$attempts"
+    if [[ $result == failed ]]; then
+      printf ', exit %s' "$exit_code"
+    fi
+    printf '\n'
+  done < <(sed -n "${start_line},${current_lines}p" "$SUMMARY_FILE")
+  shown_lines=$current_lines
+}
+
+while :; do
+  print_new_summaries
+
+  status="$(state_for_run)"
+  if [[ $status == running ]]; then
+    step_index="$(read_field step_index "$STATE_FILE")"
+    step_label="$(read_field step_label "$STATE_FILE")"
+    step_status="$(read_field step_status "$STATE_FILE")"
+    attempt="$(read_field attempt "$STATE_FILE")"
+    started_at="$(read_field started_at_epoch "$STATE_FILE")"
+    signature="$step_index:$step_status:$attempt"
+    if [[ $signature != "$last_signature" ]]; then
+      elapsed=$(( $(date +%s) - started_at ))
+      if [[ $step_status == retrying ]]; then
+        printf '↻ [%s] %s/3 %s — retrying (attempt %s)\n' \
+          "$(format_elapsed "$elapsed")" "$step_index" "$step_label" "$attempt"
+      else
+        printf '⟳ [%s] %s/3 %s — running\n' \
+          "$(format_elapsed "$elapsed")" "$step_index" "$step_label"
+      fi
+      last_signature=$signature
+    fi
+    sleep "$WATCH_INTERVAL"
+    continue
+  fi
+
+  print_new_summaries
+
+  if [[ $status == success ]]; then
+    printf '✓ workstation update completed successfully\n'
+  elif [[ $status == failed ]]; then
+    failed_step="$(read_field failed_step "$STATE_FILE")"
+    printf '✗ workstation update incomplete: %s — watch-update --verbose\n' "${failed_step:-unknown step}"
+  elif [[ $status == superseded ]]; then
+    printf 'watch-update: a newer update run has started\n'
+  else
+    printf 'watch-update: update state is unavailable\n' >&2
+    exit 1
+  fi
+  break
+done

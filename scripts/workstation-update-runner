@@ -1,0 +1,366 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+readonly PROGRAM_NAME="workstation-update-runner"
+readonly STATE_DIR="${WORKSTATION_UPDATE_STATE_DIR:-$HOME/.local/state/workstation-update}"
+readonly RUNS_DIR="$STATE_DIR/runs"
+readonly STATE_FILE="$STATE_DIR/state.tsv"
+readonly LOCK_FILE="$STATE_DIR/update.lock"
+readonly RETRY_DELAY_SECONDS="${WORKSTATION_UPDATE_RETRY_DELAY_SECONDS:-5}"
+readonly AGENT_SKILLS_DIR="${WORKSTATION_UPDATE_AGENT_SKILLS_DIR:-$HOME/workspace/agent-skills}"
+readonly AGENT_SKILLS_ENABLED="${WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED:-true}"
+
+die() {
+  printf '%s: %s\n' "$PROGRAM_NAME" "$*" >&2
+  exit 1
+}
+
+[[ $RETRY_DELAY_SECONDS =~ ^[0-9]+([.][0-9]+)?$ ]] || die "retry delay must be a non-negative number"
+command -v flock >/dev/null 2>&1 || die "flock is required"
+command -v git >/dev/null 2>&1 || die "git is required"
+
+AI_UPDATE_ENABLED=true
+declare -a UPDATE_AI_ARGS=()
+if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
+  if [[ -z $WORKSTATION_UPDATE_AI_TOOLS ]]; then
+    AI_UPDATE_ENABLED=false
+  else
+    IFS=',' read -r -a configured_ai_tools <<<"$WORKSTATION_UPDATE_AI_TOOLS"
+    for configured_ai_tool in "${configured_ai_tools[@]}"; do
+      case $configured_ai_tool in
+        codex|claude|opencode) UPDATE_AI_ARGS+=("--$configured_ai_tool") ;;
+        *) die "invalid AI tool in WORKSTATION_UPDATE_AI_TOOLS: $configured_ai_tool" ;;
+      esac
+    done
+  fi
+fi
+
+case $AGENT_SKILLS_ENABLED in
+  true|false) ;;
+  *) die "WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED must be true or false" ;;
+esac
+
+umask 077
+mkdir -p "$RUNS_DIR" || die "cannot create state directory: $STATE_DIR"
+exec 9>"$LOCK_FILE" || die "cannot open update lock: $LOCK_FILE"
+if ! flock -n 9; then
+  printf '%s: an update is already running; use watch-update\n' "$PROGRAM_NAME" >&2
+  exit 0
+fi
+
+readonly STARTED_AT_EPOCH="$(date +%s)"
+readonly RUN_ID="$(date -u +%Y%m%dT%H%M%S%NZ)-$$"
+readonly LOG_FILE="$RUNS_DIR/$RUN_ID.log"
+readonly SUMMARY_FILE="$RUNS_DIR/$RUN_ID.summary.tsv"
+runner_proc_stat="$(<"/proc/$$/stat")" || die "cannot read runner process state"
+runner_proc_stat=${runner_proc_stat##*) }
+readonly RUNNER_START_TIME="$(awk '{ print $20 }' <<<"$runner_proc_stat")"
+[[ $RUNNER_START_TIME =~ ^[0-9]+$ ]] || die "cannot determine runner process start time"
+
+CURRENT_STATUS=running
+CURRENT_STEP_INDEX=0
+CURRENT_STEP_LABEL=preparing
+CURRENT_STEP_STATUS=running
+CURRENT_ATTEMPT=0
+FAILED_STEP=
+MESSAGE=
+FINISHED=false
+AGENT_SKILLS_INDEX_LOCK=
+AGENT_SKILLS_TEMP_INDEX=
+declare -a FAILED_STEPS=()
+
+: >"$LOG_FILE"
+: >"$SUMMARY_FILE"
+
+timestamp() {
+  date -u +%Y-%m-%dT%H:%M:%SZ
+}
+
+log_line() {
+  printf '[%s] %s\n' "$(timestamp)" "$*" >>"$LOG_FILE"
+}
+
+write_state() {
+  local temporary_file="$STATE_DIR/.state.$$.tmp"
+
+  {
+    printf 'status\t%s\n' "$CURRENT_STATUS"
+    printf 'run_id\t%s\n' "$RUN_ID"
+    printf 'step_index\t%s\n' "$CURRENT_STEP_INDEX"
+    printf 'step_total\t3\n'
+    printf 'step_label\t%s\n' "$CURRENT_STEP_LABEL"
+    printf 'step_status\t%s\n' "$CURRENT_STEP_STATUS"
+    printf 'attempt\t%s\n' "$CURRENT_ATTEMPT"
+    printf 'started_at_epoch\t%s\n' "$STARTED_AT_EPOCH"
+    printf 'updated_at_epoch\t%s\n' "$(date +%s)"
+    printf 'runner_pid\t%s\n' "$$"
+    printf 'runner_start_time\t%s\n' "$RUNNER_START_TIME"
+    printf 'failed_step\t%s\n' "$FAILED_STEP"
+    printf 'message\t%s\n' "$MESSAGE"
+  } >"$temporary_file"
+  mv -f -- "$temporary_file" "$STATE_FILE"
+}
+
+prune_runs() {
+  local -a logs=()
+  local old_log old_summary index
+
+  mapfile -t logs < <(find "$RUNS_DIR" -maxdepth 1 -type f -name '*.log' -print | sort -r)
+  for ((index = 5; index < ${#logs[@]}; index++)); do
+    old_log=${logs[$index]}
+    old_summary=${old_log%.log}.summary.tsv
+    rm -f -- "$old_log" "$old_summary"
+  done
+}
+
+finish_unexpected_exit() {
+  local exit_code=$?
+
+  [[ -z $AGENT_SKILLS_TEMP_INDEX ]] || rm -f -- "$AGENT_SKILLS_TEMP_INDEX" "$AGENT_SKILLS_TEMP_INDEX.lock"
+  [[ -z $AGENT_SKILLS_INDEX_LOCK ]] || rm -f -- "$AGENT_SKILLS_INDEX_LOCK"
+
+  if [[ $FINISHED != true ]]; then
+    CURRENT_STATUS=failed
+    CURRENT_STEP_STATUS=failed
+    FAILED_STEP=${FAILED_STEP:-$CURRENT_STEP_LABEL}
+    MESSAGE="runner stopped unexpectedly (exit $exit_code)"
+    log_line "$MESSAGE"
+    write_state
+    prune_runs
+  fi
+}
+
+trap finish_unexpected_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+
+run_update_ai() {
+  local update_ai_bin="${WORKSTATION_UPDATE_AI_BIN:-$HOME/.local/bin/update-ai}"
+
+  if [[ $AI_UPDATE_ENABLED == false ]]; then
+    printf 'AI CLI update skipped: personal_ai_tools is empty\n'
+    return 0
+  fi
+
+  [[ -x $update_ai_bin ]] || {
+    printf 'update-ai is not executable: %s\n' "$update_ai_bin" >&2
+    return 127
+  }
+
+  MISE_CONFIG_FILE="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}" \
+  MISE_LOCKED=1 \
+  MISE_YES=1 \
+    "$update_ai_bin" "${UPDATE_AI_ARGS[@]}"
+}
+
+run_herdr_update() {
+  local mise_bin="${WORKSTATION_UPDATE_MISE_BIN:-$HOME/.local/bin/mise}"
+
+  [[ -x $mise_bin ]] || {
+    printf 'mise is not executable: %s\n' "$mise_bin" >&2
+    return 127
+  }
+
+  MISE_CONFIG_FILE="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}" \
+  MISE_YES=1 \
+    env -u MISE_LOCKED "$mise_bin" upgrade herdr
+}
+
+release_agent_skills_git_lock() {
+  [[ -z $AGENT_SKILLS_TEMP_INDEX ]] || rm -f -- "$AGENT_SKILLS_TEMP_INDEX" "$AGENT_SKILLS_TEMP_INDEX.lock"
+  [[ -z $AGENT_SKILLS_INDEX_LOCK ]] || rm -f -- "$AGENT_SKILLS_INDEX_LOCK"
+  AGENT_SKILLS_TEMP_INDEX=
+  AGENT_SKILLS_INDEX_LOCK=
+}
+
+run_agent_skills_update() {
+  local branch status_output local_oid remote_oid merge_base git_index
+
+  if [[ $AGENT_SKILLS_ENABLED == false ]]; then
+    printf 'agent-skills update skipped: personal_agent_skills_enabled is false\n'
+    return 0
+  fi
+
+  [[ -d $AGENT_SKILLS_DIR ]] || {
+    printf 'agent-skills repository is missing: %s\n' "$AGENT_SKILLS_DIR" >&2
+    return 20
+  }
+  git -C "$AGENT_SKILLS_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    printf 'agent-skills path is not a Git worktree: %s\n' "$AGENT_SKILLS_DIR" >&2
+    return 20
+  }
+
+  branch="$(git -C "$AGENT_SKILLS_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null)" || {
+    printf 'agent-skills update skipped: detached HEAD\n' >&2
+    return 20
+  }
+  [[ $branch == main ]] || {
+    printf 'agent-skills update skipped: expected branch main, found %s\n' "$branch" >&2
+    return 20
+  }
+
+  status_output="$(git -C "$AGENT_SKILLS_DIR" status --porcelain --untracked-files=normal)" || return
+  [[ -z $status_output ]] || {
+    printf 'agent-skills update skipped: worktree is dirty\n' >&2
+    return 20
+  }
+
+  git -C "$AGENT_SKILLS_DIR" fetch --no-tags origin main || return
+
+  git_index="$(git -C "$AGENT_SKILLS_DIR" rev-parse --path-format=absolute --git-path index)" || return
+  AGENT_SKILLS_INDEX_LOCK="$git_index.lock"
+  if ! (set -o noclobber; : >"$AGENT_SKILLS_INDEX_LOCK") 2>/dev/null; then
+    printf 'agent-skills update skipped: another Git writer is active\n' >&2
+    AGENT_SKILLS_INDEX_LOCK=
+    return 20
+  fi
+
+  branch="$(git -C "$AGENT_SKILLS_DIR" symbolic-ref --quiet --short HEAD 2>/dev/null)" || {
+    printf 'agent-skills update skipped: detached HEAD after fetch\n' >&2
+    release_agent_skills_git_lock
+    return 20
+  }
+  [[ $branch == main ]] || {
+    printf 'agent-skills update skipped: branch changed during fetch\n' >&2
+    release_agent_skills_git_lock
+    return 20
+  }
+  status_output="$(GIT_OPTIONAL_LOCKS=0 git -C "$AGENT_SKILLS_DIR" status --porcelain --untracked-files=normal)" || {
+    release_agent_skills_git_lock
+    return 1
+  }
+  [[ -z $status_output ]] || {
+    printf 'agent-skills update skipped: worktree changed during fetch\n' >&2
+    release_agent_skills_git_lock
+    return 20
+  }
+  local_oid="$(git -C "$AGENT_SKILLS_DIR" rev-parse HEAD)" || {
+    release_agent_skills_git_lock
+    return 1
+  }
+  remote_oid="$(git -C "$AGENT_SKILLS_DIR" rev-parse FETCH_HEAD)" || {
+    release_agent_skills_git_lock
+    return 1
+  }
+
+  if [[ $local_oid == "$remote_oid" ]]; then
+    printf 'agent-skills is already up to date\n'
+    release_agent_skills_git_lock
+    return 0
+  fi
+
+  merge_base="$(git -C "$AGENT_SKILLS_DIR" merge-base "$local_oid" "$remote_oid")" || {
+    release_agent_skills_git_lock
+    return 1
+  }
+  [[ $merge_base == "$local_oid" ]] || {
+    printf 'agent-skills update skipped: main cannot be fast-forwarded to origin/main\n' >&2
+    release_agent_skills_git_lock
+    return 20
+  }
+
+  AGENT_SKILLS_TEMP_INDEX="$git_index.workstation-update.$$"
+  cp -- "$git_index" "$AGENT_SKILLS_TEMP_INDEX" || {
+    release_agent_skills_git_lock
+    return 1
+  }
+  if ! GIT_INDEX_FILE="$AGENT_SKILLS_TEMP_INDEX" \
+    git -C "$AGENT_SKILLS_DIR" merge --ff-only "$remote_oid"; then
+    release_agent_skills_git_lock
+    return 20
+  fi
+  if ! mv -f -- "$AGENT_SKILLS_TEMP_INDEX" "$git_index"; then
+    release_agent_skills_git_lock
+    return 1
+  fi
+  AGENT_SKILLS_TEMP_INDEX=
+  rm -f -- "$AGENT_SKILLS_INDEX_LOCK"
+  AGENT_SKILLS_INDEX_LOCK=
+}
+
+run_step() {
+  local index=$1
+  local label=$2
+  shift 2
+  local attempt=1
+  local exit_code=0
+  local result=success
+  local step_started step_finished elapsed
+
+  CURRENT_STEP_INDEX=$index
+  CURRENT_STEP_LABEL=$label
+  CURRENT_STEP_STATUS=running
+  CURRENT_ATTEMPT=$attempt
+  MESSAGE=
+  write_state
+  step_started="$(date +%s)"
+  log_line "[$index/3 $label] attempt $attempt started"
+
+  if "$@" >>"$LOG_FILE" 2>&1; then
+    exit_code=0
+  else
+    exit_code=$?
+  fi
+
+  if ((exit_code != 0)); then
+    CURRENT_STEP_STATUS=retrying
+    CURRENT_ATTEMPT=2
+    MESSAGE="first attempt failed (exit $exit_code); retrying"
+    log_line "[$index/3 $label] attempt 1 failed with exit $exit_code"
+    write_state
+    sleep "$RETRY_DELAY_SECONDS"
+    attempt=2
+    log_line "[$index/3 $label] attempt $attempt started"
+    if "$@" >>"$LOG_FILE" 2>&1; then
+      exit_code=0
+    else
+      exit_code=$?
+    fi
+  fi
+
+  step_finished="$(date +%s)"
+  elapsed=$((step_finished - step_started))
+  if ((exit_code != 0)); then
+    result=failed
+    FAILED_STEPS+=("$label")
+    log_line "[$index/3 $label] failed after $attempt attempt(s) with exit $exit_code"
+  else
+    log_line "[$index/3 $label] succeeded after $attempt attempt(s)"
+  fi
+
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$index" "$label" "$result" "$attempt" "$elapsed" "$exit_code" >>"$SUMMARY_FILE"
+  CURRENT_STEP_STATUS=$result
+  CURRENT_ATTEMPT=$attempt
+  MESSAGE=
+  write_state
+}
+
+log_line "workstation update started (run $RUN_ID)"
+write_state
+run_step 1 update-ai run_update_ai
+run_step 2 'mise upgrade herdr' run_herdr_update
+run_step 3 agent-skills run_agent_skills_update
+
+if ((${#FAILED_STEPS[@]} > 0)); then
+  FAILED_STEP=${FAILED_STEPS[0]}
+  for ((failed_index = 1; failed_index < ${#FAILED_STEPS[@]}; failed_index++)); do
+    FAILED_STEP+=", ${FAILED_STEPS[$failed_index]}"
+  done
+  CURRENT_STATUS=failed
+  CURRENT_STEP_STATUS=failed
+  MESSAGE="one or more updates did not complete"
+  log_line "workstation update failed: $FAILED_STEP"
+  exit_code=1
+else
+  CURRENT_STATUS=success
+  CURRENT_STEP_STATUS=success
+  MESSAGE="all updates completed"
+  log_line "workstation update completed successfully"
+  exit_code=0
+fi
+
+write_state
+prune_runs
+FINISHED=true
+exit "$exit_code"

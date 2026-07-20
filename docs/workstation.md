@@ -186,6 +186,30 @@ type -a herdr cagent codex
 
 Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart smokeの`codex features list`は、この設定がCodex起動時に正常に解析されることも検証します。
 
+### 開発ツールの自動更新
+
+`personal`プロファイルは`workstation-update.service`をsystemd user serviceとして有効化します。WSLのユーザーセッション開始ごとに、対話シェルを待たせず、sudoを使わないバックグラウンド処理として次の順序で1回実行します。
+
+1. `personal_ai_tools`で選択したAI CLIを`update-ai`で更新（空ならスキップ）
+2. `mise upgrade herdr`
+3. `personal_agent_skills_enabled=true`の場合だけ`~/workspace/agent-skills`をfast-forward更新
+
+各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、再provisioningのmise、AI CLI、agent-skills更新も同じロックへ参加します。更新中のCodex、Herdr、Claude Code、OpenCodeの起動は制限しません。Herdrの更新主体は従来どおりmiseであり、`herdr update`は使用しません。
+
+手動実行も自動実行と同じuser serviceをバックグラウンドで開始します。
+
+```bash
+update-workstation
+watch-update
+watch-update --verbose
+```
+
+`update-workstation`は更新完了を待たず、新しいrunのstateが作成されるまでだけ待ってから戻るため、直後の`watch-update`は要求したrunを追跡します。`watch-update`はステップ、経過時間、再試行、成功・失敗を表示し、`--verbose`は各更新コマンドの標準出力・標準エラーを含む生ログを追跡します。runnerが強制終了してstateだけが`running`で残った場合は、PIDとprocess start timeからstale状態を検出して`failed`へ収束させます。対話Bashの起動時は更新中または前回失敗の場合だけ1行の案内を表示し、成功時は表示しません。
+
+状態とログは`~/.local/state/workstation-update/`に保存します。`state.tsv`が現在または直近の集約結果、`runs/`が実行単位の生ログとステップ結果で、直近5回分だけを保持します。環境変数の一覧はログへ出力しません。
+
+agent-skillsは`main`ブランチ、cleanなworktree、取得した`origin/main`へfast-forward可能、という条件をすべて満たす場合だけ更新します。条件を満たさない場合はstash、merge、rebase、競合解消を行わず、worktreeを変更しないまま全体を更新未完了にします。`watch-update --verbose`で理由を確認し、未commitの変更をcommitまたは退避して`main`へ戻すか、分岐したcommitを手動で整理してください。その後`git -C ~/workspace/agent-skills status`でcleanかつ`main`であることを確認し、`update-workstation`を再実行します。
+
 ## Bashのローカル設定
 
 共通のBash初期化はchezmoi管理の`~/.config/workstation/shell/init.bash`から読み込みます。Ubuntu標準の`~/.bashrc`はそのまま残し、管理済み初期化ファイルを読み込むブロックだけを追加します。

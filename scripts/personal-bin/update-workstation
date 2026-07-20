@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly STATE_DIR="${WORKSTATION_UPDATE_STATE_DIR:-$HOME/.local/state/workstation-update}"
+readonly STATE_FILE="$STATE_DIR/state.tsv"
+readonly START_TIMEOUT="${WORKSTATION_UPDATE_START_TIMEOUT_SECONDS:-10}"
+readonly START_POLL_INTERVAL="${WORKSTATION_UPDATE_START_POLL_INTERVAL_SECONDS:-0.1}"
+
+usage() {
+  cat <<'EOF'
+Usage: update-workstation
+
+Start the workstation update user service in the background.
+EOF
+}
+
+if [[ ${1:-} == -h || ${1:-} == --help ]]; then
+  usage
+  exit 0
+fi
+(( $# == 0 )) || {
+  printf 'update-workstation: no arguments are accepted\n' >&2
+  exit 2
+}
+
+command -v systemctl >/dev/null 2>&1 || {
+  printf 'update-workstation: systemctl is required\n' >&2
+  exit 1
+}
+[[ $START_TIMEOUT =~ ^[0-9]+$ ]] || {
+  printf 'update-workstation: start timeout must be a non-negative integer\n' >&2
+  exit 2
+}
+[[ $START_POLL_INTERVAL =~ ^[0-9]+([.][0-9]+)?$ ]] || {
+  printf 'update-workstation: start poll interval must be a non-negative number\n' >&2
+  exit 2
+}
+
+read_field() {
+  local key=$1
+  local file=$2
+  awk -F '\t' -v key="$key" '$1 == key { sub(/^[^\t]*\t/, ""); print; exit }' "$file"
+}
+
+state_runner_is_alive() {
+  local runner_pid runner_start_time proc_stat actual_start_time
+
+  runner_pid="$(read_field runner_pid "$STATE_FILE")"
+  runner_start_time="$(read_field runner_start_time "$STATE_FILE")"
+  [[ $runner_pid =~ ^[1-9][0-9]*$ && $runner_start_time =~ ^[0-9]+$ ]] || return 1
+  [[ -r /proc/$runner_pid/stat ]] || return 1
+  proc_stat="$(<"/proc/$runner_pid/stat")" || return 1
+  proc_stat=${proc_stat##*) }
+  actual_start_time="$(awk '{ print $20 }' <<<"$proc_stat")"
+  [[ $actual_start_time == "$runner_start_time" ]]
+}
+
+previous_run_id=
+previous_status=
+previous_run_alive=false
+if [[ -r $STATE_FILE ]]; then
+  previous_run_id="$(read_field run_id "$STATE_FILE")"
+  previous_status="$(read_field status "$STATE_FILE")"
+  if [[ $previous_status == running ]] && state_runner_is_alive; then
+    previous_run_alive=true
+  fi
+fi
+
+systemctl --user start --no-block workstation-update.service
+
+start_deadline=$((SECONDS + START_TIMEOUT))
+while :; do
+  if [[ -r $STATE_FILE ]]; then
+    current_run_id="$(read_field run_id "$STATE_FILE")"
+    current_status="$(read_field status "$STATE_FILE")"
+    if [[ -n $current_run_id ]] && {
+      [[ $current_run_id != "$previous_run_id" ]] ||
+        [[ $previous_run_alive == true && $current_status == running ]];
+    }; then
+      break
+    fi
+  fi
+  if ((SECONDS >= start_deadline)); then
+    printf 'update-workstation: service did not publish a new run within %s seconds\n' \
+      "$START_TIMEOUT" >&2
+    exit 1
+  fi
+  sleep "$START_POLL_INTERVAL"
+done
+
+printf 'Workstation update requested in the background. Run watch-update to follow it.\n'
