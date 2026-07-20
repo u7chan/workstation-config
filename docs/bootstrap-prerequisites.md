@@ -91,3 +91,17 @@ git clone https://github.com/u7chan/workstation-config.git && cd workstation-con
 ```bash
 ./bootstrap base
 ```
+
+## 5. 開発ツールの自動更新を有効にする（personalのみ）
+
+`personal` プロファイルのbootstrapが完了したら、WSLセッション開始時の自動更新を有効にします。
+
+```bash
+systemctl --user enable workstation-update.service && systemctl --user status workstation-update.service
+```
+
+`Loaded: ... enabled;` と表示されれば有効化されています。次回のWSL起動時から自動で更新が走ります。すぐに一度だけ手動実行したい場合は次のコマンドを使います。
+
+```bash
+update-workstation && watch-update
+```

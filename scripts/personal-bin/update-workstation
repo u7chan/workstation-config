@@ -88,4 +88,4 @@ while :; do
   sleep "$START_POLL_INTERVAL"
 done
 
-printf 'Workstation update requested in the background. Run watch-update to follow it.\n'
+printf 'バックグラウンドで更新を開始しました。watch-update で進行状況を確認できます。\n'
