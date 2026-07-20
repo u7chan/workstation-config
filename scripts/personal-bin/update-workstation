@@ -66,7 +66,7 @@ if [[ -r $STATE_FILE ]]; then
   fi
 fi
 
-printf '非同期で更新を開始します。\n'
+printf '非同期で更新中です...（watch-update で詳細を確認できます）\n'
 
 systemctl --user start --no-block workstation-update.service
 
