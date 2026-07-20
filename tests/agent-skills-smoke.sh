@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
+readonly LOCKED_GIT="$ROOT_DIR/scripts/workstation-update-locked-git"
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
@@ -27,6 +28,9 @@ cat >"$playbook" <<EOF
 EOF
 
 run_playbook() {
+  mkdir -p "$1/.local/bin"
+  cp "$LOCKED_GIT" "$1/.local/bin/workstation-update-locked-git"
+  chmod +x "$1/.local/bin/workstation-update-locked-git"
   ANSIBLE_LOCAL_TEMP="$test_dir/ansible-local" \
     ANSIBLE_REMOTE_TEMP="$test_dir/ansible-remote" \
     ansible-playbook \

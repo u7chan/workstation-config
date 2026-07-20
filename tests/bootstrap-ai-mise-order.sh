@@ -27,7 +27,12 @@ herdr_upgrade_task="$(awk '
   capture && /^- name: / && $0 != "- name: Resolve latest Herdr release before locked mise install" { exit }
   capture { print }
 ' "$base_tasks")"
-grep -Fqx '    cmd: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/mise upgrade herdr"' <<<"$herdr_upgrade_task" || {
+grep -Fqx '      - /usr/bin/flock' <<<"$herdr_upgrade_task" &&
+grep -Fqx '      - "{{ ansible_facts['\''user_dir'\''] }}/.local/state/workstation-update/update.lock"' \
+  <<<"$herdr_upgrade_task" &&
+grep -Fqx '      - "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/mise"' <<<"$herdr_upgrade_task" &&
+grep -Fqx '      - upgrade' <<<"$herdr_upgrade_task" &&
+grep -Fqx '      - herdr' <<<"$herdr_upgrade_task" || {
   printf 'bootstrap-ai-mise-order: Herdr must be upgraded through mise before locked install.\n' >&2
   exit 1
 }
@@ -45,9 +50,20 @@ grep -Fqx '    MISE_LOCKED: "1"' <<<"$locked_install_task" || {
   printf 'bootstrap-ai-mise-order: locked base mise install must set MISE_LOCKED=1.\n' >&2
   exit 1
 }
+grep -Fqx '      - /usr/bin/flock' <<<"$locked_install_task"
+grep -Fqx '      - "{{ ansible_facts['\''user_dir'\''] }}/.local/state/workstation-update/update.lock"' \
+  <<<"$locked_install_task"
 
 grep -Fq '/.local/bin/update-ai' "$personal_tasks"
 grep -Fq 'MISE_LOCKED: "1"' "$personal_tasks"
+grep -Fq "['/usr/bin/flock', ansible_facts['user_dir'] + '/.local/state/workstation-update/update.lock'" \
+  "$personal_tasks"
+grep -Fq 'EnvironmentFile=%h/.config/systemd/user/workstation-update.env' \
+  "$ROOT_DIR/ansible/roles/personal/files/workstation-update.service"
+grep -Fq 'workstation-update-locked-git' \
+  "$ROOT_DIR/ansible/roles/personal/tasks/agent_skills.yml"
+grep -Fq '/usr/bin/flock "$HOME/.local/state/workstation-update/update.lock"' \
+  "$ROOT_DIR/bootstrap"
 
 base_role_line="$(line_number '- role: base' "$playbook")"
 personal_role_line="$(line_number '- role: personal' "$playbook")"

@@ -30,7 +30,7 @@
 | AI CLI 設定（Codex / OpenCode / cagent） | — | 担当 | chezmoi source として配置。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
 | 個人 CLI スクリプト（clp, gac, gpc, http, http-lan, update-workstation, watch-update） | — | 担当 | `personal` role の `scripts/personal-bin/` |
 | agent-skills リポジトリの clone と AI CLI への symlink | — | 担当 | `personal` role の `agent_skills.yml`。`personal_agent_skills_enabled=false` で無効化可能 |
-| 開発ツールのセッション単位自動更新 | — | 担当 | systemd user serviceで`update-ai`、mise管理のHerdr、agent-skillsを更新。状態とログもユーザー領域だけに保存 |
+| 開発ツールのセッション単位自動更新 | — | 担当 | systemd user serviceで選択済みAI CLI、mise管理のHerdr、有効時のagent-skillsを更新。再provisioningとも排他し、状態とログをユーザー領域だけに保存 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
 ## 補足

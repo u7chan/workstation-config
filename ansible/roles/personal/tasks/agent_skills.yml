@@ -11,6 +11,9 @@
     dest: "{{ agent_skills_dest }}"
     version: main
     update: true
+    executable: "{{ ansible_facts['user_dir'] }}/.local/bin/workstation-update-locked-git"
+  environment:
+    WORKSTATION_UPDATE_STATE_DIR: "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update"
 
 - name: Ensure AI CLI configuration directories exist
   ansible.builtin.file:

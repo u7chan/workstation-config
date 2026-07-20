@@ -59,6 +59,7 @@ bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 bash -n "$ROOT_DIR/tests/agent-skills-smoke.sh"
 bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
 bash -n "$ROOT_DIR/scripts/workstation-update-runner"
+bash -n "$ROOT_DIR/scripts/workstation-update-locked-git"
 bash -n "$ROOT_DIR/tests/workstation-update-smoke.sh"
 for personal_cli in clp gac gpc http http-lan update-workstation watch-update; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
@@ -365,6 +366,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/agent-skills-smoke.sh" \
     "$ROOT_DIR/tests/cagent-smoke.sh" \
     "$ROOT_DIR/scripts/workstation-update-runner" \
+    "$ROOT_DIR/scripts/workstation-update-locked-git" \
     "$ROOT_DIR/scripts/personal-bin/update-workstation" \
     "$ROOT_DIR/scripts/personal-bin/watch-update" \
     "$ROOT_DIR/tests/workstation-update-smoke.sh" \

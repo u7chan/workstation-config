@@ -91,9 +91,20 @@
       {{ ansible_facts['user_dir'] }}/.config/mise/config.toml
   changed_when: false
 
+- name: Ensure workstation update state directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update"
+    state: directory
+    mode: "0700"
+
 - name: Resolve latest Herdr release before locked mise install
   ansible.builtin.command:
-    cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/mise upgrade herdr"
+    argv:
+      - /usr/bin/flock
+      - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
+      - "{{ ansible_facts['user_dir'] }}/.local/bin/mise"
+      - upgrade
+      - herdr
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
     MISE_YES: "1"
@@ -101,7 +112,11 @@
 
 - name: Install locked mise tools before personal role tasks
   ansible.builtin.command:
-    cmd: "{{ ansible_facts['user_dir'] }}/.local/bin/mise install"
+    argv:
+      - /usr/bin/flock
+      - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
+      - "{{ ansible_facts['user_dir'] }}/.local/bin/mise"
+      - install
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
     MISE_LOCKED: "1"

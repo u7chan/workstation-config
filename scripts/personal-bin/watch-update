@@ -3,7 +3,10 @@ set -euo pipefail
 
 readonly STATE_DIR="${WORKSTATION_UPDATE_STATE_DIR:-$HOME/.local/state/workstation-update}"
 readonly STATE_FILE="$STATE_DIR/state.tsv"
+readonly LOCK_FILE="$STATE_DIR/update.lock"
 readonly WATCH_INTERVAL="${WORKSTATION_UPDATE_WATCH_INTERVAL_SECONDS:-1}"
+
+umask 077
 
 usage() {
   cat <<'EOF'
@@ -61,8 +64,57 @@ format_elapsed() {
   printf '%02d:%02d' "$((seconds / 60))" "$((seconds % 60))"
 }
 
+runner_is_alive() {
+  local runner_pid runner_start_time proc_stat actual_start_time
+
+  runner_pid="$(read_field runner_pid "$STATE_FILE")"
+  runner_start_time="$(read_field runner_start_time "$STATE_FILE")"
+  [[ $runner_pid =~ ^[1-9][0-9]*$ && $runner_start_time =~ ^[0-9]+$ ]] || return 1
+  [[ -r /proc/$runner_pid/stat ]] || return 1
+  proc_stat="$(<"/proc/$runner_pid/stat")" || return 1
+  proc_stat=${proc_stat##*) }
+  actual_start_time="$(awk '{ print $20 }' <<<"$proc_stat")"
+  [[ $actual_start_time == "$runner_start_time" ]]
+}
+
+mark_stale_run_failed() {
+  local lock_fd current_run_id current_status failed_step temporary_file updated_at
+
+  command -v flock >/dev/null 2>&1 || return 1
+  exec {lock_fd}>"$LOCK_FILE" || return 1
+  if ! flock -n "$lock_fd"; then
+    exec {lock_fd}>&-
+    return 1
+  fi
+
+  current_run_id="$(read_field run_id "$STATE_FILE")"
+  current_status="$(read_field status "$STATE_FILE")"
+  if [[ $current_run_id != "$RUN_ID" || $current_status != running ]] || runner_is_alive; then
+    exec {lock_fd}>&-
+    return 1
+  fi
+
+  failed_step="$(read_field step_label "$STATE_FILE")"
+  failed_step=${failed_step:-workstation}
+  updated_at="$(date +%s)"
+  temporary_file="$STATE_DIR/.state.watch.$BASHPID.tmp"
+  awk -F '\t' -v OFS='\t' -v failed_step="$failed_step" -v updated_at="$updated_at" '
+    $1 == "status" { $2 = "failed" }
+    $1 == "step_status" { $2 = "failed" }
+    $1 == "updated_at_epoch" { $2 = updated_at }
+    $1 == "failed_step" { $2 = failed_step }
+    $1 == "message" { $2 = "runner process is no longer alive" }
+    { print }
+  ' "$STATE_FILE" >"$temporary_file"
+  mv -f -- "$temporary_file" "$STATE_FILE"
+  printf '[%s] runner process is no longer alive; stale state marked failed\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$LOG_FILE"
+  exec {lock_fd}>&-
+}
+
 state_for_run() {
-  local current_run_id
+  local current_run_id status
+
   [[ -r $STATE_FILE ]] || {
     printf 'unknown\n'
     return
@@ -70,9 +122,20 @@ state_for_run() {
   current_run_id="$(read_field run_id "$STATE_FILE")"
   if [[ $current_run_id != "$RUN_ID" ]]; then
     printf 'superseded\n'
-  else
-    read_field status "$STATE_FILE"
+    return
   fi
+
+  status="$(read_field status "$STATE_FILE")"
+  if [[ $status == running ]] && ! runner_is_alive; then
+    mark_stale_run_failed || true
+    current_run_id="$(read_field run_id "$STATE_FILE")"
+    if [[ $current_run_id != "$RUN_ID" ]]; then
+      printf 'superseded\n'
+      return
+    fi
+    status="$(read_field status "$STATE_FILE")"
+  fi
+  printf '%s\n' "$status"
 }
 
 if [[ $verbose == true ]]; then

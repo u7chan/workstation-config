@@ -6,8 +6,10 @@ readonly ROOT_DIR
 readonly RUNNER="$ROOT_DIR/scripts/workstation-update-runner"
 readonly WATCH_UPDATE="$ROOT_DIR/scripts/personal-bin/watch-update"
 readonly UPDATE_WORKSTATION="$ROOT_DIR/scripts/personal-bin/update-workstation"
+readonly LOCKED_GIT="$ROOT_DIR/scripts/workstation-update-locked-git"
 readonly SHELL_INIT="$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 readonly USER_UNIT="$ROOT_DIR/ansible/roles/personal/files/workstation-update.service"
+readonly USER_UNIT_ENV="$ROOT_DIR/ansible/roles/personal/templates/workstation-update.env.j2"
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
@@ -24,10 +26,14 @@ count=0
 [[ ! -r $count_file ]] || read -r count <"$count_file"
 count=$((count + 1))
 printf '%s\n' "$count" >"$count_file"
-printf 'update-ai:%s\n' "$count" >>"$TEST_COMMAND_LOG"
+printf 'update-ai:%s:%s\n' "$count" "$*" >>"$TEST_COMMAND_LOG"
 printf 'update-ai raw output attempt %s\n' "$count"
 if [[ -n ${TEST_STARTED_FILE:-} ]]; then
   : >"$TEST_STARTED_FILE"
+fi
+if [[ ${TEST_KILL_RUNNER:-0} == 1 ]]; then
+  kill -KILL "$PPID"
+  exit 137
 fi
 if [[ -n ${TEST_BLOCK_FILE:-} ]]; then
   while [[ ! -e $TEST_BLOCK_FILE ]]; do
@@ -99,17 +105,24 @@ prepare_run() {
 }
 
 run_update() {
+  local -a optional_environment=()
+
+  [[ ! ${WORKSTATION_UPDATE_AI_TOOLS+x} ]] || \
+    optional_environment+=("WORKSTATION_UPDATE_AI_TOOLS=$WORKSTATION_UPDATE_AI_TOOLS")
+  [[ ! ${WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED+x} ]] || \
+    optional_environment+=("WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED=$WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED")
   HOME="$fixture_home" \
-  PATH="$fixture_bin:/usr/bin:/bin" \
+  PATH="${RUN_PATH:-$fixture_bin:/usr/bin:/bin}" \
   TEST_COUNTER_DIR="$RUN_COUNTER_DIR" \
   TEST_COMMAND_LOG="$RUN_COMMAND_LOG" \
   TEST_AI_FAILURES="${TEST_AI_FAILURES:-0}" \
   TEST_MISE_FAILURES="${TEST_MISE_FAILURES:-0}" \
+  TEST_KILL_RUNNER="${TEST_KILL_RUNNER:-0}" \
   WORKSTATION_UPDATE_STATE_DIR="$RUN_STATE_DIR" \
   WORKSTATION_UPDATE_AGENT_SKILLS_DIR="$CASE_REPO" \
   WORKSTATION_UPDATE_RETRY_DELAY_SECONDS=0 \
   SHOULD_NOT_BE_LOGGED=fixture-secret-value \
-    "$RUNNER"
+    env "${optional_environment[@]}" "$RUNNER"
 }
 
 state_field() {
@@ -147,7 +160,7 @@ awk -F '\t' '
   NR == 3 { ok = ok && $1 == 3 && $2 == "agent-skills" && $3 == "success" && $4 == 1 }
   END { exit !(ok && NR == 3) }
 ' "$normal_summary"
-[[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1 ]]
+[[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1: ]]
 [[ $(sed -n '2p' "$RUN_COMMAND_LOG") == mise:1 ]]
 normal_log="$(log_for "$RUN_STATE_DIR")"
 grep -Fq 'update-ai raw output attempt 1' "$normal_log"
@@ -170,6 +183,37 @@ verbose_watch="$(
 )"
 grep -Fq 'update-ai raw output attempt 1' <<<"$verbose_watch"
 grep -Fq 'mise raw output attempt 1' <<<"$verbose_watch"
+
+# Ansible-selected AI tools are the only flags passed to update-ai.
+create_repo selected-ai
+prepare_run selected-ai
+WORKSTATION_UPDATE_AI_TOOLS=codex,opencode run_update
+grep -Fqx 'update-ai:1:--codex --opencode' "$RUN_COMMAND_LOG"
+[[ $(state_field "$RUN_STATE_DIR" status) == success ]]
+
+# An empty AI tool selection and disabled agent-skills are explicit successful skips.
+create_repo empty-ai
+prepare_run empty-ai
+WORKSTATION_UPDATE_AI_TOOLS= run_update
+if grep -q '^update-ai:' "$RUN_COMMAND_LOG"; then
+  printf 'empty personal_ai_tools unexpectedly invoked update-ai.\n' >&2
+  exit 1
+fi
+grep -Fq 'AI CLI update skipped: personal_ai_tools is empty' "$(log_for "$RUN_STATE_DIR")"
+[[ $(state_field "$RUN_STATE_DIR" status) == success ]]
+
+prepare_run disabled-agent-skills
+CASE_REPO="$test_dir/missing-agent-skills"
+WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED=false run_update
+if [[ -e $CASE_REPO ]]; then
+  printf 'disabled agent-skills update unexpectedly created its repository.\n' >&2
+  exit 1
+fi
+grep -Fq 'agent-skills update skipped: personal_agent_skills_enabled is false' \
+  "$(log_for "$RUN_STATE_DIR")"
+awk -F '\t' '$2 == "agent-skills" { exit !($3 == "success" && $4 == 1) }' \
+  "$(summary_for "$RUN_STATE_DIR")"
+[[ $(state_field "$RUN_STATE_DIR" status) == success ]]
 
 # First failures are retried independently and can still aggregate to success.
 create_repo retry-success
@@ -233,6 +277,40 @@ git -C "$CASE_REPO" commit --allow-empty -m local-divergence >/dev/null
 add_remote_commit remote-divergence
 assert_unsafe_agent_case diverged
 
+# A competing branch switch after the final inspection cannot redirect the fast-forward.
+create_repo branch-switch-race
+add_remote_commit remote-race-update
+race_old_oid="$(git -C "$CASE_REPO" rev-parse HEAD)"
+race_remote_oid="$(git -C "$CASE_SEED" rev-parse HEAD)"
+git -C "$CASE_REPO" branch feature/race
+race_bin="$test_dir/race-bin"
+race_attempted="$test_dir/race-attempted"
+race_succeeded="$test_dir/race-succeeded"
+mkdir -p "$race_bin"
+cat >"$race_bin/git" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ " $* " == *' merge --ff-only '* && ! -e $TEST_RACE_ATTEMPTED ]]; then
+  : >"$TEST_RACE_ATTEMPTED"
+  if env -u GIT_INDEX_FILE /usr/bin/git -C "$TEST_RACE_REPO" switch feature/race \
+    >/dev/null 2>&1; then
+    : >"$TEST_RACE_SUCCEEDED"
+  fi
+fi
+exec /usr/bin/git "$@"
+EOF
+chmod +x "$race_bin/git"
+prepare_run branch-switch-race
+TEST_RACE_REPO="$CASE_REPO" \
+TEST_RACE_ATTEMPTED="$race_attempted" \
+TEST_RACE_SUCCEEDED="$race_succeeded" \
+RUN_PATH="$race_bin:$fixture_bin:/usr/bin:/bin" \
+  run_update
+[[ -e $race_attempted && ! -e $race_succeeded ]]
+[[ $(git -C "$CASE_REPO" branch --show-current) == main ]]
+[[ $(git -C "$CASE_REPO" rev-parse main) == "$race_remote_oid" ]]
+[[ $(git -C "$CASE_REPO" rev-parse feature/race) == "$race_old_oid" ]]
+
 # A held lock prevents a second runner and watch-update follows the first run to completion.
 create_repo locking
 prepare_run locking
@@ -272,11 +350,40 @@ duplicate_output="$(
 )"
 grep -Fq 'an update is already running' <<<"$duplicate_output"
 [[ $(grep -c '^update-ai:' "$RUN_COMMAND_LOG") -eq 1 ]]
+WORKSTATION_UPDATE_STATE_DIR="$RUN_STATE_DIR" \
+  "$LOCKED_GIT" -C "$CASE_REPO" branch provisioning/serialized &
+provisioning_git_pid=$!
+sleep 0.05
+if git -C "$CASE_REPO" show-ref --verify --quiet refs/heads/provisioning/serialized; then
+  printf 'provisioning Git update overlapped the automatic runner.\n' >&2
+  exit 1
+fi
 : >"$lock_release"
 wait "$first_runner_pid"
 wait "$watch_pid"
+wait "$provisioning_git_pid"
+git -C "$CASE_REPO" show-ref --verify --quiet refs/heads/provisioning/serialized
 grep -Fq 'running' "$lock_watch_output"
 grep -Fq 'workstation update completed successfully' "$lock_watch_output"
+
+# SIGKILL leaves state running, then watch-update detects the dead process and converges it to failed.
+create_repo stale-running
+prepare_run stale-running
+if TEST_KILL_RUNNER=1 run_update 2>"$test_dir/stale-runner-kill.err"; then
+  printf 'runner unexpectedly survived the abrupt-death fixture.\n' >&2
+  exit 1
+fi
+[[ $(state_field "$RUN_STATE_DIR" status) == running ]]
+stale_watch="$(
+  HOME="$fixture_home" \
+  WORKSTATION_UPDATE_STATE_DIR="$RUN_STATE_DIR" \
+  WORKSTATION_UPDATE_WATCH_INTERVAL_SECONDS=0.02 \
+    "$WATCH_UPDATE"
+)"
+grep -Fq 'workstation update incomplete: update-ai' <<<"$stale_watch"
+[[ $(state_field "$RUN_STATE_DIR" status) == failed ]]
+[[ $(state_field "$RUN_STATE_DIR" message) == 'runner process is no longer alive' ]]
+grep -Fq 'stale state marked failed' "$(log_for "$RUN_STATE_DIR")"
 
 # The sixth run retains only the five newest raw logs and step summaries.
 create_repo retention
@@ -288,18 +395,85 @@ done
 [[ $(find "$RUN_STATE_DIR/runs" -maxdepth 1 -type f -name '*.log' | wc -l) -eq 5 ]]
 [[ $(find "$RUN_STATE_DIR/runs" -maxdepth 1 -type f -name '*.summary.tsv' | wc -l) -eq 5 ]]
 
-# The manual CLI starts the same user service without sudo and returns immediately.
+# The manual CLI waits only for the newly requested run to publish state.
 systemctl_bin="$test_dir/systemctl-bin"
 systemctl_log="$test_dir/systemctl.log"
+manual_state_dir="$test_dir/manual-state"
 mkdir -p "$systemctl_bin"
 cat >"$systemctl_bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
+set -euo pipefail
 printf '%s\n' "$*" >>"$TEST_SYSTEMCTL_LOG"
+(
+  sleep 0.05
+  mkdir -p "$TEST_MANUAL_STATE_DIR/runs"
+  runner_pid=$BASHPID
+  proc_stat="$(<"/proc/$runner_pid/stat")"
+  proc_stat=${proc_stat##*) }
+  runner_start_time="$(awk '{ print $20 }' <<<"$proc_stat")"
+  state_tmp="$TEST_MANUAL_STATE_DIR/.state.$runner_pid.tmp"
+  {
+    printf 'status\trunning\n'
+    printf 'run_id\t%s\n' "$TEST_MANUAL_RUN_ID"
+    printf 'step_index\t1\n'
+    printf 'step_total\t3\n'
+    printf 'step_label\tupdate-ai\n'
+    printf 'step_status\trunning\n'
+    printf 'attempt\t1\n'
+    printf 'started_at_epoch\t%s\n' "$(date +%s)"
+    printf 'updated_at_epoch\t%s\n' "$(date +%s)"
+    printf 'runner_pid\t%s\n' "$runner_pid"
+    printf 'runner_start_time\t%s\n' "$runner_start_time"
+    printf 'failed_step\t\n'
+    printf 'message\t\n'
+  } >"$state_tmp"
+  : >"$TEST_MANUAL_STATE_DIR/runs/$TEST_MANUAL_RUN_ID.log"
+  : >"$TEST_MANUAL_STATE_DIR/runs/$TEST_MANUAL_RUN_ID.summary.tsv"
+  mv -f "$state_tmp" "$TEST_MANUAL_STATE_DIR/state.tsv"
+  sleep 0.2
+  sed -e 's/^status\trunning$/status\tsuccess/' \
+    -e 's/^step_status\trunning$/step_status\tsuccess/' \
+    "$TEST_MANUAL_STATE_DIR/state.tsv" >"$state_tmp"
+  mv -f "$state_tmp" "$TEST_MANUAL_STATE_DIR/state.tsv"
+) &
 EOF
 chmod +x "$systemctl_bin/systemctl"
-TEST_SYSTEMCTL_LOG="$systemctl_log" PATH="$systemctl_bin:/usr/bin:/bin" \
+TEST_SYSTEMCTL_LOG="$systemctl_log" \
+TEST_MANUAL_STATE_DIR="$manual_state_dir" \
+TEST_MANUAL_RUN_ID=manual-first \
+HOME="$fixture_home" \
+WORKSTATION_UPDATE_STATE_DIR="$manual_state_dir" \
+WORKSTATION_UPDATE_START_TIMEOUT_SECONDS=2 \
+WORKSTATION_UPDATE_START_POLL_INTERVAL_SECONDS=0.01 \
+PATH="$systemctl_bin:/usr/bin:/bin" \
   "$UPDATE_WORKSTATION" >/dev/null
-grep -Fqx -- '--user start --no-block workstation-update.service' "$systemctl_log"
+[[ $(state_field "$manual_state_dir" run_id) == manual-first ]]
+first_manual_watch="$(
+  HOME="$fixture_home" \
+  WORKSTATION_UPDATE_STATE_DIR="$manual_state_dir" \
+  WORKSTATION_UPDATE_WATCH_INTERVAL_SECONDS=0.01 \
+    "$WATCH_UPDATE"
+)"
+grep -Fq 'workstation update completed successfully' <<<"$first_manual_watch"
+
+TEST_SYSTEMCTL_LOG="$systemctl_log" \
+TEST_MANUAL_STATE_DIR="$manual_state_dir" \
+TEST_MANUAL_RUN_ID=manual-second \
+HOME="$fixture_home" \
+WORKSTATION_UPDATE_STATE_DIR="$manual_state_dir" \
+WORKSTATION_UPDATE_START_TIMEOUT_SECONDS=2 \
+WORKSTATION_UPDATE_START_POLL_INTERVAL_SECONDS=0.01 \
+PATH="$systemctl_bin:/usr/bin:/bin" \
+  "$UPDATE_WORKSTATION" >/dev/null
+[[ $(state_field "$manual_state_dir" run_id) == manual-second ]]
+second_manual_watch="$(
+  HOME="$fixture_home" \
+  WORKSTATION_UPDATE_STATE_DIR="$manual_state_dir" \
+  WORKSTATION_UPDATE_WATCH_INTERVAL_SECONDS=0.01 \
+    "$WATCH_UPDATE"
+)"
+grep -Fq 'workstation update completed successfully' <<<"$second_manual_watch"
+[[ $(grep -c -Fx -- '--user start --no-block workstation-update.service' "$systemctl_log") -eq 2 ]]
 if grep -Rq 'sudo' "$UPDATE_WORKSTATION" "$USER_UNIT"; then
   printf 'workstation update entrypoints must not use sudo.\n' >&2
   exit 1
@@ -307,8 +481,11 @@ fi
 
 # The unit is a one-shot default.target user service and passes a syntax check.
 grep -Fqx 'Type=oneshot' "$USER_UNIT"
+grep -Fqx 'EnvironmentFile=%h/.config/systemd/user/workstation-update.env' "$USER_UNIT"
 grep -Fqx 'ExecStart=%h/.local/bin/workstation-update-runner' "$USER_UNIT"
 grep -Fqx 'WantedBy=default.target' "$USER_UNIT"
+grep -Fqx "WORKSTATION_UPDATE_AI_TOOLS={{ personal_ai_tools | join(',') }}" "$USER_UNIT_ENV"
+grep -Fq 'WORKSTATION_UPDATE_AGENT_SKILLS_ENABLED=' "$USER_UNIT_ENV"
 unit_verify_dir="$test_dir/unit-verify"
 mkdir -p "$unit_verify_dir"
 sed 's#^ExecStart=.*#ExecStart=/bin/true#' "$USER_UNIT" >"$unit_verify_dir/workstation-update.service"
@@ -322,10 +499,24 @@ mkdir -p "$shell_state_dir"
 write_shell_state() {
   local status=$1
   local failed_step=${2:-}
+  local liveness=${3:-alive}
+  local runner_pid runner_start_time proc_stat
+
+  if [[ $liveness == alive ]]; then
+    runner_pid=$$
+    proc_stat="$(<"/proc/$$/stat")"
+    proc_stat=${proc_stat##*) }
+    runner_start_time="$(awk '{ print $20 }' <<<"$proc_stat")"
+  else
+    runner_pid=99999999
+    runner_start_time=1
+  fi
   {
     printf 'status\t%s\n' "$status"
     printf 'step_index\t2\n'
     printf 'step_label\tmise upgrade herdr\n'
+    printf 'runner_pid\t%s\n' "$runner_pid"
+    printf 'runner_start_time\t%s\n' "$runner_start_time"
     printf 'failed_step\t%s\n' "$failed_step"
   } >"$shell_state_dir/state.tsv"
 }
@@ -338,6 +529,10 @@ source_interactive_shell() {
 write_shell_state running
 source_interactive_shell
 grep -Fq '⟳ 2/3 mise upgrade herdr — watch-update' "$shell_output"
+
+write_shell_state running '' stale
+source_interactive_shell
+grep -Fq '✗ workstation update stopped unexpectedly — watch-update' "$shell_output"
 
 write_shell_state failed agent-skills
 source_interactive_shell

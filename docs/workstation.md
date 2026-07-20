@@ -190,11 +190,11 @@ Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart 
 
 `personal`プロファイルは`workstation-update.service`をsystemd user serviceとして有効化します。WSLのユーザーセッション開始ごとに、対話シェルを待たせず、sudoを使わないバックグラウンド処理として次の順序で1回実行します。
 
-1. `update-ai`
+1. `personal_ai_tools`で選択したAI CLIを`update-ai`で更新（空ならスキップ）
 2. `mise upgrade herdr`
-3. `~/workspace/agent-skills`のfast-forward更新
+3. `personal_agent_skills_enabled=true`の場合だけ`~/workspace/agent-skills`をfast-forward更新
 
-各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、更新中のCodex、Herdr、Claude Code、OpenCodeの起動は制限しません。Herdrの更新主体は従来どおりmiseであり、`herdr update`は使用しません。
+各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、再provisioningのmise、AI CLI、agent-skills更新も同じロックへ参加します。更新中のCodex、Herdr、Claude Code、OpenCodeの起動は制限しません。Herdrの更新主体は従来どおりmiseであり、`herdr update`は使用しません。
 
 手動実行も自動実行と同じuser serviceをバックグラウンドで開始します。
 
@@ -204,7 +204,7 @@ watch-update
 watch-update --verbose
 ```
 
-`watch-update`はステップ、経過時間、再試行、成功・失敗を表示し、`--verbose`は各更新コマンドの標準出力・標準エラーを含む生ログを追跡します。対話Bashの起動時は更新中または前回失敗の場合だけ1行の案内を表示し、成功時は表示しません。
+`update-workstation`は更新完了を待たず、新しいrunのstateが作成されるまでだけ待ってから戻るため、直後の`watch-update`は要求したrunを追跡します。`watch-update`はステップ、経過時間、再試行、成功・失敗を表示し、`--verbose`は各更新コマンドの標準出力・標準エラーを含む生ログを追跡します。runnerが強制終了してstateだけが`running`で残った場合は、PIDとprocess start timeからstale状態を検出して`failed`へ収束させます。対話Bashの起動時は更新中または前回失敗の場合だけ1行の案内を表示し、成功時は表示しません。
 
 状態とログは`~/.local/state/workstation-update/`に保存します。`state.tsv`が現在または直近の集約結果、`runs/`が実行単位の生ログとステップ結果で、直近5回分だけを保持します。環境変数の一覧はログへ出力しません。
 

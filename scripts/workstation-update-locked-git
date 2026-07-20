@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly STATE_DIR="${WORKSTATION_UPDATE_STATE_DIR:-$HOME/.local/state/workstation-update}"
+readonly LOCK_FILE="$STATE_DIR/update.lock"
+readonly GIT_BIN="${WORKSTATION_UPDATE_GIT_BIN:-/usr/bin/git}"
+
+command -v flock >/dev/null 2>&1 || {
+  printf 'workstation-update-locked-git: flock is required\n' >&2
+  exit 1
+}
+[[ -x $GIT_BIN ]] || {
+  printf 'workstation-update-locked-git: git is not executable: %s\n' "$GIT_BIN" >&2
+  exit 1
+}
+
+umask 077
+mkdir -p "$STATE_DIR"
+exec 9>"$LOCK_FILE"
+flock 9
+exec "$GIT_BIN" "$@"
