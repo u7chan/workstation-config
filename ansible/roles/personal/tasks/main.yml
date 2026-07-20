@@ -83,12 +83,28 @@
     dest: "{{ ansible_facts['user_dir'] }}/.config/systemd/user/workstation-update.service"
     mode: "0644"
 
+- name: Check if systemd user bus is reachable
+  ansible.builtin.command:
+    cmd: systemctl --user is-system-running
+  register: systemd_user_check
+  changed_when: false
+  failed_when: false
+
 - name: Enable workstation update user service
   ansible.builtin.systemd_service:
     name: workstation-update.service
     scope: user
     daemon_reload: true
     enabled: true
+  when: systemd_user_check.rc == 0
+
+- name: Warn that systemd user bus is unavailable
+  ansible.builtin.debug:
+    msg: >-
+      systemd user bus is not reachable; workstation-update.service was
+      installed but could not be enabled. It will activate on next login
+      when systemd --user starts.
+  when: systemd_user_check.rc != 0
 
 - name: Configure shared agent skills
   ansible.builtin.include_tasks: agent_skills.yml
