@@ -1,6 +1,7 @@
 [settings]
 lockfile = true
 lockfile_platforms = ["linux-x64"]
+minimum_release_age = "1h"
 
 [tool_alias]
 cagent = "github:u7chan/code-agent-launcher"

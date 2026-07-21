@@ -40,13 +40,13 @@ url = "https://github.com/sharkdp/fd/releases/download/v10.4.2/fd-v10.4.2-x86_64
 url_api = "https://api.github.com/repos/sharkdp/fd/releases/assets/370662855"
 
 [[tools.herdr]]
-version = "0.7.1"
+version = "0.7.5"
 backend = "github:ogulcancelik/herdr"
 
 [tools.herdr."platforms.linux-x64"]
-checksum = "sha256:b965acaffc2c22f54b6e6c64af7cf8e98a3f4ac2622630a0599c67a4b9d8a654"
-url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.1/herdr-linux-x86_64"
-url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/456674304"
+checksum = "sha256:3dc83288073e4c2d3c679a30e7be97bcca9141c6fd17dbbb9219142e95c59253"
+url = "https://github.com/ogulcancelik/herdr/releases/download/v0.7.5/herdr-linux-x86_64"
+url_api = "https://api.github.com/repos/ogulcancelik/herdr/releases/assets/484992544"
 
 [[tools.hunk]]
 version = "0.17.1"
