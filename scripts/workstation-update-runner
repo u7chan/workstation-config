@@ -196,13 +196,13 @@ run_agent_skills_update() {
   }
   [[ $branch == main ]] || {
     printf 'agent-skills update skipped: expected branch main, found %s\n' "$branch" >&2
-    return 20
+    return 0
   }
 
   status_output="$(git -C "$AGENT_SKILLS_DIR" status --porcelain --untracked-files=normal)" || return
   [[ -z $status_output ]] || {
     printf 'agent-skills update skipped: worktree is dirty\n' >&2
-    return 20
+    return 0
   }
 
   git -C "$AGENT_SKILLS_DIR" fetch --no-tags origin main || return
