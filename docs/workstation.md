@@ -138,6 +138,115 @@ mise which nvim
 
 プラグイン更新の担当者は、Neovimで`:Lazy update`を実行し、生成された`lazy-lock.json`の差分と上記smoke testを確認してください。Masonで導入するLSP serverとTreesitter parserは生成物のためGit管理しません。
 
+### LSPサーバー
+
+Mason経由で次の4つのLSPサーバーを導入・管理します。
+
+| サーバー | Masonパッケージ名 | 用途 |
+|---|---|---|
+| lua_ls | `lua-language-server` | Lua (Neovim設定) |
+| ts_ls | `typescript-language-server` | TypeScript / JavaScript |
+| jsonls | `json-lsp` | JSON |
+| bashls | `bash-language-server` | Bashスクリプト |
+
+各LSPサーバーは`vim.lsp.config`と`vim.lsp.enable`で有効化し、Masonの自動install対象からは外しています。初回起動時にMasonのUIで手動installするか、smoke testが自動installします。
+
+### Treesitterパーサー管理方針
+
+Treesitterはclassic API (`branch = "master"`) を使用し、`auto_install = false` で自動installを抑止します。管理対象パーサーは`plugins/init.lua`の`ensure_installed`に宣言し、`TSInstallSync!`で一括installします。
+
+管理パーサー (13個): bash, json, lua, markdown, markdown_inline, query, vim, vimdoc, javascript, typescript, tsx, yaml, toml
+
+パーサーの追加は`ensure_installed`への宣言追加と、smoke testの`TSInstallSync!`引数およびファイル存在確認の更新をセットで行います。
+
+### WSLクリップボード連携
+
+WSL環境では`/proc/version`を確認し、Windows側の`clip.exe`と`powershell.exe`が利用可能であれば`vim.g.clipboard`にWSL専用のcopy/pasteコマンドを設定します。
+
+- **copy**: `clip.exe` (レジスタ `"+"` と `"*"` の両方)
+- **paste**: `powershell.exe -c Get-Clipboard -Raw` (レジスタ `"+"` と `"*"` の両方)
+- **cache_enabled = 0**: 更新検出を毎回行う
+
+WSLまたはclipboardコマンドが利用できない環境では、Neovimの自動プロバイダー検出へフォールバックし、起動を妨げません。基本設定として`clipboard=unnamedplus`を維持します。
+
+### 主要UI機能とキーマップ
+
+#### 基本操作
+
+| キー | 機能 |
+|---|---|
+| `<leader>w` | ファイル保存 |
+| `<Esc>` | 検索ハイライト解除 |
+| `[d` / `]d` | 前/次のdiagnosticへジャンプ |
+| `<leader>q` | diagnostic一覧表示 |
+
+#### ファイルツリー (nvim-tree)
+
+| キー | 機能 |
+|---|---|
+| `<leader>e` | ツリー表示切替 |
+| `<leader>E` | ツリーへフォーカス |
+| `<leader>f` | 現在ファイルをツリーで表示 |
+| `yp` | 相対パスをコピー |
+| `yP` | 絶対パスをコピー |
+
+#### バッファ操作 (Bufferline)
+
+| キー | 機能 |
+|---|---|
+| `<S-h>` | 前のバッファ |
+| `<S-l>` | 次のバッファ |
+| `<leader>bp` | バッファピッカー |
+| `<leader>bc` | 現在のバッファを閉じる |
+| `<leader>bo` | 他のバッファを閉じる |
+| `<leader>1`~`<leader>9` | 指定位置のバッファへ移動 |
+
+#### LSP
+
+| キー | 機能 |
+|---|---|
+| `gd` | 定義へジャンプ |
+| `gr` | 参照一覧 |
+| `K` | ホバー表示 |
+| `<leader>rn` | リネーム |
+| `<leader>ca` | コードアクション |
+| `<leader>lf` | フォーマット (非同期) |
+
+#### その他
+
+| キー | 機能 |
+|---|---|
+| `<leader>m` | Masonを開く |
+| `<leader>ff` | ファイル検索 (Telescope) |
+| `<leader>fg` | grep検索 (Telescope) |
+| `<leader>fb` | バッファ一覧 (Telescope) |
+| `<leader>fh` | ヘルプ検索 (Telescope) |
+
+Catppuccin Mocha colorschemeを使用し、lualine (global statusline)、nvim-scrollbar (cursor/diagnostic/gitsigns/handle表示、searchハイライト連携なし)、Gitsigns (current line blame、1000ms遅延) を統合します。
+
+### 自動テストとWSL手動確認
+
+headlessのsmoke testはプラグイン同期、4つのLSPサーバー、13個のTreesitterパーサー、プラグイン読込、オプション値、キーマップ、clipboard設定、`vim.deprecated`を検証します。
+
+```bash
+./tests/neovim-smoke.sh
+```
+
+WSL環境での手動確認は、Windows側のクリップボード連携を検証します。
+
+1. Neovimでテキストをyank (`y`)
+2. Windows側のアプリケーションで貼り付け (`Ctrl+V`) できることを確認
+3. Windows側でテキストをコピー (`Ctrl+C`)
+4. Neovimで貼り付け (`p`) できることを確認
+
+クリップボードが動作しない場合は、WSL側で`clip.exe`と`powershell.exe`が利用可能か確認してください。
+
+```bash
+which clip.exe
+which powershell.exe
+cat /proc/version | grep -i microsoft
+```
+
 ## Yazi
 
 Yazi本体はmise、`~/.config/yazi/yazi.toml`とpackage宣言はchezmoiで管理します。標準テーマと標準キーマップを使い、plugin本体、flavor本体、cache、履歴、preview生成物、runtime stateはGit管理しません。fresh HOME相当の設定読込は次で確認できます。
