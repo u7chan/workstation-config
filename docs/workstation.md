@@ -110,7 +110,7 @@ Compose、およびsmoke containerを検証します。
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。
 
 - Node.js LTS、Bun 1.x、uv
-- ripgrep、fd、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent
+- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent
 
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 
@@ -153,11 +153,11 @@ Mason経由で次の4つのLSPサーバーを導入・管理します。
 
 ### Treesitterパーサー管理方針
 
-Treesitterはclassic API (`branch = "master"`) を使用します。`auto_install = false`は、バッファを開いた際に不足パーサーを自動installする機能だけを抑止します。`ensure_installed`に宣言したパーサーは、setup時に非同期で自動installされます（`sync_install`未指定の既定動作）。宣言と実installを分離して同期的に制御したい場合は、smoke testの`TSInstallSync!`が対象パーサーを一括installします。
+nvim-treesitterは `main` ブランチを使用します（`master` はアーカイブ済み）。Neovim 0.12以降の組み込みTreesitterでハイライト・インデントを有効化し、プラグインはパーサー管理に専念します。パーサーのコンパイルには `tree-sitter` CLI (>= 0.26.1) が必須で、miseで管理します。
 
 管理パーサー (13個): bash, json, lua, markdown, markdown_inline, query, vim, vimdoc, javascript, typescript, tsx, yaml, toml
 
-パーサーの追加は`ensure_installed`への宣言追加と、smoke testの`TSInstallSync!`引数およびファイル存在確認の更新をセットで行います。
+パーサーの追加はsmoke testのインストールスクリプトとファイル存在確認の更新をセットで行います。`:TSInstall` は非同期のため、headless smoke testではLuaから`require("nvim-treesitter").install()`を呼び出し`vim.wait`で完了を確認します。
 
 ### WSLクリップボード連携
 

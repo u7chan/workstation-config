@@ -59,9 +59,30 @@ EOF
 "$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-mason.lua" -c 'qa'
 
 # Treesitter parsers are installed even in an empty state.
-"$MISE" exec neovim -- nvim --headless -c 'TSInstallSync! bash json lua markdown markdown_inline query vim vimdoc javascript typescript tsx yaml toml' -c 'qa'
+cat >"$test_dir/verify-treesitter.lua" <<'EOF'
+local parsers_list = { "bash", "json", "lua", "markdown", "markdown_inline", "query", "vim", "vimdoc", "javascript", "typescript", "tsx", "yaml", "toml" }
+require("nvim-treesitter").install(parsers_list)
+local ok = vim.wait(120000, function()
+  local installed = {}
+  for _, p in ipairs(require("nvim-treesitter.config").get_installed()) do
+    installed[p] = true
+  end
+  for _, p in ipairs(parsers_list) do
+    if not installed[p] then
+      return false
+    end
+  end
+  return true
+end, 500)
+if not ok then
+  print("Timeout waiting for Treesitter parsers")
+  vim.cmd("cq!")
+end
+print("Treesitter parsers verified")
+EOF
+"$MISE" exec neovim tree-sitter -- nvim --headless -c "luafile $test_dir/verify-treesitter.lua" -c 'qa'
 for parser in bash json lua markdown markdown_inline query vim vimdoc javascript typescript tsx yaml toml; do
-  test -f "$XDG_DATA_HOME/nvim/lazy/nvim-treesitter/parser/$parser.so"
+  test -f "$XDG_DATA_HOME/nvim/site/parser/$parser.so"
 done
 
 # Verify Neovim options.

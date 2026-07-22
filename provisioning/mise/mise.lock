@@ -108,6 +108,16 @@ checksum = "sha256:b7c232b0e8249d8e55a40beb79c5c43a7d370f3f9408bd215deb0170daeaa
 url = "https://github.com/starship/starship/releases/download/v1.26.0/starship-x86_64-unknown-linux-musl.tar.gz"
 url_api = "https://api.github.com/repos/starship/starship/releases/assets/460374630"
 
+[[tools.tree-sitter]]
+version = "0.26.11"
+backend = "aqua:tree-sitter/tree-sitter"
+
+[tools.tree-sitter."platforms.linux-x64"]
+checksum = "sha256:8dac3c89bb632eece700ea7a261ad963b251f2228c4aef3b58458ebea8dbe4eb"
+url = "https://github.com/tree-sitter/tree-sitter/releases/download/v0.26.11/tree-sitter-linux-x64.gz"
+url_api = "https://api.github.com/repos/tree-sitter/tree-sitter/releases/assets/474306995"
+provenance = "github-attestations"
+
 [[tools.uv]]
 version = "0.11.26"
 backend = "aqua:astral-sh/uv"

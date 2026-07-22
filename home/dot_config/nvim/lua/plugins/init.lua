@@ -179,14 +179,11 @@ return {
   },
   {
     "nvim-treesitter/nvim-treesitter",
-    branch = "master",
+    branch = "main",
+    lazy = false,
     build = ":TSUpdate",
-    opts = {
-      highlight = { enable = true },
-      indent = { enable = true },
-      auto_install = false,
-      ensure_installed = { "bash", "json", "lua", "markdown", "markdown_inline", "query", "vim", "vimdoc", "javascript", "typescript", "tsx", "yaml", "toml" },
-    },
-    config = function(_, opts) require("nvim-treesitter.configs").setup(opts) end,
+    config = function()
+      require("nvim-treesitter").setup {}
+    end,
   },
 }
