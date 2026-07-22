@@ -41,12 +41,12 @@ local function setup_wsl_clipboard()
     vim.g.clipboard = {
       name = "WSL",
       copy = {
-        ["+"] = "clip.exe",
-        ["*"] = "clip.exe",
+        ["+"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::InputEncoding=[Text.Encoding]::UTF8;Set-Clipboard -Value ([Console]::In.ReadToEnd())',
+        ["*"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::InputEncoding=[Text.Encoding]::UTF8;Set-Clipboard -Value ([Console]::In.ReadToEnd())',
       },
       paste = {
-        ["+"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::InputEncoding=[Text.Encoding]::UTF8;[Console]::OutputEncoding=[Text.Encoding]::UTF8;$OutputEncoding=[Text.Encoding]::UTF8;[Console]::Out.Write((Get-Clipboard -Raw).replace("`r",""))',
-        ["*"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::InputEncoding=[Text.Encoding]::UTF8;[Console]::OutputEncoding=[Text.Encoding]::UTF8;$OutputEncoding=[Text.Encoding]::UTF8;[Console]::Out.Write((Get-Clipboard -Raw).replace("`r",""))',
+        ["+"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::OutputEncoding=[Text.Encoding]::UTF8;$OutputEncoding=[Text.Encoding]::UTF8;(Get-Clipboard -Raw) -replace "`r",""',
+        ["*"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::OutputEncoding=[Text.Encoding]::UTF8;$OutputEncoding=[Text.Encoding]::UTF8;(Get-Clipboard -Raw) -replace "`r",""',
       },
       cache_enabled = 0,
     }
