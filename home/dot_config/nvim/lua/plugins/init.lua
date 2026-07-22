@@ -27,8 +27,8 @@ return {
       return {
         on_attach = on_attach,
         view = { width = 36 },
-        git = {
-          enable = true,
+        git = { enable = true },
+        renderer = {
           icons = {
             show = { git = true, folder = true, file = true },
             glyphs = {
@@ -73,11 +73,7 @@ return {
   {
     "akinsho/bufferline.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
-    cmd = {
-      "BufferLineCyclePrev", "BufferLineCycleNext",
-      "BufferLinePick", "BufferLinePickClose", "BufferLineCloseOthers",
-      "BufferLineGoToBuffer",
-    },
+    event = "VeryLazy",
     opts = {
       options = {
         show_close_icon = true,

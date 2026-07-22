@@ -78,28 +78,50 @@ EOF
 
 # Verify global keymaps.
 cat >"$test_dir/verify-keymaps.lua" <<'EOF'
-local function check_map(lhs, mode)
-  return vim.fn.mapcheck(lhs, mode) ~= ""
+local function assert_map(lhs, mode, expected_rhs)
+  local info = vim.fn.maparg(lhs, mode, false, true)
+  if vim.tbl_isempty(info) then
+    print("MISSING keymap: " .. lhs)
+    return false
+  end
+  if expected_rhs ~= nil and info.rhs ~= expected_rhs then
+    print("MISMATCH keymap: " .. lhs .. " (got: " .. tostring(info.rhs) .. ", expected: " .. expected_rhs .. ")")
+    return false
+  end
+  if expected_rhs == nil and info.callback == nil and info.rhs == "" then
+    print("EMPTY keymap: " .. lhs)
+    return false
+  end
+  return true
 end
-local expected_normal = {
-  "<leader>w", "<leader>m", "<leader>e", "<leader>E", "<leader>f",
-  "<S-h>", "<S-l>", "<leader>bp", "<leader>bc", "<leader>bo",
+local expected = {
+  { "<leader>w", "n", "<cmd>write<cr>" },
+  { "<leader>m", "n", "<cmd>Mason<cr>" },
+  { "<leader>e", "n", "<cmd>NvimTreeToggle<cr>" },
+  { "<leader>E", "n", "<cmd>NvimTreeFocus<cr>" },
+  { "<leader>f", "n", "<cmd>NvimTreeFindFile<cr>" },
+  { "<S-h>", "n", "<cmd>BufferLineCyclePrev<cr>" },
+  { "<S-l>", "n", "<cmd>BufferLineCycleNext<cr>" },
+  { "<leader>bp", "n", "<cmd>BufferLinePick<cr>" },
+  { "<leader>bc", "n", "<cmd>bdelete<cr>" },
+  { "<leader>bo", "n", "<cmd>BufferLineCloseOthers<cr>" },
+  { "[d", "n" },
+  { "]d", "n" },
+  { "<leader>q", "n" },
 }
 local fail = false
-for _, lhs in ipairs(expected_normal) do
-  if not check_map(lhs, "n") then
-    print("MISSING keymap: " .. lhs)
+for _, spec in ipairs(expected) do
+  if not assert_map(spec[1], spec[2], spec[3]) then
     fail = true
   end
 end
 for i = 1, 9 do
   local lhs = "<leader>" .. i
-  if not check_map(lhs, "n") then
-    print("MISSING keymap: " .. lhs)
+  if not assert_map(lhs, "n", "<cmd>BufferLineGoToBuffer " .. i .. "<cr>") then
     fail = true
   end
 end
-if check_map("<leader>y", "v") then
+if not vim.tbl_isempty(vim.fn.maparg("<leader>y", "v", false, true)) then
   print("UNEXPECTED keymap: <leader>y in visual mode")
   fail = true
 end

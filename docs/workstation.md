@@ -149,11 +149,11 @@ Mason経由で次の4つのLSPサーバーを導入・管理します。
 | jsonls | `json-lsp` | JSON |
 | bashls | `bash-language-server` | Bashスクリプト |
 
-各LSPサーバーは`vim.lsp.config`と`vim.lsp.enable`で有効化し、Masonの自動install対象からは外しています。初回起動時にMasonのUIで手動installするか、smoke testが自動installします。
+各LSPサーバーは`vim.lsp.config`と`vim.lsp.enable`で有効化します。`automatic_enable = false`はLSPの自動有効化だけを止め、`ensure_installed`に宣言したサーバーはsetup時に未導入であれば自動installされます。そのため初回起動から利用可能です。smoke testはinstall状態を検証し、不足時は明示的にinstallします。
 
 ### Treesitterパーサー管理方針
 
-Treesitterはclassic API (`branch = "master"`) を使用し、`auto_install = false` で自動installを抑止します。管理対象パーサーは`plugins/init.lua`の`ensure_installed`に宣言し、`TSInstallSync!`で一括installします。
+Treesitterはclassic API (`branch = "master"`) を使用します。`auto_install = false`は、バッファを開いた際に不足パーサーを自動installする機能だけを抑止します。`ensure_installed`に宣言したパーサーは、setup時に非同期で自動installされます（`sync_install`未指定の既定動作）。宣言と実installを分離して同期的に制御したい場合は、smoke testの`TSInstallSync!`が対象パーサーを一括installします。
 
 管理パーサー (13個): bash, json, lua, markdown, markdown_inline, query, vim, vimdoc, javascript, typescript, tsx, yaml, toml
 
@@ -164,7 +164,7 @@ Treesitterはclassic API (`branch = "master"`) を使用し、`auto_install = fa
 WSL環境では`/proc/version`を確認し、Windows側の`clip.exe`と`powershell.exe`が利用可能であれば`vim.g.clipboard`にWSL専用のcopy/pasteコマンドを設定します。
 
 - **copy**: `clip.exe` (レジスタ `"+"` と `"*"` の両方)
-- **paste**: `powershell.exe -c Get-Clipboard -Raw` (レジスタ `"+"` と `"*"` の両方)
+- **paste**: `powershell.exe -NoLogo -NoProfile -Command [Console]::Out.Write((Get-Clipboard -Raw).replace("`r", ""))` (レジスタ `"+"` と `"*"` の両方、CRLF除去済み)
 - **cache_enabled = 0**: 更新検出を毎回行う
 
 WSLまたはclipboardコマンドが利用できない環境では、Neovimの自動プロバイダー検出へフォールバックし、起動を妨げません。基本設定として`clipboard=unnamedplus`を維持します。

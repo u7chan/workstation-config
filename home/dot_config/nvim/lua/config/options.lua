@@ -45,8 +45,8 @@ local function setup_wsl_clipboard()
         ["*"] = "clip.exe",
       },
       paste = {
-        ["+"] = "powershell.exe -c Get-Clipboard -Raw",
-        ["*"] = "powershell.exe -c Get-Clipboard -Raw",
+        ["+"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::Out.Write((Get-Clipboard -Raw).replace("`r", ""))',
+        ["*"] = 'powershell.exe -NoLogo -NoProfile -Command [Console]::Out.Write((Get-Clipboard -Raw).replace("`r", ""))',
       },
       cache_enabled = 0,
     }
