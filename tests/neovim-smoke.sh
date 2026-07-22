@@ -33,6 +33,7 @@ local required = {
   "lua-language-server",
   "typescript-language-server",
   "json-lsp",
+  "bash-language-server",
 }
 for _, name in ipairs(required) do
   local pkg = registry.get_package(name)
@@ -58,10 +59,146 @@ EOF
 "$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-mason.lua" -c 'qa'
 
 # Treesitter parsers are installed even in an empty state.
-"$MISE" exec neovim -- nvim --headless -c 'TSInstallSync! lua typescript tsx json bash vim vimdoc' -c 'qa'
-for parser in lua typescript tsx json bash vim vimdoc; do
-  test -f "$XDG_DATA_HOME/nvim/lazy/nvim-treesitter/parser/$parser.so"
+cat >"$test_dir/verify-treesitter.lua" <<'EOF'
+local parsers_list = { "bash", "json", "lua", "markdown", "markdown_inline", "query", "vim", "vimdoc", "javascript", "typescript", "tsx", "yaml", "toml" }
+require("nvim-treesitter").install(parsers_list)
+local ok = vim.wait(120000, function()
+  local installed = {}
+  for _, p in ipairs(require("nvim-treesitter.config").get_installed()) do
+    installed[p] = true
+  end
+  for _, p in ipairs(parsers_list) do
+    if not installed[p] then
+      return false
+    end
+  end
+  return true
+end, 500)
+if not ok then
+  print("Timeout waiting for Treesitter parsers")
+  vim.cmd("cq!")
+end
+print("Treesitter parsers verified")
+EOF
+"$MISE" exec neovim tree-sitter -- nvim --headless -c "luafile $test_dir/verify-treesitter.lua" -c 'qa'
+for parser in bash json lua markdown markdown_inline query vim vimdoc javascript typescript tsx yaml toml; do
+  test -f "$XDG_DATA_HOME/nvim/site/parser/$parser.so"
 done
+
+# Verify Neovim options.
+cat >"$test_dir/verify-options.lua" <<'EOF'
+local opt = vim.opt
+assert(opt.background:get() == "dark", "background must be dark")
+assert(opt.undofile:get() == true, "undofile must be true")
+assert(opt.swapfile:get() == true, "swapfile must be true")
+assert(opt.showmode:get() == false, "showmode must be false")
+assert(opt.timeoutlen:get() == 400, "timeoutlen must be 400")
+print("Options verified")
+EOF
+"$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-options.lua" -c 'qa'
+
+# Verify global keymaps.
+cat >"$test_dir/verify-keymaps.lua" <<'EOF'
+local function assert_map(lhs, mode, expected_rhs)
+  local info = vim.fn.maparg(lhs, mode, false, true)
+  if vim.tbl_isempty(info) then
+    print("MISSING keymap: " .. lhs)
+    return false
+  end
+  if expected_rhs ~= nil and info.rhs ~= expected_rhs then
+    print("MISMATCH keymap: " .. lhs .. " (got: " .. tostring(info.rhs) .. ", expected: " .. expected_rhs .. ")")
+    return false
+  end
+  if expected_rhs == nil and info.callback == nil and info.rhs == "" then
+    print("EMPTY keymap: " .. lhs)
+    return false
+  end
+  return true
+end
+local expected = {
+  { "<leader>w", "n", "<cmd>write<cr>" },
+  { "<leader>m", "n", "<cmd>Mason<cr>" },
+  { "<leader>e", "n", "<cmd>NvimTreeToggle<cr>" },
+  { "<leader>E", "n", "<cmd>NvimTreeFocus<cr>" },
+  { "<leader>f", "n", "<cmd>NvimTreeFindFile<cr>" },
+  { "<S-h>", "n", "<cmd>BufferLineCyclePrev<cr>" },
+  { "<S-l>", "n", "<cmd>BufferLineCycleNext<cr>" },
+  { "<leader>bp", "n", "<cmd>BufferLinePick<cr>" },
+  { "<leader>bc", "n", "<cmd>bdelete<cr>" },
+  { "<leader>bo", "n", "<cmd>BufferLineCloseOthers<cr>" },
+  { "[d", "n" },
+  { "]d", "n" },
+  { "<leader>q", "n" },
+}
+local fail = false
+for _, spec in ipairs(expected) do
+  if not assert_map(spec[1], spec[2], spec[3]) then
+    fail = true
+  end
+end
+for i = 1, 9 do
+  local lhs = "<leader>" .. i
+  if not assert_map(lhs, "n", "<cmd>BufferLineGoToBuffer " .. i .. "<cr>") then
+    fail = true
+  end
+end
+if not vim.tbl_isempty(vim.fn.maparg("<leader>y", "v", false, true)) then
+  print("UNEXPECTED keymap: <leader>y in visual mode")
+  fail = true
+end
+if fail then
+  vim.cmd("cq!")
+else
+  print("Keymaps verified")
+end
+EOF
+"$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-keymaps.lua" -c 'qa'
+
+# Verify plugins load without error.
+cat >"$test_dir/verify-plugins.lua" <<'EOF'
+local fail = false
+local ok, err = pcall(require, "bufferline")
+if not ok then
+  print("bufferline failed to load: " .. tostring(err))
+  fail = true
+end
+ok, err = pcall(require, "scrollbar")
+if not ok then
+  print("scrollbar failed to load: " .. tostring(err))
+  fail = true
+end
+ok, err = pcall(require, "gitsigns")
+if not ok then
+  print("gitsigns failed to load: " .. tostring(err))
+  fail = true
+end
+if fail then
+  vim.cmd("cq!")
+else
+  print("Plugins verified")
+end
+EOF
+"$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-plugins.lua" -c 'qa'
+
+# Verify clipboard configuration.
+cat >"$test_dir/verify-clipboard.lua" <<'EOF'
+local clipboard_val = vim.opt.clipboard:get()
+local ok = false
+if type(clipboard_val) == "string" then
+  ok = clipboard_val:find("unnamedplus") ~= nil
+elseif type(clipboard_val) == "table" then
+  for _, v in ipairs(clipboard_val) do
+    if v == "unnamedplus" then ok = true break end
+  end
+end
+if not ok then
+  print("Clipboard check failed, value: " .. vim.inspect(clipboard_val))
+  vim.cmd("cq!")
+else
+  print("Clipboard verified")
+end
+EOF
+"$MISE" exec neovim -- nvim --headless -c "luafile $test_dir/verify-clipboard.lua" -c 'qa'
 
 "$MISE" exec neovim -- nvim --headless "+checkhealth vim.deprecated" +qa
 

@@ -16,10 +16,7 @@ return {
   {
     "nvim-tree/nvim-tree.lua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
-    keys = {
-      { "<leader>e", "<cmd>NvimTreeToggle<cr>", desc = "Toggle file tree" },
-      { "<leader>E", "<cmd>NvimTreeFocus<cr>", desc = "Focus file tree" },
-    },
+    cmd = { "NvimTreeToggle", "NvimTreeFocus", "NvimTreeFindFile" },
     opts = function()
       local api = require("nvim-tree.api")
       local function on_attach(bufnr)
@@ -27,7 +24,27 @@ return {
         vim.keymap.set("n", "yp", api.fs.copy.relative_path, { buffer = bufnr, desc = "Copy relative path" })
         vim.keymap.set("n", "yP", api.fs.copy.absolute_path, { buffer = bufnr, desc = "Copy absolute path" })
       end
-      return { on_attach = on_attach, view = { width = 36 } }
+      return {
+        on_attach = on_attach,
+        view = { width = 36 },
+        git = { enable = true },
+        renderer = {
+          icons = {
+            show = { git = true, folder = true, file = true },
+            glyphs = {
+              git = {
+                unstaged = "M",
+                staged = "S",
+                unmerged = "U",
+                renamed = "R",
+                untracked = "?",
+                deleted = "D",
+                ignored = "I",
+              },
+            },
+          },
+        },
+      }
     end,
   },
   {
@@ -42,7 +59,55 @@ return {
     },
     opts = {},
   },
-  { "lewis6991/gitsigns.nvim", opts = {} },
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = {
+      current_line_blame = true,
+      current_line_blame_opts = {
+        delay = 1000,
+        virt_text_pos = "eol",
+      },
+      current_line_blame_formatter = "    <author>, <author_time:%Y-%m-%d> - <summary>",
+    },
+  },
+  {
+    "akinsho/bufferline.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    event = "VeryLazy",
+    opts = {
+      options = {
+        show_close_icon = true,
+        diagnostics = "nvim_lsp",
+        diagnostics_indicator = function(_, _, diagnostics_dict)
+          local s = " "
+          for e, n in pairs(diagnostics_dict) do
+            local sym = e == "error" and "E"
+              or e == "warning" and "W"
+              or e == "info" and "I"
+              or e == "hint" and "H"
+            s = s .. n .. sym
+          end
+          return s
+        end,
+        offsets = {
+          { filetype = "NvimTree", text = "File Explorer", highlight = "Directory", padding = 1 },
+        },
+        hover = { enabled = true, delay = 200, reveal = { "close" } },
+      },
+    },
+  },
+  {
+    "petertriho/nvim-scrollbar",
+    opts = {
+      handlers = {
+        cursor = true,
+        search = false,
+        diagnostic = true,
+        gitsigns = true,
+        handle = true,
+      },
+    },
+  },
   {
     "hrsh7th/nvim-cmp",
     event = "InsertEnter",
@@ -74,7 +139,7 @@ return {
             else fallback() end
           end, { "i", "s" }),
         }),
-        sources = cmp.config.sources({ { name = "nvim_lsp" }, { name = "path" } }, { { name = "buffer" } }),
+        sources = cmp.config.sources({ { name = "luasnip" }, { name = "nvim_lsp" }, { name = "path" } }, { { name = "buffer" } }),
       })
     end,
   },
@@ -88,15 +153,14 @@ return {
     dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig", "hrsh7th/cmp-nvim-lsp" },
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      local servers = { "lua_ls", "ts_ls", "jsonls" }
-      if vim.fn.executable("bash-language-server") == 1 then table.insert(servers, "bashls") end
+      local servers = { "lua_ls", "ts_ls", "jsonls", "bashls" }
       for _, server in ipairs(servers) do
         vim.lsp.config(server, { capabilities = capabilities })
         vim.lsp.enable(server)
       end
       require("mason-lspconfig").setup({
         automatic_enable = false,
-        ensure_installed = { "lua_ls", "ts_ls", "jsonls" },
+        ensure_installed = { "lua_ls", "ts_ls", "jsonls", "bashls" },
       })
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)
@@ -108,21 +172,18 @@ return {
           map("K", vim.lsp.buf.hover, "Hover")
           map("<leader>rn", vim.lsp.buf.rename, "Rename")
           map("<leader>ca", vim.lsp.buf.code_action, "Code action")
-          map("<leader>f", function() vim.lsp.buf.format({ async = true }) end, "Format")
+          map("<leader>lf", function() vim.lsp.buf.format({ async = true }) end, "Format")
         end,
       })
     end,
   },
   {
     "nvim-treesitter/nvim-treesitter",
-    branch = "master",
+    branch = "main",
+    lazy = false,
     build = ":TSUpdate",
-    opts = {
-      highlight = { enable = true },
-      indent = { enable = true },
-      auto_install = false,
-      ensure_installed = { "lua", "typescript", "tsx", "json", "bash", "vim", "vimdoc" },
-    },
-    config = function(_, opts) require("nvim-treesitter.configs").setup(opts) end,
+    config = function()
+      require("nvim-treesitter").setup {}
+    end,
   },
 }
