@@ -101,3 +101,7 @@ if command -v starship >/dev/null 2>&1 && [[ -z ${__WORKSTATION_STARSHIP_INITIAL
   __WORKSTATION_STARSHIP_INITIALIZED=1
   eval "$(starship init bash)"
 fi
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init bash)"
+fi
