@@ -22,4 +22,5 @@ starship = "latest"
 herdr = "latest"
 zoxide = "latest"
 fzf = "latest"
+gh = "latest"
 cagent = { version = "0.1.2", filter_bins = "cagent" }
