@@ -45,6 +45,28 @@ lazydocker
 
 Docker CEを無効化した`personal`構成や`base`プロファイルでもbinaryは導入されますが、Docker daemonの導入・起動は行いません。
 
+## ディレクトリ移動の高速化
+
+`zoxide`は`cd`の履歴を自動学習し、よく使うディレクトリへ高速にジャンプします。
+
+```bash
+z workspace   # 履歴から "workspace" にマッチするディレクトリへジャンプ
+zi            # fzfでインタラクティブに選択
+```
+
+Bash初期化時に`zoxide init bash`を実行しており、`z` / `zi` コマンドが使えます。シェルの`cd`を使い続けることで自動的に履歴が蓄積されます。
+
+### Yaziの`Z`キーとの連携
+
+Yazi内で`Z`を押すとzoxideの履歴一覧からディレクトリを選んでジャンプできます。ただし**zoxideの履歴が空だと「No directory history found」エラーになります**。初回はシェルでいくつか`cd`して履歴を貯めるか、手動で登録してください：
+
+```bash
+zoxide add ~/workspace
+zoxide add ~/.config
+```
+
+その後Yaziを再起動すれば`Z`が使えるようになります。
+
 ## 設定の管理
 
 - YaziとStarshipの設定はchezmoiで管理します。詳細は[Workstation構成ガイド](workstation.md#yazi)を参照してください。
