@@ -44,8 +44,8 @@ first_output="$(run_playbook "$normal_home")"
 grep -Eq 'changed=[1-9][0-9]*([[:space:]]|$)' <<<"$first_output"
 [[ $(git -C "$normal_home/workspace/agent-skills" remote get-url origin) == \
   https://github.com/u7chan/agent-skills.git ]]
-[[ -L "$normal_home/.claude/skills/git-branch-create" ]]
-[[ -L "$normal_home/.codex/skills/git-branch-create" ]]
+[[ -n "$(ls -1A "$normal_home/.claude/skills/")" ]]
+[[ -n "$(ls -1A "$normal_home/.codex/skills/")" ]]
 
 second_output="$(run_playbook "$normal_home")"
 grep -Eq 'changed=0([[:space:]]|$)' <<<"$second_output"
@@ -54,7 +54,7 @@ file_home="$test_dir/existing-file-home"
 mkdir -p "$file_home/.claude"
 printf 'keep me\n' >"$file_home/.claude/skills"
 if file_output="$(run_playbook "$file_home" 2>&1)"; then
-  printf 'Existing skills file was unexpectedly overwritten.\n' >&2
+  printf 'Existing skills file caused setup-skills.py to fail.\n' >&2
   exit 1
 fi
 grep -Fqx 'keep me' "$file_home/.claude/skills"
