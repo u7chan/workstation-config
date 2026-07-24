@@ -24,12 +24,30 @@
     - claude
     - codex
 
-- name: Link AI CLI skills to agent-skills
+- name: Check for old repo-level agent skills symlinks
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['user_dir'] }}/.{{ item }}/skills"
+  register: old_skills_stat
+  loop:
+    - claude
+    - codex
+
+- name: Remove old repo-level agent skills symlinks
   ansible.builtin.file:
-    src: "{{ agent_skills_dest }}"
-    dest: "{{ ansible_facts['user_dir'] }}/.{{ item }}/skills"
-    state: link
-    force: false
+    path: "{{ item.stat.path }}"
+    state: absent
+  when: item.stat.islnk is defined and item.stat.islnk
+  loop: "{{ old_skills_stat.results }}"
+
+- name: Setup agent skills via setup-skills.py
+  ansible.builtin.command:
+    cmd: >
+      python3 {{ agent_skills_dest }}/.scripts/setup-skills.py
+      --agent {{ item }}
+      --home {{ ansible_facts['user_dir'] }}
+    chdir: "{{ agent_skills_dest }}"
+  register: setup_skills_result
+  changed_when: "'[ok]' in setup_skills_result.stdout"
   loop:
     - claude
     - codex

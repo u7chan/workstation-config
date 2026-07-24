@@ -261,7 +261,7 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCodeは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexはnpmをSafe-chain経由、Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
-`personal`プロファイルでは[`u7chan/agent-skills`](https://github.com/u7chan/agent-skills)を`~/workspace/agent-skills`へHTTPSでcloneし、`~/.claude/skills`と`~/.codex/skills`をそのリポジトリへのsymlinkとして作成します。personal bootstrapを再実行すると、agent-skillsは`main`ブランチの最新状態へ更新されます。既存の実ディレクトリやファイルは上書きしないため、同名のパスがある場合は内容を確認して退避してからbootstrapを再実行してください。
+`personal`プロファイルでは[`u7chan/agent-skills`](https://github.com/u7chan/agent-skills)を`~/workspace/agent-skills`へHTTPSでcloneし、`setup-skills.py`で各エージェントのスキルディレクトリへスキル単位のsymlinkを作成します。personal bootstrapを再実行すると、agent-skillsは`main`ブランチの最新状態へ更新され、スキル単位symlinkが再作成されます。`~/.claude/skills`や`~/.codex/skills`のスキルルート自体が実ファイルの場合は`FileExistsError`で失敗し、個別スキルパスが実体の場合は`[skip]`を出力してスキップします。いずれも上書きされないため、該当パスがある場合は内容を確認して退避してからbootstrapを再実行してください。
 
 Codex、Claude Code、OpenCode本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
