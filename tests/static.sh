@@ -128,7 +128,7 @@ grep -Fq 'workstation-update.service' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq 'default_agent: codex' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
+grep -Fq 'default_agent: opencode-go' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_level: mid' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -A 1 -F 'models: [gpt-5.6-luna]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: xhigh'
 grep -A 1 -F 'models: [gpt-5.6-terra]' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '        effort: high'
