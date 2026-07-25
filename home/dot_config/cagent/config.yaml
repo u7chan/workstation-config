@@ -1,4 +1,4 @@
-default_agent: codex
+default_agent: opencode-go
 default_level: mid
 
 agents:

@@ -268,7 +268,7 @@ update-ai
 ./tests/ai-clis-smoke.sh
 ```
 
-chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はCodexを既定agent、`mid`を既定levelとし、CodexとOpenCode Goのmodel mappingおよびHerdrのstart/run templateを定義します。既定agentは設定の`default_agent`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agent、`mid`を既定levelとし、CodexとOpenCode Goのmodel mappingおよびHerdrのstart/run templateを定義します。既定agentは設定の`default_agent`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
 
 `base`ではmise解決とversionだけ、`personal`では設定・doctor・agent別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
 

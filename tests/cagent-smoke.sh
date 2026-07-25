@@ -46,9 +46,9 @@ trap 'rm -rf "$test_dir"' EXIT
 test_bin="$test_dir/bin"
 mkdir -p "$test_bin"
 
-# doctor checks command resolution only for Codex and Herdr. Keep these
+# doctor checks command resolution for Codex, OpenCode, and Herdr. Keep these
 # commands as inert shims so this smoke never starts an agent or model.
-for bin in codex herdr; do
+for bin in codex opencode herdr; do
   cat >"$test_bin/$bin" <<'EOF'
 #!/usr/bin/env bash
 exit 0
@@ -60,22 +60,17 @@ config="$ROOT_DIR/home/dot_config/cagent/config.yaml"
 doctor_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" doctor)"
 grep -Fq '[OK] config YAML parsed successfully' <<<"$doctor_output"
 grep -Fq '[OK] codex binary found:' <<<"$doctor_output"
+grep -Fq '[OK] opencode binary found:' <<<"$doctor_output"
 grep -Fq '[OK] multiplexer adapter "herdr" has start/run command templates' <<<"$doctor_output"
 
-codex_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run low)"
+default_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run)"
+grep -Fq '# Resolved level: mid' <<<"$default_output"
+grep -Fq 'opencode --model opencode-go/deepseek-v4-pro' <<<"$default_output"
+
+codex_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --agent codex --dry-run low)"
 grep -Fq '# Resolved level: low' <<<"$codex_output"
 grep -Fq '# Resolved effort: xhigh' <<<"$codex_output"
 grep -Fq 'codex --model gpt-5.6-luna' <<<"$codex_output"
 grep -Fq 'model_reasoning_effort=\"xhigh\"' <<<"$codex_output"
-
-opencode_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --agent opencode-go --dry-run low)"
-grep -Fq '# Resolved level: low' <<<"$opencode_output"
-grep -Fq 'opencode --model opencode-go/deepseek-v4-flash' <<<"$opencode_output"
-
-alternate_config="$test_dir/opencode-go-default.yaml"
-sed '0,/^default_agent: codex$/s//default_agent: opencode-go/' "$config" >"$alternate_config"
-alternate_output="$(CAGENT_CONFIG="$alternate_config" "$cagent_bin" --dry-run)"
-grep -Fq '# Resolved level: mid' <<<"$alternate_output"
-grep -Fq 'opencode --model opencode-go/deepseek-v4-pro' <<<"$alternate_output"
 
 printf 'cagent personal smoke checks passed: %s\n' "$cagent_bin"
