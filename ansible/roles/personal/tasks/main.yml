@@ -23,12 +23,6 @@
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/workstation-update-runner"
     mode: "0755"
 
-- name: Install the lock-aware Git entrypoint
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../scripts/workstation-update-locked-git"
-    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/workstation-update-locked-git"
-    mode: "0755"
-
 - name: Validate personal_ai_tools values
   ansible.builtin.assert:
     that:
@@ -105,7 +99,3 @@
       installed but could not be enabled. It will activate on next login
       when systemd --user starts.
   when: systemd_user_check.rc != 0
-
-- name: Configure shared agent skills
-  ansible.builtin.include_tasks: agent_skills.yml
-  when: personal_agent_skills_enabled | bool

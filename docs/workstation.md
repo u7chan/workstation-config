@@ -261,8 +261,6 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCodeは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexはnpmをSafe-chain経由、Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
-`personal`プロファイルでは[`u7chan/agent-skills`](https://github.com/u7chan/agent-skills)を`~/workspace/agent-skills`へHTTPSでcloneし、`setup-skills.py`で各エージェントのスキルディレクトリへスキル単位のsymlinkを作成します。personal bootstrapを再実行すると、agent-skillsは`main`ブランチの最新状態へ更新され、スキル単位symlinkが再作成されます。`~/.claude/skills`や`~/.codex/skills`のスキルルート自体が実ファイルの場合は`FileExistsError`で失敗し、個別スキルパスが実体の場合は`[skip]`を出力してスキップします。いずれも上書きされないため、該当パスがある場合は内容を確認して退避してからbootstrapを再実行してください。
-
 Codex、Claude Code、OpenCode本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
 ```bash
@@ -301,9 +299,8 @@ Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart 
 
 1. `personal_ai_tools`で選択したAI CLIを`update-ai`で更新（空ならスキップ）
 2. `mise upgrade herdr`
-3. `personal_agent_skills_enabled=true`の場合だけ`~/workspace/agent-skills`をfast-forward更新
 
-各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、再provisioningのmise、AI CLI、agent-skills更新も同じロックへ参加します。更新中のCodex、Herdr、Claude Code、OpenCodeの起動は制限しません。Herdrの更新主体は従来どおりmiseであり、`herdr update`は使用しません。
+各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、再provisioningのmise、AI CLI更新も同じロックへ参加します。更新中のCodex、Herdr、Claude Code、OpenCodeの起動は制限しません。Herdrの更新主体は従来どおりmiseであり、`herdr update`は使用しません。
 
 手動実行も自動実行と同じuser serviceをバックグラウンドで開始します。
 
@@ -316,8 +313,6 @@ watch-update --verbose
 `update-workstation`は更新完了を待たず、新しいrunのstateが作成されるまでだけ待ってから戻るため、直後の`watch-update`は要求したrunを追跡します。`watch-update`はステップ、経過時間、再試行、成功・失敗を表示し、`--verbose`は各更新コマンドの標準出力・標準エラーを含む生ログを追跡します。runnerが強制終了してstateだけが`running`で残った場合は、PIDとprocess start timeからstale状態を検出して`failed`へ収束させます。対話Bashの起動時は更新中または前回失敗の場合だけ1行の案内を表示し、成功時は表示しません。
 
 状態とログは`~/.local/state/workstation-update/`に保存します。`state.tsv`が現在または直近の集約結果、`runs/`が実行単位の生ログとステップ結果で、直近5回分だけを保持します。環境変数の一覧はログへ出力しません。
-
-agent-skillsは`main`ブランチ、cleanなworktree、取得した`origin/main`へfast-forward可能、という条件をすべて満たす場合だけ更新します。条件を満たさない場合はstash、merge、rebase、競合解消を行わず、worktreeを変更しないまま全体を更新未完了にします。`watch-update --verbose`で理由を確認し、未commitの変更をcommitまたは退避して`main`へ戻すか、分岐したcommitを手動で整理してください。その後`git -C ~/workspace/agent-skills status`でcleanかつ`main`であることを確認し、`update-workstation`を再実行します。
 
 ## Bashのローカル設定
 

@@ -60,8 +60,6 @@ grep -Fq "['/usr/bin/flock', ansible_facts['user_dir'] + '/.local/state/workstat
   "$personal_tasks"
 grep -Fq 'EnvironmentFile=%h/.config/systemd/user/workstation-update.env' \
   "$ROOT_DIR/ansible/roles/personal/files/workstation-update.service"
-grep -Fq 'workstation-update-locked-git' \
-  "$ROOT_DIR/ansible/roles/personal/tasks/agent_skills.yml"
 grep -Fq '/usr/bin/flock "$HOME/.local/state/workstation-update/update.lock"' \
   "$ROOT_DIR/bootstrap"
 

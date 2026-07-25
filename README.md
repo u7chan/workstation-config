@@ -42,7 +42,7 @@ cd workstation-config
 
 ## Tools auto-update
 
-`personal` プロファイル適用時、WSL セッション開始ごとに AI CLI（Codex/Claude Code/OpenCode）・Herdr・agent-skills を自動更新します。処理はバックグラウンドで動き、シェル操作を妨げません。
+`personal` プロファイル適用時、WSL セッション開始ごとに AI CLI（Codex/Claude Code/OpenCode）・Herdr を自動更新します。処理はバックグラウンドで動き、シェル操作を妨げません。
 
 ```bash
 update-workstation   # 手動実行（即座に戻る）
