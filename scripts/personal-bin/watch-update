@@ -167,6 +167,8 @@ fi
 
 shown_lines=0
 last_signature=
+step_total="$(read_field step_total "$STATE_FILE")"
+
 print_new_summaries() {
   local current_lines start_line
   local index label result attempts elapsed exit_code symbol
@@ -185,8 +187,8 @@ print_new_summaries() {
     else
       symbol='✗'
     fi
-    printf '%s [%s] %s/3 %s — %s attempt(s)' \
-      "$symbol" "$(format_elapsed "$elapsed")" "$index" "$label" "$attempts"
+    printf '%s [%s] %s/%s %s — %s attempt(s)' \
+      "$symbol" "$(format_elapsed "$elapsed")" "$index" "$step_total" "$label" "$attempts"
     if [[ $result == failed ]]; then
       printf ', exit %s' "$exit_code"
     fi
@@ -205,15 +207,16 @@ while :; do
     step_status="$(read_field step_status "$STATE_FILE")"
     attempt="$(read_field attempt "$STATE_FILE")"
     started_at="$(read_field started_at_epoch "$STATE_FILE")"
+    step_total="$(read_field step_total "$STATE_FILE")"
     signature="$step_index:$step_status:$attempt"
     if [[ $signature != "$last_signature" ]]; then
       elapsed=$(( $(date +%s) - started_at ))
       if [[ $step_status == retrying ]]; then
-        printf '↻ [%s] %s/3 %s — retrying (attempt %s)\n' \
-          "$(format_elapsed "$elapsed")" "$step_index" "$step_label" "$attempt"
+        printf '↻ [%s] %s/%s %s — retrying (attempt %s)\n' \
+          "$(format_elapsed "$elapsed")" "$step_index" "$step_total" "$step_label" "$attempt"
       else
-        printf '⟳ [%s] %s/3 %s — running\n' \
-          "$(format_elapsed "$elapsed")" "$step_index" "$step_label"
+        printf '⟳ [%s] %s/%s %s — running\n' \
+          "$(format_elapsed "$elapsed")" "$step_index" "$step_total" "$step_label"
       fi
       last_signature=$signature
     fi
