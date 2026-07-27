@@ -71,7 +71,7 @@
 
 - name: Check if systemd user bus is reachable (migration)
   ansible.builtin.command:
-    cmd: systemctl --user is-system-running
+    cmd: systemctl --user show-environment
   register: systemd_user_migration_check
   changed_when: false
   failed_when: false

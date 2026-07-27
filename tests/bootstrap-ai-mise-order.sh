@@ -63,6 +63,7 @@ grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.config/workstation/myupd
   "$personal_tasks"
 grep -Fqx "WORKSTATION_UPDATE_AI_TOOLS=\"{{ personal_ai_tools | join(',') }}\"" \
   "$ROOT_DIR/ansible/roles/personal/templates/myupdate.conf.j2"
+grep -Fq 'cmd: systemctl --user show-environment' "$personal_tasks"
 grep -Fq '/usr/bin/flock "$HOME/.local/state/workstation-update/update.lock"' \
   "$ROOT_DIR/bootstrap"
 
