@@ -110,6 +110,19 @@
     MISE_YES: "1"
   changed_when: false
 
+- name: Install Herdr plugins
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts['user_dir'] }}/.local/share/mise/shims/herdr"
+      - plugin
+      - install
+      - "{{ item }}"
+      - --yes
+  loop: "{{ herdr_plugins }}"
+  changed_when: false
+  environment:
+    PATH: "{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{ ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}"
+
 - name: Install locked mise tools before personal role tasks
   ansible.builtin.command:
     argv:

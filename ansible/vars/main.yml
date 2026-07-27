@@ -39,3 +39,7 @@ mise_checksum: "sha256:0744cb3c303baf0d308ff7b112ed41f22abb6029cb5644fd3a8ce74b2
 safe_chain_version: "1.5.12"
 safe_chain_installer_url: "https://github.com/AikidoSec/safe-chain/releases/download/{{ safe_chain_version }}/install-safe-chain.sh"
 safe_chain_installer_checksum: "sha256:e40995d546160bf18788dbfc6e9a4a765152abeca92014adf85102cf6b13d890"
+
+herdr_plugins:
+  - smarzban/herdr-file-viewer
+  - persiyanov/herdr-reviewr
