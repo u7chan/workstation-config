@@ -2,18 +2,50 @@ onboarding = false
 
 [ui]
 agent_panel_sort = "spaces"
-show_agent_labels_on_pane_borders = true  # パネル枠にエージェントラベルを表示
+# パネル枠にエージェントラベルを表示
+show_agent_labels_on_pane_borders = true
 
 [theme]
 name = "catppuccin"
 
+[keys]
+prefix         = "ctrl+q"
+split_vertical = "prefix+v"
+close_pane     = "ctrl+w"
+reload_config  = "prefix+shift+r"
+
+[[keys.command]]
+key     = "prefix+y"
+type    = "popup"
+command = "yazi"
+width   = "90%"
+height  = "90%"
+
 [[keys.command]]
 key     = "prefix+f"
-type    = "pane"
-command = "yazi"
+type    = "plugin_action"
+command = "herdr-file-viewer.open-file-viewer"
 
-[keys]
-prefix           = "ctrl+q"
-split_vertical   = "prefix+v"   # 左右分割
-split_horizontal = "prefix+h"   # 上下分割
-close_pane       = "ctrl+w"     # ペインを閉じる
+[[keys.command]]
+key     = "prefix+d"
+type    = "popup"
+command = "lazydocker"
+width   = "90%"
+height  = "90%"
+
+[[keys.command]]
+key     = "prefix+g"
+type    = "popup"
+command = "lazygit"
+width   = "90%"
+height  = "90%"
+
+[[keys.command]]
+key     = "prefix+h"
+type    = "shell"
+command = "hunk-split.sh"
+
+[[keys.command]]
+key     = "prefix+r"
+type    = "plugin_action"
+command = "persiyanov.reviewr.toggle"

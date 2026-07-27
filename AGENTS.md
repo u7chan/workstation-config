@@ -26,3 +26,16 @@ Ubuntu 26.04 WSL2 上の開発環境をコードで定義し、再現可能に�
 | [docs/workstation.md](docs/workstation.md) | profile、Ansible role、各種ツール、検証の詳細が必要なとき |
 | [docs/roles-boundary.md](docs/roles-boundary.md) | `base` / `personal` の責務分界を確認するとき |
 | [home/README.md](home/README.md) | chezmoi source ディレクトリを説明するとき |
+
+## 開発ルール
+
+- `main` への直pushは禁止。必ずブランチを作成してPRを出す。
+- ブランチ名は小文字のkebab-case（例: `update/herdr-config`）。
+- コミットメッセージはprefixをつけて英語で記述する（例: `feat(herdr): add custom keybindings`）。
+- PRは日本語で書き、以下のセクションを含める:
+  - `## Issues`
+  - `## Why`
+  - `## Summary`
+  - `## Changes`
+  - `## Verification`
+- PRのフィードバックに対応したら、必ず当該コメントに返信する。インラインコメントでない場合は `Re: ` をつけて全体コメントで返信する。
