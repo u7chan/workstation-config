@@ -17,11 +17,17 @@
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/update-ai"
     mode: "0755"
 
-- name: Install the workstation update runner
+- name: Install the workstation update command
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../scripts/workstation-update-runner"
-    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/workstation-update-runner"
+    src: "{{ playbook_dir }}/../scripts/personal-bin/myupdate"
+    dest: "{{ ansible_facts['user_dir'] }}/.local/bin/myupdate"
     mode: "0755"
+
+- name: Configure workstation update selections
+  ansible.builtin.template:
+    src: myupdate.conf.j2
+    dest: "{{ ansible_facts['user_dir'] }}/.config/workstation/myupdate.conf"
+    mode: "0644"
 
 - name: Validate personal_ai_tools values
   ansible.builtin.assert:
@@ -56,46 +62,44 @@
     - gpc
     - http
     - http-lan
-    - update-workstation
-    - watch-update
 
-- name: Create systemd user unit directory
-  ansible.builtin.file:
-    path: "{{ ansible_facts['user_dir'] }}/.config/systemd/user"
-    state: directory
-    mode: "0755"
-
-- name: Configure workstation update selections
-  ansible.builtin.template:
-    src: workstation-update.env.j2
-    dest: "{{ ansible_facts['user_dir'] }}/.config/systemd/user/workstation-update.env"
-    mode: "0644"
-
-- name: Install workstation update user service
-  ansible.builtin.copy:
-    src: workstation-update.service
-    dest: "{{ ansible_facts['user_dir'] }}/.config/systemd/user/workstation-update.service"
-    mode: "0644"
-
-- name: Check if systemd user bus is reachable
+# TODO: Remove this migration block after existing workstations have converged.
+- name: Check if systemd user bus is reachable (migration)
   ansible.builtin.command:
     cmd: systemctl --user is-system-running
-  register: systemd_user_check
+  register: systemd_user_migration_check
   changed_when: false
   failed_when: false
 
-- name: Enable workstation update user service
+- name: Stop and disable legacy workstation-update service
   ansible.builtin.systemd_service:
     name: workstation-update.service
     scope: user
-    daemon_reload: true
-    enabled: true
-  when: systemd_user_check.rc == 0
+    state: stopped
+    enabled: false
+  when: systemd_user_migration_check.rc == 0
 
-- name: Warn that systemd user bus is unavailable
-  ansible.builtin.debug:
-    msg: >-
-      systemd user bus is not reachable; workstation-update.service was
-      installed but could not be enabled. It will activate on next login
-      when systemd --user starts.
-  when: systemd_user_check.rc != 0
+- name: Remove legacy workstation-update service unit
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/systemd/user/workstation-update.service"
+    state: absent
+
+- name: Remove legacy workstation-update env file
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/systemd/user/workstation-update.env"
+    state: absent
+
+- name: Reload systemd user manager after legacy unit removal
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+    scope: user
+  when: systemd_user_migration_check.rc == 0
+
+- name: Remove legacy workstation update commands
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.local/bin/{{ item }}"
+    state: absent
+  loop:
+    - update-workstation
+    - watch-update
+    - workstation-update-runner
