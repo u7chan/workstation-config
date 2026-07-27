@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+readonly PROGRAM_NAME="myupdate"
+readonly STATE_DIR="$HOME/.local/state/workstation-update"
+readonly LOCK_FILE="$STATE_DIR/update.lock"
+readonly RETRY_DELAY_SECONDS="${WORKSTATION_UPDATE_RETRY_DELAY_SECONDS:-5}"
+
+die() {
+  local exit_code=$1
+  shift
+  printf '%s: %s\n' "$PROGRAM_NAME" "$*" >&2
+  exit "$exit_code"
+}
+
+config_file="$HOME/.config/workstation/myupdate.conf"
+if [[ ! ${WORKSTATION_UPDATE_AI_TOOLS+x} && -r $config_file ]]; then
+  # shellcheck source=/dev/null
+  source "$config_file"
+fi
+
+[[ $RETRY_DELAY_SECONDS =~ ^[0-9]+([.][0-9]+)?$ ]] || die 2 "retry delay must be a non-negative number"
+command -v flock >/dev/null 2>&1 || die 1 "flock is required"
+command -v git >/dev/null 2>&1 || die 1 "git is required"
+
+AI_UPDATE_ENABLED=true
+declare -a UPDATE_AI_ARGS=()
+if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
+  if [[ -z $WORKSTATION_UPDATE_AI_TOOLS ]]; then
+    AI_UPDATE_ENABLED=false
+  else
+    IFS=',' read -r -a configured_ai_tools <<<"$WORKSTATION_UPDATE_AI_TOOLS"
+    for configured_ai_tool in "${configured_ai_tools[@]}"; do
+      case $configured_ai_tool in
+        codex|claude|opencode) UPDATE_AI_ARGS+=("--$configured_ai_tool") ;;
+        *) die 2 "invalid AI tool in WORKSTATION_UPDATE_AI_TOOLS: $configured_ai_tool" ;;
+      esac
+    done
+  fi
+fi
+
+umask 077
+mkdir -p "$STATE_DIR" || die 1 "cannot create state directory: $STATE_DIR"
+exec 9>"$LOCK_FILE" || die 1 "cannot open update lock: $LOCK_FILE"
+if ! flock -n 9; then
+  printf '%s: another update is already running\n' "$PROGRAM_NAME" >&2
+  exit 3
+fi
+
+run_update_ai() {
+  local update_ai_bin="${WORKSTATION_UPDATE_AI_BIN:-$HOME/.local/bin/update-ai}"
+
+  if [[ $AI_UPDATE_ENABLED == false ]]; then
+    printf 'AI CLI update skipped: personal_ai_tools is empty\n'
+    return 0
+  fi
+
+  [[ -x $update_ai_bin ]] || {
+    printf 'update-ai is not executable: %s\n' "$update_ai_bin" >&2
+    return 127
+  }
+
+  MISE_CONFIG_FILE="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}" \
+  MISE_LOCKED=1 \
+  MISE_YES=1 \
+    "$update_ai_bin" "${UPDATE_AI_ARGS[@]}"
+}
+
+run_herdr_update() {
+  local mise_bin="${WORKSTATION_UPDATE_MISE_BIN:-$HOME/.local/bin/mise}"
+  local herdr_bin="$HOME/.local/share/mise/shims/herdr"
+
+  [[ -x $mise_bin ]] || {
+    printf 'mise is not executable: %s\n' "$mise_bin" >&2
+    return 127
+  }
+
+  MISE_CONFIG_FILE="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}" \
+  MISE_YES=1 \
+    env -u MISE_LOCKED "$mise_bin" upgrade herdr || return $?
+
+  if [[ -x $herdr_bin ]]; then
+    "$herdr_bin" plugin install smarzban/herdr-file-viewer --yes || true
+    "$herdr_bin" plugin install persiyanov/herdr-reviewr --yes || true
+  fi
+}
+
+run_step() {
+  local label=$1
+  shift
+  local exit_code=0
+
+  printf '==> %s\n' "$label"
+  if "$@"; then
+    return 0
+  else
+    exit_code=$?
+  fi
+
+  printf '%s: %s failed (exit %s); retrying in %s seconds\n' \
+    "$PROGRAM_NAME" "$label" "$exit_code" "$RETRY_DELAY_SECONDS" >&2
+  sleep "$RETRY_DELAY_SECONDS"
+
+  if "$@"; then
+    return 0
+  else
+    exit_code=$?
+  fi
+
+  printf '%s: %s failed after 2 attempts (exit %s)\n' \
+    "$PROGRAM_NAME" "$label" "$exit_code" >&2
+  return 1
+}
+
+declare -a FAILED_STEPS=()
+run_step update-ai run_update_ai || FAILED_STEPS+=(update-ai)
+run_step 'mise upgrade herdr' run_herdr_update || FAILED_STEPS+=('mise upgrade herdr')
+
+if ((${#FAILED_STEPS[@]} > 0)); then
+  printf '%s: update failed: %s\n' "$PROGRAM_NAME" "$(IFS=', '; printf '%s' "${FAILED_STEPS[*]}")" >&2
+  exit 1
+fi
+
+printf '%s: all updates completed successfully\n' "$PROGRAM_NAME"

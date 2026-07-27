@@ -57,12 +57,19 @@ bash -n "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
 bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
-bash -n "$ROOT_DIR/scripts/workstation-update-runner"
+bash -n "$ROOT_DIR/scripts/personal-bin/myupdate"
 bash -n "$ROOT_DIR/tests/workstation-update-smoke.sh"
-for personal_cli in clp gac gpc http http-lan update-workstation watch-update; do
+for personal_cli in clp gac gpc http http-lan; do
   bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
   grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 done
+grep -Fq 'src: "{{ playbook_dir }}/../scripts/personal-bin/myupdate"' \
+  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/myupdate"' \
+  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+grep -Fq 'src: myupdate.conf.j2' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.config/workstation/myupdate.conf"' \
+  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 
 test -f "$ROOT_DIR/home/dot_config/yazi/yazi.toml"
 test -f "$ROOT_DIR/home/dot_config/yazi/package.toml"
@@ -124,7 +131,6 @@ grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -q 'type -a herdr cagent codex claude opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -Fq 'workstation-update.service' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
@@ -154,7 +160,7 @@ if find "$ROOT_DIR/home" -type f \( \
 fi
 
 grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
-grep -q '^  - gh$' "$ROOT_DIR/ansible/vars/main.yml"
+grep -q '^gh = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
 grep -q '^  - jq$' "$ROOT_DIR/ansible/vars/main.yml"
 
 docker_tasks="$ROOT_DIR/ansible/roles/docker_ce/tasks/main.yml"
@@ -352,9 +358,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/tests/personal-cli-smoke.sh" \
     "$ROOT_DIR/tests/docker-smoke.sh" \
     "$ROOT_DIR/tests/cagent-smoke.sh" \
-    "$ROOT_DIR/scripts/workstation-update-runner" \
-    "$ROOT_DIR/scripts/personal-bin/update-workstation" \
-    "$ROOT_DIR/scripts/personal-bin/watch-update" \
+    "$ROOT_DIR/scripts/personal-bin/myupdate" \
     "$ROOT_DIR/tests/workstation-update-smoke.sh" \
     "$ROOT_DIR/scripts/personal-bin/clp" \
     "$ROOT_DIR/scripts/personal-bin/gac" \

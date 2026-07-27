@@ -40,23 +40,15 @@ cd workstation-config
 ./bootstrap base
 ```
 
-## Tools auto-update
+## Tools update
 
-`personal` プロファイル適用時、WSL セッション開始ごとに AI CLI（Codex/Claude Code/OpenCode）・Herdr を自動更新します。処理はバックグラウンドで動き、シェル操作を妨げません。
+`personal` プロファイルでは、AI CLI（Codex/Claude Code/OpenCode）とHerdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
 
 ```bash
-update-workstation   # 手動実行（即座に戻る）
-watch-update         # 進行状況を監視
-watch-update --verbose  # 生ログを追跡
+myupdate
 ```
 
-| データ | パス |
-|---|---|
-| ログ | `~/.local/state/workstation-update/runs/<run_id>.log` |
-| サマリ | `~/.local/state/workstation-update/runs/<run_id>.summary.tsv` |
-| 最新の状態 | `~/.local/state/workstation-update/state.tsv` |
-
-直近5回分のログが保持され、古いものは自動削除されます。詳細は [Workstation構成ガイド](docs/workstation.md#開発ツールの自動更新) を参照してください。
+更新対象のAI CLIは`personal_ai_tools`で選択します。詳細は [Workstation構成ガイド](docs/workstation.md#開発ツールの手動更新) を参照してください。
 
 ## Docs
 
