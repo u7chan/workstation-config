@@ -58,8 +58,11 @@ grep -Fq '/.local/bin/update-ai' "$personal_tasks"
 grep -Fq 'MISE_LOCKED: "1"' "$personal_tasks"
 grep -Fq "['/usr/bin/flock', ansible_facts['user_dir'] + '/.local/state/workstation-update/update.lock'" \
   "$personal_tasks"
-grep -Fq 'EnvironmentFile=%h/.config/systemd/user/workstation-update.env' \
-  "$ROOT_DIR/ansible/roles/personal/files/workstation-update.service"
+grep -Fq 'src: myupdate.conf.j2' "$personal_tasks"
+grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.config/workstation/myupdate.conf"' \
+  "$personal_tasks"
+grep -Fqx "WORKSTATION_UPDATE_AI_TOOLS=\"{{ personal_ai_tools | join(',') }}\"" \
+  "$ROOT_DIR/ansible/roles/personal/templates/myupdate.conf.j2"
 grep -Fq '/usr/bin/flock "$HOME/.local/state/workstation-update/update.lock"' \
   "$ROOT_DIR/bootstrap"
 
