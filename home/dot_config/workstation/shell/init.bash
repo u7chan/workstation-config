@@ -20,6 +20,9 @@ fi
 export DISABLE_AUTOUPDATER=1
 export PATH="$HOME/.opencode/bin:$PATH"
 
+export EDITOR=nvim
+export VISUAL=nvim
+
 alias g=git
 alias h=herdr
 
