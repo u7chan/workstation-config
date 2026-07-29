@@ -9,6 +9,8 @@
 
 Ubuntu 26.04 WSL2 上の開発環境を、コードで定義し再現可能にするための IaC 構成です。
 
+![workstation-config の構成概要](docs/images/workstation-config-overview.png)
+
 ## Tech Stack
 
 | カテゴリ | 使用技術 |
