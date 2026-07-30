@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "layout": { "mode": "auto" },
+  "members": [
+    {
+      "role": "impl",
+      "kind": "opencode",
+      "activation": "immediate"
+    },
+    {
+      "role": "review",
+      "kind": "codex",
+      "activation": "deferred"
+    },
+    {
+      "role": "pr-fix",
+      "kind": "opencode",
+      "activation": "deferred"
+    }
+  ]
+}
