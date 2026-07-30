@@ -45,5 +45,16 @@ done
   exit 1
 }
 
-MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'codex features list' >/dev/null
+features_output="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'codex features list' 2>&1)" || {
+  printf 'wsl-restart-smoke: codex features list failed\n' >&2
+  exit 1
+}
+if ! grep -q 'apps' <<<"$features_output"; then
+  printf 'wsl-restart-smoke: apps feature not found in codex features list\n' >&2
+  exit 1
+fi
+if ! grep -q 'apps.*false' <<<"$features_output"; then
+  printf 'wsl-restart-smoke: codex apps feature is not disabled\n' >&2
+  exit 1
+fi
 printf 'WSL restart smoke checks passed.\n'

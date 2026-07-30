@@ -157,6 +157,7 @@ if [ -f "$herdr_config_sh" ] && [ -x "$(command -v jq)" ]; then
   fi
 fi
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
+grep -Fxq 'apps = false' "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_agent: opencode-go' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_level: mid' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
