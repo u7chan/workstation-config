@@ -147,6 +147,15 @@ if find "$ROOT_DIR/home/dot_config/herdr" -type f \( -name 'all-codex.json' -o -
   printf 'Per-model team configs must not be managed by chezmoi.\n' >&2
   exit 1
 fi
+
+herdr_config_sh="${HOME}/.agents/skills/global-agent-skills/herdr/scripts/common/config.sh"
+if [ -f "$herdr_config_sh" ] && [ -x "$(command -v jq)" ]; then
+  source "$herdr_config_sh"
+  if ! herdr_config_validate_raw_file "$ROOT_DIR/home/dot_config/herdr/team.json"; then
+    printf 'Herdr config validation failed for team.json.\n' >&2
+    exit 1
+  fi
+fi
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_agent: opencode-go' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
