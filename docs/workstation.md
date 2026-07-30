@@ -312,6 +312,25 @@ type -a herdr cagent codex
 
 Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart smokeの`codex features list`は、この設定がCodex起動時に正常に解析されることも検証します。
 
+#### Codex Apps integrationの無効化
+
+Codexは既定でApps integrationが有効であり、起動時に集約MCP server `codex_apps`が読み込まれ、GitHubを含む多数のtoolが利用候補として公開されます。GitHub操作には`global-agent-skills`の自作`gh`スキルとdispatcherを使用する方針であり、Codex組み込みのGitHub app/connectorは使用しません。実際、組み込みGitHub toolにはGitHub Appの権限不足により403エラーが発生します。
+
+```text
+GitHub API error 403: {"message":"Resource not accessible by integration", ...}
+```
+
+不要なMCP toolの誤選択、権限確認、失敗後のフォールバックを避けるため、`~/.codex/config.toml`の`[features]`セクションで`apps = false`を設定し、集約MCP serverの公開を無効化します。
+
+```toml
+[features]
+apps = false
+```
+
+`[apps.github] enabled = false`では集約MCP server `codex_apps`自体は無効化されず、`/mcp`にtool一覧が残ります。そのため、stable feature flagである`features.apps`を無効化します。
+
+この設定は`codex_apps`の読み込みを停止するだけで、ユーザーが明示的に追加する`mcp_servers`の利用可否を一律に制限しません。また、`global-agent-skills`の自作`gh`スキルや`gh` CLI、Codexのplugin機能全体には影響しません。
+
 ### 開発ツールの手動更新
 
 `personal`プロファイルは、開発ツールをまとめて同期更新する`myupdate`を配置します。必要なときに手動で実行し、次の順序で処理します。
