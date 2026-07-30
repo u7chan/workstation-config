@@ -268,7 +268,26 @@ update-ai
 ./tests/ai-clis-smoke.sh
 ```
 
-chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agent、`mid`を既定levelとし、CodexとOpenCode Goのmodel mappingおよびHerdrのstart/run templateを定義します。既定agentは設定の`default_agent`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`、`~/.config/herdr/team.json`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agent、`mid`を既定levelとし、CodexとOpenCode Goのmodel mappingおよびHerdrのstart/run templateを定義します。既定agentは設定の`default_agent`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+
+### Herdrチーム編成
+
+Herdrの`team.start`が読み込むチームconfigは、次の優先順位で解決されます。
+
+1. リクエスト内で明示された `config_path`
+2. カレントディレクトリからGitルートまで遡った最も近い `.herdr/team.json`
+3. `${XDG_CONFIG_HOME:-$HOME/.config}/herdr/team.json`（chezmoiで配布）
+4. Skill同梱のデフォルトconfig
+
+設定ファイルはマージされず、最初に見つかったものが採用されます。chezmoiで配布するグローバルconfigは、プロジェクト固有のconfigがない場合の標準編成として機能します。
+
+標準編成は次のとおりです。
+
+- `impl` — OpenCode、即時起動
+- `review` — Codex、遅延起動
+- `pr-fix` — OpenCode、遅延起動
+
+標準ロールのpromptはconfigへ複製せず、`global-agent-skills`側の同梱promptを使用します。
 
 `base`ではmise解決とversionだけ、`personal`では設定・doctor・agent別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
 

@@ -132,6 +132,30 @@ grep -q 'type -a herdr cagent codex claude opencode' "$ROOT_DIR/tests/wsl-restar
 grep -q 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
+test -f "$ROOT_DIR/home/dot_config/herdr/team.json"
+jq empty "$ROOT_DIR/home/dot_config/herdr/team.json"
+[[ $(jq -r '.schema_version' "$ROOT_DIR/home/dot_config/herdr/team.json") -eq 1 ]]
+[[ $(jq -r '.members | length' "$ROOT_DIR/home/dot_config/herdr/team.json") -eq 3 ]]
+[[ $(jq -r '.members[] | select(.role == "impl") | .kind' "$ROOT_DIR/home/dot_config/herdr/team.json") == opencode ]]
+[[ $(jq -r '.members[] | select(.role == "impl") | .activation' "$ROOT_DIR/home/dot_config/herdr/team.json") == immediate ]]
+[[ $(jq -r '.members[] | select(.role == "review") | .kind' "$ROOT_DIR/home/dot_config/herdr/team.json") == codex ]]
+[[ $(jq -r '.members[] | select(.role == "review") | .activation' "$ROOT_DIR/home/dot_config/herdr/team.json") == deferred ]]
+[[ $(jq -r '.members[] | select(.role == "pr-fix") | .kind' "$ROOT_DIR/home/dot_config/herdr/team.json") == opencode ]]
+[[ $(jq -r '.members[] | select(.role == "pr-fix") | .activation' "$ROOT_DIR/home/dot_config/herdr/team.json") == deferred ]]
+test ! -d "$ROOT_DIR/home/dot_config/herdr/teams"
+if find "$ROOT_DIR/home/dot_config/herdr" -type f \( -name 'all-codex.json' -o -name 'all-opencode.json' \) | grep -q .; then
+  printf 'Per-model team configs must not be managed by chezmoi.\n' >&2
+  exit 1
+fi
+
+herdr_config_sh="${HOME}/.agents/skills/global-agent-skills/herdr/scripts/common/config.sh"
+if [ -f "$herdr_config_sh" ] && [ -x "$(command -v jq)" ]; then
+  source "$herdr_config_sh"
+  if ! herdr_config_validate_raw_file "$ROOT_DIR/home/dot_config/herdr/team.json"; then
+    printf 'Herdr config validation failed for team.json.\n' >&2
+    exit 1
+  fi
+fi
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_agent: opencode-go' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
