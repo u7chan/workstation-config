@@ -21,13 +21,14 @@ checksum = "sha256:56a7d6806cf155536c0178f0ea5fbd098e684fa509ebdb4fc0a7e19fb6538
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-linux-x64-musl-baseline.zip"
 
 [[tools.cagent]]
-version = "0.2.0"
+version = "0.3.0"
 backend = "github:u7chan/code-agent-launcher"
 
 [tools.cagent."platforms.linux-x64"]
-checksum = "sha256:be0e37b88b1141124cb4b5bfeb734cb92963b9fb24a34c96b3cbfef48d47ef68"
-url = "https://github.com/u7chan/code-agent-launcher/releases/download/v0.2.0/cagent-v0.2.0-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/u7chan/code-agent-launcher/releases/assets/489514789"
+checksum = "sha256:26c8ea2c9b95f12f0e1e3de64abe5c202cf16c7156b4b5ac68b806e33aa9c0fa"
+url = "https://github.com/u7chan/code-agent-launcher/releases/download/v0.3.0/cagent-v0.3.0-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/u7chan/code-agent-launcher/releases/assets/500155102"
+provenance = "github-attestations"
 
 [[tools.fd]]
 version = "10.4.2"

@@ -23,4 +23,4 @@ herdr = "latest"
 zoxide = "latest"
 fzf = "latest"
 gh = "latest"
-cagent = { version = "0.2.0", filter_bins = "cagent" }
+cagent = { version = "0.3.0", filter_bins = "cagent" }
