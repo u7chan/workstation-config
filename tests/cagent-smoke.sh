@@ -31,8 +31,8 @@ cagent_bin="$("$mise_bin" which cagent)"
 }
 
 version_output="$("$cagent_bin" --version)"
-[[ $version_output == 0.2.0 ]] || {
-  printf 'cagent-smoke: expected version 0.2.0, got %s\n' "$version_output" >&2
+[[ $version_output == 0.3.0 ]] || {
+  printf 'cagent-smoke: expected version 0.3.0, got %s\n' "$version_output" >&2
   exit 1
 }
 
@@ -46,8 +46,8 @@ trap 'rm -rf "$test_dir"' EXIT
 test_bin="$test_dir/bin"
 mkdir -p "$test_bin"
 
-# doctor checks command resolution for Codex, OpenCode, and Herdr. Keep these
-# commands as inert shims so this smoke never starts an agent or model.
+# doctor checks command resolution for the default OpenCode agent and Herdr.
+# Keep these commands as inert shims so this smoke never starts an agent/model.
 for bin in codex opencode herdr; do
   cat >"$test_bin/$bin" <<'EOF'
 #!/usr/bin/env bash
@@ -59,8 +59,7 @@ done
 config="$ROOT_DIR/home/dot_config/cagent/config.yaml"
 doctor_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" doctor)"
 grep -Fq '[OK] config YAML parsed successfully' <<<"$doctor_output"
-grep -Fq '[OK] codex binary found:' <<<"$doctor_output"
-grep -Fq '[OK] opencode binary found:' <<<"$doctor_output"
+grep -Fq '[OK] opencode-go binary found:' <<<"$doctor_output"
 grep -Fq '[OK] multiplexer adapter "herdr" has start/run command templates' <<<"$doctor_output"
 
 default_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run)"
