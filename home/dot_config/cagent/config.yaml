@@ -1,48 +1,41 @@
-default_agent: opencode-go
-default_level: mid
+default_agent: codex
+default_profile: reasoner
 
 agents:
   codex:
     bin: codex
     provider: codex
     model_id_prefix: false
-    levels:
-      low:
-        description: Fast and affordable tasks
-        default_model: gpt-5.6-luna
-        models: [gpt-5.6-luna]
-        effort: xhigh
-      mid:
-        description: Balanced everyday tasks
-        default_model: gpt-5.6-terra
-        models: [gpt-5.6-terra]
-        effort: high
-      high:
-        description: Frontier agentic coding tasks
-        default_model: gpt-5.6-sol
-        models: [gpt-5.6-sol]
-        effort: xhigh
   opencode-go:
     bin: opencode
     provider: opencode-go
     model_id_prefix: true
-    levels:
-      low:
-        description: Fast and affordable tasks
-        default_model: deepseek-v4-flash
-        models: [deepseek-v4-flash]
-      mid:
-        description: Balanced everyday tasks
-        default_model: deepseek-v4-pro
-        models: [deepseek-v4-pro]
-      high:
-        description: Frontier agentic coding tasks
-        default_model: kimi-k2.7-code
-        models: [kimi-k2.7-code]
+
+profiles:
+  worker-codex:
+    agent: codex
+    model: gpt-5.6-luna
+    effort: max
+  worker-opencode:
+    agent: opencode-go
+    model: deepseek-v4-flash
+    # TODO: effort max の有効化は OpenCode Go が Start 対応後に設定する
+  reasoner:
+    agent: codex
+    model: gpt-5.6-sol
+    effort: high
+  reviewer:
+    agent: codex
+    model: gpt-5.6-sol
+    effort: xhigh
+  orchestrator:
+    agent: opencode-go
+    model: deepseek-v4-pro
+    # TODO: effort high の有効化は OpenCode Go が Start 対応後に設定する
 
 multiplexer:
   default: herdr
   herdr:
     enabled: true
-    start_command_template: "cagent {level}"
-    run_command_template: "cagent run {level} -- {prompt}"
+    start_command_template: "cagent {profile}"
+    run_command_template: "cagent run {profile} -- {prompt}"
