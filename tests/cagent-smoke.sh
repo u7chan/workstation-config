@@ -31,8 +31,8 @@ cagent_bin="$("$mise_bin" which cagent)"
 }
 
 version_output="$("$cagent_bin" --version)"
-[[ $version_output == 1.0.0 ]] || {
-  printf 'cagent-smoke: expected version 1.0.0, got %s\n' "$version_output" >&2
+[[ $version_output == 1.0.1 ]] || {
+  printf 'cagent-smoke: expected version 1.0.1, got %s\n' "$version_output" >&2
   exit 1
 }
 
@@ -88,27 +88,27 @@ grep -Fq '# Resolved profile: worker-opencode' <<<"$worker_opencode_output"
 grep -Fq '# Resolved agent: opencode-go' <<<"$worker_opencode_output"
 grep -Fq '# Resolved model: deepseek-v4-flash' <<<"$worker_opencode_output"
 ! grep -Fq '# Resolved effort:' <<<"$worker_opencode_output"
-grep -Fq 'opencode --model deepseek-v4-flash' <<<"$worker_opencode_output"
+grep -Fq 'opencode --model opencode-go/deepseek-v4-flash' <<<"$worker_opencode_output"
 
 orchestrator_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run orchestrator)"
 grep -Fq '# Resolved profile: orchestrator' <<<"$orchestrator_output"
 grep -Fq '# Resolved agent: opencode-go' <<<"$orchestrator_output"
 grep -Fq '# Resolved model: deepseek-v4-pro' <<<"$orchestrator_output"
 ! grep -Fq '# Resolved effort:' <<<"$orchestrator_output"
-grep -Fq 'opencode --model deepseek-v4-pro' <<<"$orchestrator_output"
+grep -Fq 'opencode --model opencode-go/deepseek-v4-pro' <<<"$orchestrator_output"
 
 worker_opencode_mux="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run mux start worker-opencode)"
 grep -Fq '# Resolved profile: worker-opencode' <<<"$worker_opencode_mux"
 grep -Fq '# Herdr dry-run command sequence:' <<<"$worker_opencode_mux"
 grep -Fq 'No Herdr command was invoked.' <<<"$worker_opencode_mux"
-grep -Fq "'--model' 'deepseek-v4-flash'" <<<"$worker_opencode_mux"
+grep -Fq "'--model' 'opencode-go/deepseek-v4-flash'" <<<"$worker_opencode_mux"
 grep -Fq 'Pane IDs shown in this plan are placeholders, not resource IDs.' <<<"$worker_opencode_mux"
 
 orchestrator_mux="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run mux start orchestrator)"
 grep -Fq '# Resolved profile: orchestrator' <<<"$orchestrator_mux"
 grep -Fq '# Herdr dry-run command sequence:' <<<"$orchestrator_mux"
 grep -Fq 'No Herdr command was invoked.' <<<"$orchestrator_mux"
-grep -Fq "'--model' 'deepseek-v4-pro'" <<<"$orchestrator_mux"
+grep -Fq "'--model' 'opencode-go/deepseek-v4-pro'" <<<"$orchestrator_mux"
 grep -Fq 'Pane IDs shown in this plan are placeholders, not resource IDs.' <<<"$orchestrator_mux"
 
 printf 'cagent personal smoke checks passed: %s\n' "$cagent_bin"
