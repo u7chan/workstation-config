@@ -31,8 +31,8 @@ cagent_bin="$("$mise_bin" which cagent)"
 }
 
 version_output="$("$cagent_bin" --version)"
-[[ $version_output == 0.3.0 ]] || {
-  printf 'cagent-smoke: expected version 0.3.0, got %s\n' "$version_output" >&2
+[[ $version_output == 1.0.0 ]] || {
+  printf 'cagent-smoke: expected version 1.0.0, got %s\n' "$version_output" >&2
   exit 1
 }
 
@@ -46,7 +46,7 @@ trap 'rm -rf "$test_dir"' EXIT
 test_bin="$test_dir/bin"
 mkdir -p "$test_bin"
 
-# doctor checks command resolution for the default OpenCode agent and Herdr.
+# doctor checks command resolution for both Codex and OpenCode agents and Herdr.
 # Keep these commands as inert shims so this smoke never starts an agent/model.
 for bin in codex opencode herdr; do
   cat >"$test_bin/$bin" <<'EOF'
@@ -59,17 +59,28 @@ done
 config="$ROOT_DIR/home/dot_config/cagent/config.yaml"
 doctor_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" doctor)"
 grep -Fq '[OK] config YAML parsed successfully' <<<"$doctor_output"
-grep -Fq '[OK] opencode-go binary found:' <<<"$doctor_output"
+grep -Fq '[OK] codex binary found:' <<<"$doctor_output"
+grep -Fq '[OK] profile "worker-opencode" agent "opencode-go" is defined' <<<"$doctor_output"
 grep -Fq '[OK] multiplexer adapter "herdr" has start/run command templates' <<<"$doctor_output"
 
 default_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run)"
-grep -Fq '# Resolved level: mid' <<<"$default_output"
-grep -Fq 'opencode --model opencode-go/deepseek-v4-pro' <<<"$default_output"
+grep -Fq '# Resolved profile: reasoner' <<<"$default_output"
+grep -Fq '# Resolved agent: codex' <<<"$default_output"
+grep -Fq '# Resolved model: gpt-5.6-sol' <<<"$default_output"
+grep -Fq '# Resolved effort: high' <<<"$default_output"
+grep -Fq -- '--model gpt-5.6-sol' <<<"$default_output"
+grep -Fq 'model_reasoning_effort=\"high\"' <<<"$default_output"
 
-codex_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --agent codex --dry-run low)"
-grep -Fq '# Resolved level: low' <<<"$codex_output"
-grep -Fq '# Resolved effort: xhigh' <<<"$codex_output"
-grep -Fq 'codex --model gpt-5.6-luna' <<<"$codex_output"
-grep -Fq 'model_reasoning_effort=\"xhigh\"' <<<"$codex_output"
+worker_codex_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run worker-codex)"
+grep -Fq '# Resolved profile: worker-codex' <<<"$worker_codex_output"
+grep -Fq '# Resolved effort: max' <<<"$worker_codex_output"
+grep -Fq -- '--model gpt-5.6-luna' <<<"$worker_codex_output"
+grep -Fq 'model_reasoning_effort=\"max\"' <<<"$worker_codex_output"
+
+reviewer_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run reviewer)"
+grep -Fq '# Resolved profile: reviewer' <<<"$reviewer_output"
+grep -Fq '# Resolved effort: xhigh' <<<"$reviewer_output"
+grep -Fq -- '--model gpt-5.6-sol' <<<"$reviewer_output"
+grep -Fq 'model_reasoning_effort=\"xhigh\"' <<<"$reviewer_output"
 
 printf 'cagent personal smoke checks passed: %s\n' "$cagent_bin"

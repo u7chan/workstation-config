@@ -268,9 +268,52 @@ update-ai
 ./tests/ai-clis-smoke.sh
 ```
 
-chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agent、`mid`を既定levelとし、CodexとOpenCode Goのmodel mappingおよびHerdrのstart/run templateを定義します。既定agentは設定の`default_agent`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はCodexを既定agent、`reasoner`を既定profileとし、CodexとOpenCode GoのLaunch ProfileおよびHerdrのstart/run templateを定義します。既定profileは設定の`default_profile`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
 
-`base`ではmise解決とversionだけ、`personal`では設定・doctor・agent別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
+`base`ではmise解決とversionだけ、`personal`では設定・doctor・profile別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
+
+```bash
+./tests/cagent-smoke.sh base
+./tests/cagent-smoke.sh personal
+```
+
+### cagent v1.0.0 Launch Profiles への移行
+
+cagent v1.0.0では旧形式の`levels`/`models`設定に後方互換がなく、設定を手動で移行する必要があります。
+既存の`~/.config/cagent/config.yaml`をバックアップしてから、bootstrapで新しいLaunch Profile形式の
+設定を適用してください。
+
+```bash
+# 既存設定のバックアップ
+cp ~/.config/cagent/config.yaml ~/.config/cagent/config.yaml.v0.3.bak
+
+# bootstrapで新しい設定を適用
+./bootstrap personal
+
+# 移行後の確認
+cagent --version
+cagent doctor
+cagent profiles
+cagent --dry-run reasoner
+```
+
+v0.3.xの`default_agent`/`default_level`とagent別の`levels`/`models`設定は、v1.0.0の
+Launch Profileへ手動で移行する必要があります。移行の概要は
+[cagent READMEのv0.3.x→v1.0.0移行ガイド](https://github.com/u7chan/code-agent-launcher?tab=readme-ov-file#v03x%E3%81%8B%E3%82%89v100%E3%81%B8%E3%81%AE%E6%89%8B%E5%8B%95%E7%A7%BB%E8%A1%8C)
+を参照してください。
+
+現行の設定で定義するLaunch Profileは次の5つです。
+
+| Profile | Agent | Model | Effort |
+|---|---|---|---|
+| `worker-codex` | Codex | `gpt-5.6-luna` | `max` |
+| `worker-opencode` | OpenCode Go | `deepseek-v4-flash` | — (TODO) |
+| `reasoner` | Codex | `gpt-5.6-sol` | `high` |
+| `reviewer` | Codex | `gpt-5.6-sol` | `xhigh` |
+| `orchestrator` | OpenCode Go | `deepseek-v4-pro` | — (TODO) |
+
+Herdr templateは`{level}`から`{profile}`に変更され、Herdr Startで任意のLaunch Profileを
+指定した会話セッションを起動できます。
 
 ```bash
 ./tests/cagent-smoke.sh base
