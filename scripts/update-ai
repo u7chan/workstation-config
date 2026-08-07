@@ -40,8 +40,9 @@ else
   done
 fi
 
-# Load Safe-chain's npm wrapper. Only Codex and Pi bypass the package-age gate;
-# malware inspection remains active because Safe-chain itself is not bypassed.
+# Load Safe-chain's npm wrapper. Only Codex and the Pi package scope bypass the
+# package-age gate; malware inspection remains active because Safe-chain itself
+# is not bypassed.
 # shellcheck disable=SC1091
 source "$HOME/.safe-chain/scripts/init-posix.sh"
 export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
@@ -54,7 +55,7 @@ fi
 
 if [[ $install_pi == true ]]; then
   printf '==> Updating Pi coding agent through Safe-chain\n'
-  SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/pi-coding-agent" \
+  SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/*" \
     npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
 fi
 

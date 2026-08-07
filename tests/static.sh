@@ -116,6 +116,7 @@ if ! curl -sI --fail --max-time 10 "$safe_chain_url" >/dev/null; then
   exit 1
 fi
 grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex"' "$ROOT_DIR/scripts/update-ai"
+grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/\*"' "$ROOT_DIR/scripts/update-ai"
 grep -q 'npm install --global @openai/codex@latest' "$ROOT_DIR/scripts/update-ai"
 grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
 grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"

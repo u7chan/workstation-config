@@ -100,6 +100,9 @@
 - name: Resolve latest Herdr release before locked mise install
   ansible.builtin.command:
     argv:
+      - /usr/bin/env
+      - -u
+      - MISE_LOCKED
       - /usr/bin/flock
       - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
       - "{{ ansible_facts['user_dir'] }}/.local/bin/mise"
@@ -110,10 +113,24 @@
     MISE_YES: "1"
   changed_when: false
 
+- name: Resolve installed Herdr binary
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/env
+      - -u
+      - MISE_LOCKED
+      - "{{ ansible_facts['user_dir'] }}/.local/bin/mise"
+      - which
+      - herdr
+  environment:
+    MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
+  register: herdr_binary
+  changed_when: false
+
 - name: Install Herdr plugins
   ansible.builtin.command:
     argv:
-      - "{{ ansible_facts['user_dir'] }}/.local/share/mise/shims/herdr"
+      - "{{ herdr_binary.stdout | trim }}"
       - plugin
       - install
       - "{{ item }}"
@@ -121,6 +138,7 @@
   loop: "{{ herdr_plugins }}"
   changed_when: false
   environment:
+    MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
     PATH: "{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{ ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}"
 
 - name: Install locked mise tools before personal role tasks

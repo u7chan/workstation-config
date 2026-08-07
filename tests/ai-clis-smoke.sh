@@ -57,7 +57,7 @@ chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 
 grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$log"
-grep -Fqx 'npm exclusion=@earendil-works/pi-coding-agent args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
+grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'curl claude exclusion=' "$log"
 grep -Fqx 'curl opencode exclusion=' "$log"
 grep -Fq '  "autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
@@ -120,7 +120,7 @@ EOF
       fi
       ;;
     pi)
-      grep -Fqx 'npm exclusion=@earendil-works/pi-coding-agent args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
+      grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
       if grep -Eq '^curl ' "$flag_log"; then
         printf 'pi flag should not invoke curl.\n' >&2
         exit 1
