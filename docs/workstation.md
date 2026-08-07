@@ -263,7 +263,7 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexとPiはnpmをSafe-chain経由で導入し、Piは`--ignore-scripts`を付けます。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
-Codex、Claude Code、OpenCode、Pi本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`、Pi更新時は`@earendil-works/pi-coding-agent`をSafe-chainのminimum package age対象外に一時指定しますが、malware検査は維持します。Piのnpm更新には`--ignore-scripts`を付けます。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
+Codex、Claude Code、OpenCode、Pi本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`、Pi更新時は同じスコープに属する依存パッケージも含めて`@earendil-works/*`をSafe-chainのminimum package age対象外に一時指定しますが、malware検査は維持します。Piのnpm更新には`--ignore-scripts`を付けます。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
 ```bash
 update-ai
@@ -462,7 +462,7 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Piのnpm更新には`--ignore-scripts`を付けます。これらの例外はmalware検査を無効化しません。
+CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Piは同じスコープの依存パッケージも取得するため、`@earendil-works/*`を対象外にします。Piのnpm更新には`--ignore-scripts`を付けます。これらの例外はmalware検査を無効化しません。
 
 ## プロンプト
 

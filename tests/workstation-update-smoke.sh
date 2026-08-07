@@ -10,8 +10,8 @@ trap 'rm -rf "$test_dir"' EXIT
 
 fixture_home="$test_dir/home"
 fixture_bin="$fixture_home/.local/bin"
-fixture_shims="$fixture_home/.local/share/mise/shims"
-mkdir -p "$fixture_bin" "$fixture_shims"
+fixture_herdr="$fixture_home/.local/share/mise/installs/herdr/0.8.0/herdr"
+mkdir -p "$fixture_bin" "${fixture_herdr%/*}"
 
 cat >"$fixture_bin/update-ai" <<'EOF'
 #!/usr/bin/env bash
@@ -40,26 +40,37 @@ EOF
 cat >"$fixture_bin/mise" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ $* == 'upgrade herdr' ]]
-[[ -z ${MISE_LOCKED:-} ]]
-count_file="$TEST_COUNTER_DIR/mise"
-count=0
-[[ ! -r $count_file ]] || read -r count <"$count_file"
-count=$((count + 1))
-printf '%s\n' "$count" >"$count_file"
-printf 'mise:%s\n' "$count" >>"$TEST_COMMAND_LOG"
-if ((count <= ${TEST_MISE_FAILURES:-0})); then
-  printf 'injected mise failure\n' >&2
-  exit 42
-fi
+case "$*" in
+  'upgrade herdr')
+    [[ -z ${MISE_LOCKED:-} ]]
+    count_file="$TEST_COUNTER_DIR/mise"
+    count=0
+    [[ ! -r $count_file ]] || read -r count <"$count_file"
+    count=$((count + 1))
+    printf '%s\n' "$count" >"$count_file"
+    printf 'mise:%s\n' "$count" >>"$TEST_COMMAND_LOG"
+    if ((count <= ${TEST_MISE_FAILURES:-0})); then
+      printf 'injected mise failure\n' >&2
+      exit 42
+    fi
+    ;;
+  'which herdr')
+    printf 'mise-which:herdr\n' >>"$TEST_COMMAND_LOG"
+    printf '%s\n' "$TEST_HERDR_BIN"
+    ;;
+  *)
+    printf 'unexpected mise command: %s\n' "$*" >&2
+    exit 1
+    ;;
+esac
 EOF
 
-cat >"$fixture_shims/herdr" <<'EOF'
+cat >"$fixture_herdr" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'herdr:%s\n' "$*" >>"$TEST_COMMAND_LOG"
+printf 'herdr-bin:%s\n' "$*" >>"$TEST_COMMAND_LOG"
 EOF
-chmod +x "$fixture_bin/update-ai" "$fixture_bin/mise" "$fixture_shims/herdr"
+chmod +x "$fixture_bin/update-ai" "$fixture_bin/mise" "$fixture_herdr"
 
 prepare_run() {
   local name=$1
@@ -78,6 +89,7 @@ run_update() {
   PATH="$fixture_bin:/usr/bin:/bin" \
   TEST_COUNTER_DIR="$RUN_COUNTER_DIR" \
   TEST_COMMAND_LOG="$RUN_COMMAND_LOG" \
+  TEST_HERDR_BIN="$fixture_herdr" \
   TEST_AI_FAILURES="${TEST_AI_FAILURES:-0}" \
   TEST_MISE_FAILURES="${TEST_MISE_FAILURES:-0}" \
   TEST_STARTED_FILE="${TEST_STARTED_FILE:-}" \
@@ -92,8 +104,9 @@ normal_output="$(run_update 2>&1)"
 grep -Fq 'all updates completed successfully' <<<"$normal_output"
 [[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1: ]]
 [[ $(sed -n '2p' "$RUN_COMMAND_LOG") == mise:1 ]]
-grep -Fqx 'herdr:plugin install smarzban/herdr-file-viewer --yes' "$RUN_COMMAND_LOG"
-grep -Fqx 'herdr:plugin install persiyanov/herdr-reviewr --yes' "$RUN_COMMAND_LOG"
+grep -Fqx 'mise-which:herdr' "$RUN_COMMAND_LOG"
+grep -Fqx 'herdr-bin:plugin install smarzban/herdr-file-viewer --yes' "$RUN_COMMAND_LOG"
+grep -Fqx 'herdr-bin:plugin install persiyanov/herdr-reviewr --yes' "$RUN_COMMAND_LOG"
 
 # First failures are retried independently and can still aggregate to success.
 prepare_run retry-success

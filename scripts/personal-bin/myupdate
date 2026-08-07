@@ -68,21 +68,26 @@ run_update_ai() {
 
 run_herdr_update() {
   local mise_bin="${WORKSTATION_UPDATE_MISE_BIN:-$HOME/.local/bin/mise}"
-  local herdr_bin="$HOME/.local/share/mise/shims/herdr"
+  local mise_config_file="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}"
+  local herdr_bin
 
   [[ -x $mise_bin ]] || {
     printf 'mise is not executable: %s\n' "$mise_bin" >&2
     return 127
   }
 
-  MISE_CONFIG_FILE="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}" \
+  MISE_CONFIG_FILE="$mise_config_file" \
   MISE_YES=1 \
     env -u MISE_LOCKED "$mise_bin" upgrade herdr || return $?
 
-  if [[ -x $herdr_bin ]]; then
-    "$herdr_bin" plugin install smarzban/herdr-file-viewer --yes || true
-    "$herdr_bin" plugin install persiyanov/herdr-reviewr --yes || true
-  fi
+  herdr_bin="$(
+    MISE_CONFIG_FILE="$mise_config_file" \
+      env -u MISE_LOCKED "$mise_bin" which herdr
+  )" || return $?
+  [[ -x $herdr_bin ]] || return 127
+
+  "$herdr_bin" plugin install smarzban/herdr-file-viewer --yes || true
+  "$herdr_bin" plugin install persiyanov/herdr-reviewr --yes || true
 }
 
 run_step() {
