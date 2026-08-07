@@ -22,6 +22,11 @@ npm() {
 printf 'codex test\n'
 SCRIPT
   chmod +x "$HOME/.local/bin/codex"
+  cat >"$HOME/.local/bin/pi" <<'SCRIPT'
+#!/usr/bin/env bash
+printf 'pi test\n'
+SCRIPT
+  chmod +x "$HOME/.local/bin/pi"
 }
 EOF
 
@@ -52,14 +57,15 @@ chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 
 grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$log"
+grep -Fqx 'npm exclusion=@earendil-works/pi-coding-agent args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'curl claude exclusion=' "$log"
 grep -Fqx 'curl opencode exclusion=' "$log"
-grep -Fqx '  "autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
+grep -Fq '  "autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -Fqx 'export DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -Fqx 'export PATH="$HOME/.opencode/bin:$PATH"' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 
 # Selective flag behavior: only the requested tool(s) are invoked.
-for flag in codex claude opencode; do
+for flag in codex claude opencode pi; do
   flag_test_dir="$(mktemp -d)"
   flag_home="$flag_test_dir/home"
   flag_bin="$flag_test_dir/bin"
@@ -75,6 +81,11 @@ npm() {
 printf 'codex test\n'
 SCRIPT
   chmod +x "\$HOME/.local/bin/codex"
+  cat >"\$HOME/.local/bin/pi" <<'SCRIPT'
+#!/usr/bin/env bash
+printf 'pi test\n'
+SCRIPT
+  chmod +x "\$HOME/.local/bin/pi"
 }
 EOF
 
@@ -105,6 +116,13 @@ EOF
       grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$flag_log"
       if grep -Eq '^curl ' "$flag_log"; then
         printf 'codex flag should not invoke curl.\n' >&2
+        exit 1
+      fi
+      ;;
+    pi)
+      grep -Fqx 'npm exclusion=@earendil-works/pi-coding-agent args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
+      if grep -Eq '^curl ' "$flag_log"; then
+        printf 'pi flag should not invoke curl.\n' >&2
         exit 1
       fi
       ;;

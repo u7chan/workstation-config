@@ -32,7 +32,7 @@
 - name: Validate personal_ai_tools values
   ansible.builtin.assert:
     that:
-      - item in ['codex', 'claude', 'opencode']
+      - item in ['codex', 'claude', 'opencode', 'pi']
     fail_msg: "personal_ai_tools contains invalid value: {{ item }}"
   loop: "{{ personal_ai_tools }}"
   when: personal_ai_tools | length > 0

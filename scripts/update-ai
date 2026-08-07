@@ -21,23 +21,26 @@ command -v curl >/dev/null 2>&1 || die "curl is required"
 install_codex=false
 install_claude=false
 install_opencode=false
+install_pi=false
 
 if [[ $# -eq 0 ]]; then
   install_codex=true
   install_claude=true
   install_opencode=true
+  install_pi=true
 else
   for arg in "$@"; do
     case "$arg" in
       --codex) install_codex=true ;;
       --claude) install_claude=true ;;
       --opencode) install_opencode=true ;;
+      --pi) install_pi=true ;;
       *) die "Unknown option: $arg" ;;
     esac
   done
 fi
 
-# Load Safe-chain's npm wrapper. Only Codex bypasses the package-age gate;
+# Load Safe-chain's npm wrapper. Only Codex and Pi bypass the package-age gate;
 # malware inspection remains active because Safe-chain itself is not bypassed.
 # shellcheck disable=SC1091
 source "$HOME/.safe-chain/scripts/init-posix.sh"
@@ -47,6 +50,12 @@ if [[ $install_codex == true ]]; then
   printf '==> Updating Codex CLI through Safe-chain\n'
   SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex" \
     npm install --global @openai/codex@latest
+fi
+
+if [[ $install_pi == true ]]; then
+  printf '==> Updating Pi coding agent through Safe-chain\n'
+  SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/pi-coding-agent" \
+    npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
 fi
 
 if [[ $install_claude == true ]]; then
@@ -62,6 +71,9 @@ fi
 printf '==> AI CLI versions\n'
 if [[ $install_codex == true ]]; then
   codex --version
+fi
+if [[ $install_pi == true ]]; then
+  pi --version
 fi
 if [[ $install_claude == true ]]; then
   claude --version

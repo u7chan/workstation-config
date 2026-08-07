@@ -32,7 +32,7 @@ if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
     IFS=',' read -r -a configured_ai_tools <<<"$WORKSTATION_UPDATE_AI_TOOLS"
     for configured_ai_tool in "${configured_ai_tools[@]}"; do
       case $configured_ai_tool in
-        codex|claude|opencode) UPDATE_AI_ARGS+=("--$configured_ai_tool") ;;
+        codex|claude|opencode|pi) UPDATE_AI_ARGS+=("--$configured_ai_tool") ;;
         *) die 2 "invalid AI tool in WORKSTATION_UPDATE_AI_TOOLS: $configured_ai_tool" ;;
       esac
     done

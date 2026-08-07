@@ -117,6 +117,11 @@ cat >"$linux_bin/codex" <<'EOF'
 printf 'linux codex %s\n' "$*" >>"$TEST_INSTALL_LOG"
 EOF
 
+cat >"$linux_bin/pi" <<'EOF'
+#!/usr/bin/env bash
+printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+EOF
+
 cat >"$windows_bin/npm" <<'EOF'
 #!/usr/bin/env bash
 printf 'windows npm must not run\n' >&2
@@ -128,20 +133,28 @@ cat >"$windows_bin/codex" <<'EOF'
 printf 'node: not found\n' >&2
 exit 127
 EOF
-chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/codex" \
-  "$windows_bin/npm" "$windows_bin/codex"
+
+cat >"$windows_bin/pi" <<'EOF'
+#!/usr/bin/env bash
+printf 'windows pi must not run\n' >&2
+exit 127
+EOF
+chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/codex" "$linux_bin/pi" \
+  "$windows_bin/npm" "$windows_bin/codex" "$windows_bin/pi"
 
 HOME="$test_home" \
 PATH="$windows_bin:$PATH" \
 TEST_INSTALL_LOG="$log" \
 TEST_LINUX_BIN="$linux_bin" \
-  "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
+  "$ROOT_DIR/scripts/update-ai" --codex --pi >/dev/null
 
 grep -Fqx 'mise exec node' "$log"
 grep -Fqx 'linux npm install --global @openai/codex@latest' "$log"
+grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'linux codex --version' "$log"
-if grep -Fq 'windows npm' "$log" || grep -Fq 'windows codex' "$log"; then
-  printf 'bootstrap-ai-mise-order: Windows npm or Codex shim was used.\n' >&2
+grep -Fqx 'linux pi --version' "$log"
+if grep -Fq 'windows npm' "$log" || grep -Fq 'windows codex' "$log" || grep -Fq 'windows pi' "$log"; then
+  printf 'bootstrap-ai-mise-order: Windows npm, Codex, or Pi shim was used.\n' >&2
   exit 1
 fi
 

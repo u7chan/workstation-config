@@ -118,6 +118,8 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。
+
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
 ```bash
@@ -259,9 +261,9 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 ## Herdr、cagentとAI CLI
 
-Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCodeは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexはnpmをSafe-chain経由、Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexとPiはnpmをSafe-chain経由で導入し、Piは`--ignore-scripts`を付けます。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
-Codex、Claude Code、OpenCode本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`だけをSafe-chainのminimum package age対象外にしますが、malware検査は維持します。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
+Codex、Claude Code、OpenCode、Pi本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`、Pi更新時は`@earendil-works/pi-coding-agent`をSafe-chainのminimum package age対象外に一時指定しますが、malware検査は維持します。Piのnpm更新には`--ignore-scripts`を付けます。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
 ```bash
 update-ai
@@ -320,7 +322,7 @@ Herdr templateは`{level}`から`{profile}`に変更され、Herdr Startで任�
 ./tests/cagent-smoke.sh personal
 ```
 
-WSL再起動後は次を実行し、HerdrとCodexがmise配下のLinux binaryへ解決され、Windows側のCodex shimへフォールバックしないことを確認します。
+WSL再起動後は次を実行し、Herdr、Codex、Piを含むCLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックしないことを確認します。
 
 ```bash
 ./tests/wsl-restart-smoke.sh
@@ -331,7 +333,7 @@ WSL再起動後は次を実行し、HerdrとCodexがmise配下のLinux binaryへ
 ```bash
 eval "$(~/.local/bin/mise activate bash)"
 hash -r
-type -a herdr cagent codex
+type -a herdr cagent codex pi
 ```
 
 Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart smokeの`codex features list`は、この設定がCodex起動時に正常に解析されることも検証します。
@@ -368,7 +370,7 @@ apps = false
 myupdate
 ```
 
-更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
+更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
 ## Bashのローカル設定
 
@@ -460,7 +462,7 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-Codexの更新だけは`update-ai`がminimum-package-age例外を一時指定します。この例外はmalware検査を無効化しません。
+CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Piのnpm更新には`--ignore-scripts`を付けます。これらの例外はmalware検査を無効化しません。
 
 ## プロンプト
 

@@ -122,8 +122,8 @@ set -e
 
 # The environment selects only the requested AI tools; an empty value skips AI updates.
 prepare_run selected-ai
-WORKSTATION_UPDATE_AI_TOOLS=codex,opencode run_update >/dev/null
-grep -Fqx 'update-ai:1:--codex --opencode' "$RUN_COMMAND_LOG"
+WORKSTATION_UPDATE_AI_TOOLS=codex,pi,opencode run_update >/dev/null
+grep -Fqx 'update-ai:1:--codex --pi --opencode' "$RUN_COMMAND_LOG"
 
 prepare_run empty-ai
 WORKSTATION_UPDATE_AI_TOOLS= run_update >/dev/null

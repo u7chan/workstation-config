@@ -17,13 +17,13 @@ systemctl is-active --quiet "$user_unit" || {
   exit 1
 }
 
-resolution="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'type -a herdr cagent codex claude opencode' 2>&1)" || {
+resolution="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'type -a herdr cagent codex claude opencode pi' 2>&1)" || {
   printf '%s\n' "$resolution" >&2
   exit 1
 }
 printf '%s\n' "$resolution"
 
-paths_output="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode' 2>/dev/null)"
+paths_output="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode; command -v pi' 2>/dev/null)"
 mapfile -t paths <<<"$paths_output"
 for path in "${paths[@]:0:3}"; do
   [[ $path == "$HOME/.local/share/mise/"* ]] || {
@@ -42,6 +42,14 @@ done
 }
 [[ ${paths[4]} == "$HOME/.opencode/bin/opencode" ]] || {
   printf 'wsl-restart-smoke: unexpected OpenCode path: %s\n' "${paths[4]}" >&2
+  exit 1
+}
+[[ ${paths[5]} == "$HOME/.local/share/mise/"* ]] || {
+  printf 'wsl-restart-smoke: unexpected Pi path: %s\n' "${paths[5]}" >&2
+  exit 1
+}
+[[ ${paths[5]} != /mnt/* ]] || {
+  printf 'wsl-restart-smoke: Windows Pi shim resolved: %s\n' "${paths[5]}" >&2
   exit 1
 }
 
