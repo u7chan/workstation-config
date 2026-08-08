@@ -83,7 +83,10 @@
     label: "{{ item }}"
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
-    PATH: "{{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{ ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}"
+    PATH: >-
+      {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{
+      ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
   when: personal_ai_tools | length > 0
   changed_when: false
 
@@ -93,10 +96,13 @@
       - "{{ herdr_binary.stdout | trim }}"
       - integration
       - status
-  register: herdr_integration_status
+  register: herdr_integration_status  # noqa var-naming[no-role-prefix]
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
-    PATH: "{{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{ ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}"
+    PATH: >-
+      {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{
+      ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
   when: personal_ai_tools | length > 0
   changed_when: false
 

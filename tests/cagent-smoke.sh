@@ -87,14 +87,18 @@ worker_opencode_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagen
 grep -Fq '# Resolved profile: worker-opencode' <<<"$worker_opencode_output"
 grep -Fq '# Resolved agent: opencode-go' <<<"$worker_opencode_output"
 grep -Fq '# Resolved model: deepseek-v4-flash' <<<"$worker_opencode_output"
-! grep -Fq '# Resolved effort:' <<<"$worker_opencode_output"
+if grep -Fq '# Resolved effort:' <<<"$worker_opencode_output"; then
+  exit 1
+fi
 grep -Fq 'opencode --model opencode-go/deepseek-v4-flash' <<<"$worker_opencode_output"
 
 orchestrator_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run orchestrator)"
 grep -Fq '# Resolved profile: orchestrator' <<<"$orchestrator_output"
 grep -Fq '# Resolved agent: opencode-go' <<<"$orchestrator_output"
 grep -Fq '# Resolved model: deepseek-v4-pro' <<<"$orchestrator_output"
-! grep -Fq '# Resolved effort:' <<<"$orchestrator_output"
+if grep -Fq '# Resolved effort:' <<<"$orchestrator_output"; then
+  exit 1
+fi
 grep -Fq 'opencode --model opencode-go/deepseek-v4-pro' <<<"$orchestrator_output"
 
 worker_opencode_mux="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run mux start worker-opencode)"

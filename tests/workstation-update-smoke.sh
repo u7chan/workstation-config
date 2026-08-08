@@ -139,7 +139,7 @@ WORKSTATION_UPDATE_AI_TOOLS=codex,pi,opencode run_update >/dev/null
 grep -Fqx 'update-ai:1:--codex --pi --opencode' "$RUN_COMMAND_LOG"
 
 prepare_run empty-ai
-WORKSTATION_UPDATE_AI_TOOLS= run_update >/dev/null
+WORKSTATION_UPDATE_AI_TOOLS='' run_update >/dev/null
 if grep -q '^update-ai:' "$RUN_COMMAND_LOG"; then
   printf 'empty WORKSTATION_UPDATE_AI_TOOLS unexpectedly invoked update-ai.\n' >&2
   exit 1

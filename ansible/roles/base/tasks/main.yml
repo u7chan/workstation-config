@@ -1,7 +1,7 @@
 ---
 - name: Read systemd version
   ansible.builtin.command: systemctl --version
-  register: systemd_version
+  register: systemd_version  # noqa var-naming[no-role-prefix]
   changed_when: false
   check_mode: false
   when:
@@ -124,7 +124,7 @@
       - herdr
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
-  register: herdr_binary
+  register: herdr_binary  # noqa var-naming[no-role-prefix]
   changed_when: false
 
 - name: Install Herdr plugins
@@ -139,7 +139,9 @@
   changed_when: false
   environment:
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
-    PATH: "{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{ ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}"
+    PATH: >-
+      {{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
 
 - name: Install locked mise tools before personal role tasks
   ansible.builtin.command:
@@ -178,7 +180,7 @@
 - name: Check for legacy Bun global safe-chain
   ansible.builtin.stat:
     path: "{{ ansible_facts['user_dir'] }}/.bun/bin/safe-chain"
-  register: legacy_bun_safe_chain
+  register: legacy_bun_safe_chain  # noqa var-naming[no-role-prefix]
 
 - name: Remove legacy Bun global safe-chain installation
   ansible.builtin.shell: |
@@ -190,7 +192,7 @@
   args:
     executable: /bin/bash
   when: legacy_bun_safe_chain.stat.exists | default(false)
-  register: safe_chain_bun_remove
+  register: safe_chain_bun_remove  # noqa var-naming[no-role-prefix]
   changed_when: safe_chain_bun_remove.rc == 0
   failed_when: false
 
@@ -208,7 +210,7 @@
     fi
   args:
     executable: /bin/bash
-  register: safe_chain_installed_version
+  register: safe_chain_installed_version  # noqa var-naming[no-role-prefix]
   changed_when: false
   failed_when: false
 
@@ -225,7 +227,7 @@
     cmd: "{{ ansible_facts['user_dir'] }}/.safe-chain-installer.sh"
   environment:
     SAFE_CHAIN_VERSION: "{{ safe_chain_version }}"
-  register: safe_chain_install_result
+  register: safe_chain_install_result  # noqa var-naming[no-role-prefix]
   changed_when: "'already installed' not in safe_chain_install_result.stdout"
   when: safe_chain_installed_version.stdout != safe_chain_version
 
