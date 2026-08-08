@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly ROOT_DIR
+
+personal_tasks="$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+base_tasks="$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+
+line_number() {
+  grep -n -m1 -F -- "$1" "$2" | cut -d: -f1
+}
+
+task_block() {
+  local task_name=$1
+  local task_file=$2
+  awk -v task_name="$task_name" '
+    $0 == "- name: " task_name { capture = 1 }
+    capture && /^- name: / && $0 != "- name: " task_name { exit }
+    capture { print }
+  ' "$task_file"
+}
+
+update_line="$(line_number '- name: Update selected AI CLI tools' "$personal_tasks")"
+directories_line="$(line_number '- name: Ensure Herdr integration config directories exist for selected AI CLI tools' "$personal_tasks")"
+install_line="$(line_number '- name: Install selected Herdr integrations' "$personal_tasks")"
+status_line="$(line_number '- name: Check selected Herdr integration status' "$personal_tasks")"
+assert_line="$(line_number '- name: Verify selected Herdr integrations are current' "$personal_tasks")"
+
+[[ $update_line -lt $directories_line && $directories_line -lt $install_line && \
+  $install_line -lt $status_line && $status_line -lt $assert_line ]] || {
+  printf 'bootstrap-herdr-integration-order: AI CLI update, directories, install, status, and assertion must be ordered.\n' >&2
+  exit 1
+}
+
+directories_task="$(task_block 'Ensure Herdr integration config directories exist for selected AI CLI tools' "$personal_tasks")"
+for config_path in .codex .claude .config/opencode .pi/agent; do
+  grep -Fqx "      path: $config_path" <<<"$directories_task" || {
+    printf 'bootstrap-herdr-integration-order: missing Herdr config directory %s.\n' "$config_path" >&2
+    exit 1
+  }
+done
+grep -Fq 'when: item.name in personal_ai_tools' <<<"$directories_task" || {
+  printf 'bootstrap-herdr-integration-order: config directories must be limited to selected AI CLI tools.\n' >&2
+  exit 1
+}
+
+install_task="$(task_block 'Install selected Herdr integrations' "$personal_tasks")"
+grep -Fqx '      - integration' <<<"$install_task" &&
+grep -Fqx '      - install' <<<"$install_task" &&
+grep -Fqx '      - "{{ item }}"' <<<"$install_task" &&
+grep -Fq 'loop: "{{ personal_ai_tools | unique | list }}"' <<<"$install_task" &&
+grep -Fq 'personal_ai_tools | length > 0' <<<"$install_task" &&
+grep -Fq '/usr/bin/flock' <<<"$install_task" || {
+  printf 'bootstrap-herdr-integration-order: selected Herdr integration install task is incomplete.\n' >&2
+  exit 1
+}
+grep -Fq 'herdr_binary.stdout | trim' <<<"$install_task" || {
+  printf 'bootstrap-herdr-integration-order: integration install must use the resolved Herdr binary.\n' >&2
+  exit 1
+}
+
+status_task="$(task_block 'Check selected Herdr integration status' "$personal_tasks")"
+grep -Fqx '      - integration' <<<"$status_task" &&
+grep -Fqx '      - status' <<<"$status_task" &&
+grep -Fq 'register: herdr_integration_status' <<<"$status_task" &&
+grep -Fq 'personal_ai_tools | length > 0' <<<"$status_task" || {
+  printf 'bootstrap-herdr-integration-order: selected Herdr integration status task is incomplete.\n' >&2
+  exit 1
+}
+
+assert_task="$(task_block 'Verify selected Herdr integrations are current' "$personal_tasks")"
+grep -Fq "': current '" <<<"$assert_task" &&
+grep -Fq 'herdr_integration_status.stdout_lines' <<<"$assert_task" &&
+grep -Fq 'personal_ai_tools | unique | list' <<<"$assert_task" || {
+  printf 'bootstrap-herdr-integration-order: selected Herdr integrations must be asserted as current.\n' >&2
+  exit 1
+}
+
+if grep -Eq 'integration[[:space:]]+(install|uninstall|status)' "$base_tasks"; then
+  printf 'bootstrap-herdr-integration-order: base role must not manage AI CLI integrations.\n' >&2
+  exit 1
+fi
+if grep -Eq 'integration[[:space:]]+uninstall' "$personal_tasks"; then
+  printf 'bootstrap-herdr-integration-order: personal role must not remove non-selected integrations.\n' >&2
+  exit 1
+fi
+
+printf 'Bootstrap Herdr integration ordering checks passed.\n'

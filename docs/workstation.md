@@ -29,7 +29,7 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 ./bootstrap base
 ```
 
-`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入してから`personal` roleのAI CLI更新を実行します。その後、bootstrapはchezmoiを適用し、mise installを再実行して宣言状態を確認し、Herdr integrationを設定します。
+`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、mise installを再実行して宣言状態を確認します。
 
 `personal`では任意RoleとしてDocker CEも既定で導入します。Dockerを導入しない
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
@@ -261,7 +261,18 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 ## Herdr、cagentとAI CLI
 
-Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、Herdrのintegration installerには所有させません。CodexとPiはnpmをSafe-chain経由で導入し、Piは`--ignore-scripts`を付けます。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。`base`プロファイルではAI CLI本体・integrationとも導入しません。CodexとPiはnpmをSafe-chain経由で導入し、Piは`--ignore-scripts`を付けます。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+
+Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
+
+| Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
+|---|---|---|
+| Codex | `~/.codex/hooks.json`、`~/.codex/hooks/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
+| Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | Herdr以外の個人設定はユーザー管理 |
+| OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
+| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・session・履歴は管理しない |
+
+auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
 Codex、Claude Code、OpenCode、Pi本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`、Pi更新時は同じスコープに属する依存パッケージも含めて`@earendil-works/*`をSafe-chainのminimum package age対象外に一時指定しますが、malware検査は維持します。Piのnpm更新には`--ignore-scripts`を付けます。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
 
@@ -322,18 +333,21 @@ Herdr templateは`{level}`から`{profile}`に変更され、Herdr Startで任�
 ./tests/cagent-smoke.sh personal
 ```
 
-WSL再起動後は次を実行し、Herdr、Codex、Piを含むCLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックしないことを確認します。
+WSL再起動後は次を実行し、Herdr、cagent、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の4種類（Codex / Claude Code / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
 
 ```bash
 ./tests/wsl-restart-smoke.sh
+./tests/wsl-restart-smoke.sh codex opencode
 ```
+
+native session restoreの実機確認では、選択済みCLIをHerdrのpane内で起動してsessionを作成した後、WSLを再起動し、Herdrへ再接続します。各paneが通常のshellではなく、対応するCLIのnative sessionとして復元されることを確認してください。認証や実モデルへのリクエストは自動テストの対象にしません。
 
 シェル初期化が反映されない場合は、一時的にmiseを有効化してcommand hashを破棄してから再確認します。
 
 ```bash
 eval "$(~/.local/bin/mise activate bash)"
 hash -r
-type -a herdr cagent codex pi
+type -a herdr cagent codex claude opencode pi
 ```
 
 Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart smokeの`codex features list`は、この設定がCodex起動時に正常に解析されることも検証します。
