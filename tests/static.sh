@@ -306,7 +306,7 @@ expected_aliases=(
 )
 mapfile -t actual_aliases < <(git config --file "$gitconfig_second" --get-regexp '^alias\.' 2>/dev/null | awk '{print $1}')
 for key in "${actual_aliases[@]}"; do
-  if ! printf '%s\n' "${expected_aliases[@]}" | grep -Fqx "$key"; then
+  if ! printf '%s\n' "${expected_aliases[@]}" | grep -Fx "$key" >/dev/null; then
     printf 'Unexpected alias %s found; only allowlisted aliases may be managed.\n' "$key" >&2
     exit 1
   fi
