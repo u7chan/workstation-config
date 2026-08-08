@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1003,SC2016,SC2088,SC2251
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,6 +21,7 @@ grep -Fq '[CLIツールガイド](docs/cli-tools.md)' "$ROOT_DIR/README.md"
 grep -Fq 'WSL sessionには反映されません' "$ROOT_DIR/docs/cli-tools.md"
 
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
+grep -Fq 'WORKSTATION_PERSONAL_AI_TOOLS' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/provisioning/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
@@ -54,6 +56,7 @@ bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
 bash -n "$ROOT_DIR/scripts/update-ai"
 bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
 bash -n "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
+bash -n "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
 bash -n "$ROOT_DIR/tests/docker-smoke.sh"
 bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
@@ -127,14 +130,19 @@ grep -Fq 'MISE_LOCKED: "1"' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq 'Install locked mise tools before personal role tasks' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
+"$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
-grep -q 'type -a herdr cagent codex claude opencode pi' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -q 'command -v herdr; command -v cagent; command -v codex; command -v claude; command -v opencode; command -v pi' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -Fq '[[ ${paths[5]} == "$HOME/.local/share/mise/"* ]]' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'Herdr integrationの生成hook/plugin' "$ROOT_DIR/docs/roles-boundary.md"
+grep -q 'type -a herdr cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'command -v herdr; command -v cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'expected_tools' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+grep -q 'herdr integration status' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
+grep -Fxq 'hooks = true' "$ROOT_DIR/home/dot_codex/config.toml"
 grep -Fxq 'apps = false' "$ROOT_DIR/home/dot_codex/config.toml"
 test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
 grep -Fq 'default_agent: codex' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
@@ -298,7 +306,7 @@ expected_aliases=(
 )
 mapfile -t actual_aliases < <(git config --file "$gitconfig_second" --get-regexp '^alias\.' 2>/dev/null | awk '{print $1}')
 for key in "${actual_aliases[@]}"; do
-  if ! printf '%s\n' "${expected_aliases[@]}" | grep -Fqx "$key"; then
+  if ! printf '%s\n' "${expected_aliases[@]}" | grep -Fx "$key" >/dev/null; then
     printf 'Unexpected alias %s found; only allowlisted aliases may be managed.\n' "$key" >&2
     exit 1
   fi
@@ -361,6 +369,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
     "$ROOT_DIR/scripts/update-ai" \
     "$ROOT_DIR/tests/ai-clis-smoke.sh" \
+    "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh" \
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \
     "$ROOT_DIR/tests/personal-cli-smoke.sh" \
@@ -374,6 +383,8 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/scripts/personal-bin/http" \
     "$ROOT_DIR/scripts/personal-bin/http-lan" \
     "$ROOT_DIR/tests/static.sh"
+else
+  printf 'shellcheck is not installed; skipping shell checks.\n'
 fi
 
 if command -v ansible-playbook >/dev/null 2>&1; then
@@ -383,15 +394,21 @@ if command -v ansible-playbook >/dev/null 2>&1; then
     --extra-vars workstation_profile=base \
     --syntax-check \
     "$ROOT_DIR/ansible/playbook.yml"
+else
+  printf 'ansible-playbook is not installed; skipping Ansible syntax check.\n'
 fi
 
 if command -v yamllint >/dev/null 2>&1; then
   yamllint --config-file "$ROOT_DIR/.yamllint.yml" "$ROOT_DIR/ansible"
+else
+  printf 'yamllint is not installed; skipping YAML lint.\n'
 fi
 
 if command -v ansible-lint >/dev/null 2>&1; then
   ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
     ansible-lint "$ROOT_DIR/ansible/playbook.yml"
+else
+  printf 'ansible-lint is not installed; skipping Ansible lint.\n'
 fi
 
 printf 'Static checks passed.\n'

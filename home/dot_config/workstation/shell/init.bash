@@ -34,6 +34,7 @@ fi
 if [[ -n ${WT_SESSION:-} && -n ${WSL_DISTRO_NAME:-} && -z ${__WORKSTATION_CWD_HOOK_INITIALIZED:-} ]] \
   && command -v wslpath >/dev/null 2>&1; then
   __workstation_report_cwd() {
+    # shellcheck disable=SC1003
     printf '\e]9;9;%s\e\\' "$(wslpath -w "$PWD")"
   }
 
@@ -41,6 +42,7 @@ if [[ -n ${WT_SESSION:-} && -n ${WSL_DISTRO_NAME:-} && -z ${__WORKSTATION_CWD_HO
     if [[ $(declare -p PROMPT_COMMAND 2>/dev/null || true) == "declare -a"* ]]; then
       PROMPT_COMMAND+=(__workstation_report_cwd)
     else
+      # shellcheck disable=SC2128,SC2178
       PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND};}__workstation_report_cwd"
     fi
   fi

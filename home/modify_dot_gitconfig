@@ -13,6 +13,8 @@ git config --file "$config_file" --unset-all 'url.https://github.com/.insteadOf'
 git config --file "$config_file" --remove-section alias 2>/dev/null || true
 
 git config --file "$config_file" init.defaultBranch main
+# The tilde is intentionally stored literally in Git's config value.
+# shellcheck disable=SC2088
 git config --file "$config_file" core.excludesFile '~/.config/git/ignore'
 
 # Rewrite GitHub SSH-style URLs before transport selection. Authentication and

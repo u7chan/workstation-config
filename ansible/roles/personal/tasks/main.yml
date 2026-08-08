@@ -51,6 +51,75 @@
   when: personal_ai_tools | length > 0
   changed_when: false
 
+- name: Ensure Herdr integration config directories exist for selected AI CLI tools
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/{{ item.path }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - name: codex
+      path: .codex
+    - name: claude
+      path: .claude
+    - name: opencode
+      path: .config/opencode
+    - name: pi
+      path: .pi/agent
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.name in personal_ai_tools
+
+- name: Install selected Herdr integrations
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/flock
+      - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
+      - "{{ herdr_binary.stdout | trim }}"
+      - integration
+      - install
+      - "{{ item }}"
+  loop: "{{ personal_ai_tools | unique | list }}"
+  loop_control:
+    label: "{{ item }}"
+  environment:
+    MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
+    PATH: >-
+      {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{
+      ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
+  when: personal_ai_tools | length > 0
+  changed_when: false
+
+- name: Check selected Herdr integration status
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary.stdout | trim }}"
+      - integration
+      - status
+  register: herdr_integration_status  # noqa var-naming[no-role-prefix]
+  environment:
+    MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
+    PATH: >-
+      {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{
+      ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
+  when: personal_ai_tools | length > 0
+  changed_when: false
+
+- name: Verify selected Herdr integrations are current
+  ansible.builtin.assert:
+    that:
+      - >-
+        herdr_integration_status.stdout_lines
+        | select('match', '^' ~ item ~ ': current ')
+        | list
+        | length == 1
+    fail_msg: "Herdr integration is not current: {{ item }}"
+  loop: "{{ personal_ai_tools | unique | list }}"
+  loop_control:
+    label: "{{ item }}"
+  when: personal_ai_tools | length > 0
+
 - name: Install personal CLI scripts
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../scripts/personal-bin/{{ item }}"

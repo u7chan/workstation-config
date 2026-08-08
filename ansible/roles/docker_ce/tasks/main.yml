@@ -45,9 +45,9 @@
     groups:
       - docker
     append: true
-  register: docker_group_membership
+  register: docker_group_membership  # noqa var-naming[no-role-prefix]
 
-- name: Explain how to activate new Docker group membership
+- name: Explain how to activate new Docker group membership  # noqa no-handler
   ansible.builtin.debug:
     msg: >-
       Docker group membership changed. Exit all sessions for this WSL distro and

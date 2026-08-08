@@ -11,12 +11,24 @@ Usage: ./bootstrap [base|personal]
 Profiles:
   personal  Base configuration plus personal roles (default)
   base      Common configuration only
+
+Environment:
+  WORKSTATION_PERSONAL_AI_TOOLS  Comma-separated personal AI CLI subset
 EOF
 }
 
 die() {
   printf 'bootstrap: %s\n' "$*" >&2
   exit 1
+}
+
+restrict_ai_config_directories() {
+  local ai_config_dir
+  for ai_config_dir in .codex .claude .config/opencode .pi/agent; do
+    if [[ -d "$HOME/$ai_config_dir" ]]; then
+      chmod 0700 -- "$HOME/$ai_config_dir"
+    fi
+  done
 }
 
 if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
@@ -27,6 +39,30 @@ fi
 (( $# <= 1 )) || die "expected at most one profile argument"
 readonly PROFILE="${1:-personal}"
 [[ $PROFILE == "base" || $PROFILE == "personal" ]] || die "profile must be 'base' or 'personal'"
+
+PERSONAL_AI_TOOLS_EXTRA_VAR=""
+if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
+  [[ $PROFILE == "personal" ]] || die "WORKSTATION_PERSONAL_AI_TOOLS requires the personal profile"
+  if [[ -z $WORKSTATION_PERSONAL_AI_TOOLS ]]; then
+    PERSONAL_AI_TOOLS_EXTRA_VAR='[]'
+  else
+    IFS=',' read -r -a requested_ai_tools <<<"$WORKSTATION_PERSONAL_AI_TOOLS"
+    ((${#requested_ai_tools[@]} > 0)) || die "WORKSTATION_PERSONAL_AI_TOOLS must not be empty"
+
+    personal_ai_tools_json="["
+    for ai_tool in "${requested_ai_tools[@]}"; do
+      case "$ai_tool" in
+        codex|claude|opencode|pi) ;;
+        *) die "unsupported WORKSTATION_PERSONAL_AI_TOOLS value: $ai_tool" ;;
+      esac
+      [[ $personal_ai_tools_json == "[" ]] || personal_ai_tools_json+=,
+      personal_ai_tools_json+="\"$ai_tool\""
+    done
+    personal_ai_tools_json+=']'
+    PERSONAL_AI_TOOLS_EXTRA_VAR="$personal_ai_tools_json"
+  fi
+fi
+readonly PERSONAL_AI_TOOLS_EXTRA_VAR
 
 [[ ${EUID} -ne 0 ]] || die "run as a regular user, not root"
 [[ -r /etc/os-release ]] || die "cannot read /etc/os-release"
@@ -73,17 +109,25 @@ printf '==> Applying Ansible profile: %s\n' "$PROFILE"
 ansible_become_vars=()
 [[ -n $SUDO_EXE ]] && ansible_become_vars+=(ANSIBLE_BECOME_EXE="$SUDO_EXE")
 [[ -n $ASK_PASS ]] && ansible_become_vars+=(ANSIBLE_BECOME_ASK_PASS="$ASK_PASS")
+ansible_extra_vars=(--extra-vars "{\"workstation_profile\":\"$PROFILE\"}")
+[[ -n $PERSONAL_AI_TOOLS_EXTRA_VAR ]] && \
+  ansible_extra_vars+=(--extra-vars "{\"personal_ai_tools\":$PERSONAL_AI_TOOLS_EXTRA_VAR}")
 
 env \
   ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
   "${ansible_become_vars[@]}" \
   ansible-playbook \
   --inventory "$ROOT_DIR/ansible/inventory/localhost.yml" \
-  --extra-vars "workstation_profile=$PROFILE" \
+  "${ansible_extra_vars[@]}" \
   "$ROOT_DIR/ansible/playbook.yml"
+
+trap restrict_ai_config_directories EXIT
+restrict_ai_config_directories
 
 printf '==> Applying chezmoi source\n'
 "$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force
+
+restrict_ai_config_directories
 
 printf '==> Trusting mise configuration\n'
 "$HOME/.local/bin/mise" trust "$HOME/.config/mise/config.toml"
