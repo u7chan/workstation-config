@@ -360,7 +360,9 @@ if "$ROOT_DIR/bootstrap" invalid >/dev/null 2>&1; then
   exit 1
 fi
 
-if command -v shellcheck >/dev/null 2>&1; then
+if [[ ${WORKSTATION_STATIC_SKIP_SHELLCHECK:-0} == 1 ]]; then
+  printf 'shellcheck explicitly disabled; skipping shell checks.\n'
+elif command -v shellcheck >/dev/null 2>&1; then
   shellcheck \
     "$ROOT_DIR/bootstrap" \
     "$ROOT_DIR/home/modify_dot_bashrc" \
