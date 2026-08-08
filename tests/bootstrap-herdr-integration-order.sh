@@ -44,6 +44,10 @@ grep -Fq 'when: item.name in personal_ai_tools' <<<"$directories_task" || {
   printf 'bootstrap-herdr-integration-order: config directories must be limited to selected AI CLI tools.\n' >&2
   exit 1
 }
+grep -Fq 'mode: "0700"' <<<"$directories_task" || {
+  printf 'bootstrap-herdr-integration-order: AI CLI config directories must not be made world-readable.\n' >&2
+  exit 1
+}
 
 install_task="$(task_block 'Install selected Herdr integrations' "$personal_tasks")"
 grep -Fqx '      - integration' <<<"$install_task" &&
@@ -85,5 +89,38 @@ if grep -Eq 'integration[[:space:]]+uninstall' "$personal_tasks"; then
   printf 'bootstrap-herdr-integration-order: personal role must not remove non-selected integrations.\n' >&2
   exit 1
 fi
+
+chezmoi_apply_line="$(line_number 'chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force' "$ROOT_DIR/bootstrap")"
+restrict_directories_line="$(awk -v apply_line="$chezmoi_apply_line" '
+  NR > apply_line && $0 == "restrict_ai_config_directories" { print NR; exit }
+' "$ROOT_DIR/bootstrap")"
+[[ -n $restrict_directories_line && $chezmoi_apply_line -lt $restrict_directories_line ]] || {
+  printf 'bootstrap-herdr-integration-order: AI CLI config directories must be restricted after chezmoi apply.\n' >&2
+  exit 1
+}
+grep -Fq 'for ai_config_dir in .codex .claude .config/opencode .pi/agent' "$ROOT_DIR/bootstrap" || {
+  printf 'bootstrap-herdr-integration-order: post-chezmoi directory restriction list is incomplete.\n' >&2
+  exit 1
+}
+grep -Fq 'ansible_extra_vars=(--extra-vars "{\"workstation_profile\":\"$PROFILE\"}")' "$ROOT_DIR/bootstrap" || {
+  printf 'bootstrap-herdr-integration-order: bootstrap profile extra vars must use a JSON object.\n' >&2
+  exit 1
+}
+grep -Fq 'ansible_extra_vars+=(--extra-vars "{\"personal_ai_tools\":$PERSONAL_AI_TOOLS_EXTRA_VAR}")' "$ROOT_DIR/bootstrap" || {
+  printf 'bootstrap-herdr-integration-order: personal AI tool subset must be passed as a JSON array.\n' >&2
+  exit 1
+}
+grep -Fq 'if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then' "$ROOT_DIR/bootstrap" || {
+  printf 'bootstrap-herdr-integration-order: empty personal AI subset must be distinguishable from an unset variable.\n' >&2
+  exit 1
+}
+grep -Fq "PERSONAL_AI_TOOLS_EXTRA_VAR='[]'" "$ROOT_DIR/bootstrap" || {
+  printf 'bootstrap-herdr-integration-order: empty personal AI subset must be passed as an empty JSON array.\n' >&2
+  exit 1
+}
+grep -Fq 'trap restrict_ai_config_directories EXIT' "$ROOT_DIR/bootstrap" || {
+  printf 'bootstrap-herdr-integration-order: AI CLI config directories must be restricted if chezmoi apply fails.\n' >&2
+  exit 1
+}
 
 printf 'Bootstrap Herdr integration ordering checks passed.\n'

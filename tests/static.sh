@@ -20,6 +20,7 @@ grep -Fq '[CLIツールガイド](docs/cli-tools.md)' "$ROOT_DIR/README.md"
 grep -Fq 'WSL sessionには反映されません' "$ROOT_DIR/docs/cli-tools.md"
 
 grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
+grep -Fq 'WORKSTATION_PERSONAL_AI_TOOLS' "$ROOT_DIR/bootstrap"
 grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
 grep -q '^node = "lts"' "$ROOT_DIR/provisioning/mise/config.toml"
 grep -q '^herdr = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
@@ -381,6 +382,8 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/scripts/personal-bin/http" \
     "$ROOT_DIR/scripts/personal-bin/http-lan" \
     "$ROOT_DIR/tests/static.sh"
+else
+  printf 'shellcheck is not installed; skipping shell checks.\n'
 fi
 
 if command -v ansible-playbook >/dev/null 2>&1; then
@@ -390,15 +393,21 @@ if command -v ansible-playbook >/dev/null 2>&1; then
     --extra-vars workstation_profile=base \
     --syntax-check \
     "$ROOT_DIR/ansible/playbook.yml"
+else
+  printf 'ansible-playbook is not installed; skipping Ansible syntax check.\n'
 fi
 
 if command -v yamllint >/dev/null 2>&1; then
   yamllint --config-file "$ROOT_DIR/.yamllint.yml" "$ROOT_DIR/ansible"
+else
+  printf 'yamllint is not installed; skipping YAML lint.\n'
 fi
 
 if command -v ansible-lint >/dev/null 2>&1; then
   ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
     ansible-lint "$ROOT_DIR/ansible/playbook.yml"
+else
+  printf 'ansible-lint is not installed; skipping Ansible lint.\n'
 fi
 
 printf 'Static checks passed.\n'

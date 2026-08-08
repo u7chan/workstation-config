@@ -55,7 +55,7 @@
   ansible.builtin.file:
     path: "{{ ansible_facts['user_dir'] }}/{{ item.path }}"
     state: directory
-    mode: "0755"
+    mode: "0700"
   loop:
     - name: codex
       path: .codex

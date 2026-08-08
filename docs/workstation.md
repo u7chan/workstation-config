@@ -29,11 +29,18 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 ./bootstrap base
 ```
 
-`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、mise installを再実行して宣言状態を確認します。
+`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用してからmise installを再実行します。
 
 `personal`では任意RoleとしてDocker CEも既定で導入します。Dockerを導入しない
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
 `base`ではDocker repository、package、service、groupのいずれも変更しません。
+
+AI CLIをsubset化する場合は、`WORKSTATION_PERSONAL_AI_TOOLS`へカンマ区切りで指定します。未指定時は4種類すべてを対象にし、空文字を指定するとpersonal AI CLIの更新・integration導入を無効化します。
+
+```bash
+WORKSTATION_PERSONAL_AI_TOOLS=codex,opencode ./bootstrap personal
+WORKSTATION_PERSONAL_AI_TOOLS= ./bootstrap personal
+```
 
 bootstrapはchezmoi管理対象をリポジトリの宣言状態へ非対話で整えます。管理対象ファイルのローカル変更は上書きしますが、secret、認証state、`~/.config/workstation/shell/local.bash`などの管理対象外ファイルは変更しません。
 
@@ -267,7 +274,7 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|
-| Codex | `~/.codex/hooks.json`、`~/.codex/hooks/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
+| Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | Herdr以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
 | Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・session・履歴は管理しない |
@@ -337,6 +344,7 @@ WSL再起動後は次を実行し、Herdr、cagent、および選択済みAI CLI
 
 ```bash
 ./tests/wsl-restart-smoke.sh
+WORKSTATION_PERSONAL_AI_TOOLS=codex,opencode ./bootstrap personal
 ./tests/wsl-restart-smoke.sh codex opencode
 ```
 
