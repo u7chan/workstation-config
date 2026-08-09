@@ -439,12 +439,12 @@ http-lan 8000
 
 ### Claude provider launcher
 
-`clp`はprovider別設定を読み、同じmodelをClaude Codeの各model tierへ割り当てて起動します。
+`myclaude`はprovider別設定を読み、同じmodelをClaude Codeの各model tierへ割り当てて起動します。
 
 ```bash
-clp --list
-clp zai
-clp deepseek --version
+myclaude --list
+myclaude zai
+myclaude deepseek --version
 ```
 
 設定はGit管理外の`~/.config/envs/<provider>/.env`へ置きます。ファイルは現在ユーザー所有の通常ファイルかつmode 600でなければ実行を拒否します。

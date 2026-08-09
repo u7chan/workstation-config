@@ -11,8 +11,8 @@
 | Agent用worktreeを実際に片付ける | `gac --apply` | まず引数なしで対象を確認 |
 | カレントディレクトリを自分だけに公開する | `http 8000` | localhost限定 |
 | カレントディレクトリをLANへ公開する | `http-lan 8000` | 同一LANの端末からアクセス可能 |
-| Claude Codeをprovider指定で起動する | `clp <provider>` | Claude Launcher Provider |
-| 登録済みproviderを一覧表示する | `clp --list` |  |
+| Claude Codeをprovider指定で起動する | `myclaude <provider>` | My Claude |
+| 登録済みproviderを一覧表示する | `myclaude --list` |  |
 
 各コマンドのヘルプは`<command> --help`で確認できます。
 
@@ -81,14 +81,14 @@ http-lan 8000
 
 ## Claude provider launcher
 
-### `clp`
+### `myclaude`
 
-provider別の設定を読み、指定modelをClaude Codeの全model tierへ割り当てて起動します。`clp`以降の引数はClaude Codeへそのまま渡します。
+provider別の設定を読み、指定modelをClaude Codeの全model tierへ割り当てて起動します。`myclaude`以降の引数はClaude Codeへそのまま渡します。
 
 ```bash
-clp --list
-clp zai
-clp deepseek --version
+myclaude --list
+myclaude zai
+myclaude deepseek --version
 ```
 
 設定ファイルはGit管理外の`~/.config/envs/<provider>/.env`へ置きます。
