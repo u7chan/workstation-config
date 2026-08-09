@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly ROOT_DIR
+readonly FRAGMENT_PATH="$ROOT_DIR/claude/settings.json"
+readonly SETTINGS_DIR="${HOME:?}/.claude"
+readonly SETTINGS_PATH="$SETTINGS_DIR/settings.json"
+
+die() {
+  printf 'merge-claude-settings: %s\n' "$*" >&2
+  exit 1
+}
+
+[[ -r $FRAGMENT_PATH ]] || die "cannot read settings fragment: $FRAGMENT_PATH"
+command -v jq >/dev/null 2>&1 || die "jq is required"
+
+umask 077
+mkdir -p -- "$SETTINGS_DIR"
+
+if ! jq -e 'if type == "object" then has("theme") and has("statusLine") else false end' \
+  "$FRAGMENT_PATH" >/dev/null; then
+  die "settings fragment must be a JSON object with theme and statusLine"
+fi
+
+if [[ -e $SETTINGS_PATH ]]; then
+  if ! jq -e 'type == "object"' "$SETTINGS_PATH" >/dev/null; then
+    die "existing settings must be a JSON object: $SETTINGS_PATH"
+  fi
+fi
+
+temporary_path=""
+cleanup() {
+  if [[ -n $temporary_path ]]; then
+    rm -f -- "$temporary_path"
+  fi
+}
+trap cleanup EXIT
+
+temporary_path="$(mktemp --tmpdir="$SETTINGS_DIR" '.settings.json.tmp.XXXXXXXXXX')"
+
+if [[ -e $SETTINGS_PATH ]]; then
+  jq -s '
+    .[0] as $existing
+    | .[1] as $fragment
+    | $existing
+    | .theme = $fragment.theme
+    | .statusLine = $fragment.statusLine
+  ' "$SETTINGS_PATH" "$FRAGMENT_PATH" >"$temporary_path"
+  chmod --reference="$SETTINGS_PATH" "$temporary_path"
+else
+  jq -s '
+    .[0] as $fragment
+    | {}
+    | .theme = $fragment.theme
+    | .statusLine = $fragment.statusLine
+  ' "$FRAGMENT_PATH" >"$temporary_path"
+fi
+
+mv -f -- "$temporary_path" "$SETTINGS_PATH"
+temporary_path=""
+trap - EXIT
