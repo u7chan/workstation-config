@@ -29,7 +29,7 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 ./bootstrap base
 ```
 
-`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用してからmise installを再実行します。
+`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
 
 `personal`では任意RoleとしてDocker CEも既定で導入します。Dockerを導入しない
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
@@ -275,7 +275,7 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|
 | Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
-| Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | Herdr以外の個人設定はユーザー管理 |
+| Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
 | Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・session・履歴は管理しない |
 
