@@ -28,14 +28,14 @@
 | mise 管理ツール（Node.js LTS, Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Hunk, Lazygit, Lazydocker, Yazi, Starship, Herdr, cagent） | 担当 | 担当 | mise は `base` で導入。`cagent`はlockedなGitHub Release assetで両プロファイルに導入 |
 | AI CLI（Codex / Claude Code / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Herdr integration（Codex / Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
-| AI CLI 設定（Codex / OpenCode / cagent） | — | 担当 | chezmoi source として配置。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
+| AI CLI 設定（Codex / Claude Code / OpenCode / cagent） | — | 担当 | Codex / OpenCode / cagent は chezmoi source として配置。`~/.claude/statusline.py` は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
 | 個人 CLI スクリプト（myclaude, gac, gpc, http, http-lan, myupdate） | — | 担当 | `personal` role の `scripts/personal-bin/` |
 | 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
 Pi本体は`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。パッケージは`--ignore-scripts`付きでインストールし、minimum package ageの対象外を一時指定します。Piはmiseのtool定義および`mise.lock`には追加しません。
 
-Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。認証情報、session、履歴、cache、ログ、生成stateはどちらの管理対象にも含めません。
+Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成stateはどちらの管理対象にも含めません。
 
 ## 補足
 
