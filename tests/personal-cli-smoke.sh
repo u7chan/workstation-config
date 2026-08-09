@@ -5,7 +5,7 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
 readonly GPC="$ROOT_DIR/scripts/personal-bin/gpc"
 readonly GAC="$ROOT_DIR/scripts/personal-bin/gac"
-readonly CLP="$ROOT_DIR/scripts/personal-bin/clp"
+readonly MYCLAUDE="$ROOT_DIR/scripts/personal-bin/myclaude"
 
 test_dir=$(mktemp -d)
 trap 'rm -rf "$test_dir"' EXIT
@@ -181,7 +181,7 @@ git -C "$agent_repo" worktree remove "$agent_parent/main"
 git -C "$agent_repo" switch main >/dev/null
 git -C "$agent_repo" branch -D feature/primary >/dev/null
 
-# clp parses data without sourcing it and never requires secret files in the repo.
+# myclaude parses data without sourcing it and never requires secret files in the repo.
 test_home="$test_dir/home"
 claude_bin="$test_dir/claude-bin"
 mkdir -p "$test_home/.config/envs/test" "$claude_bin"
@@ -197,15 +197,15 @@ API_KEY="$(touch should-not-exist)"
 MODEL="example/model"
 EOF
 chmod 600 "$test_home/.config/envs/test/.env"
-clp_output=$(HOME="$test_home" PATH="$claude_bin:$PATH" "$CLP" test --version 2>/dev/null)
-# The literal command substitution verifies that clp does not source the file.
+myclaude_output=$(HOME="$test_home" PATH="$claude_bin:$PATH" "$MYCLAUDE" test --version 2>/dev/null)
+# The literal command substitution verifies that myclaude does not source the file.
 # shellcheck disable=SC2016
-[[ $clp_output == 'https://provider.example.invalid|$(touch should-not-exist)|example/model|--version' ]]
+[[ $myclaude_output == 'https://provider.example.invalid|$(touch should-not-exist)|example/model|--version' ]]
 [[ ! -e $test_home/should-not-exist ]]
-[[ $(HOME="$test_home" "$CLP" --list) == test ]]
+[[ $(HOME="$test_home" "$MYCLAUDE" --list) == test ]]
 chmod 644 "$test_home/.config/envs/test/.env"
-if HOME="$test_home" PATH="$claude_bin:$PATH" "$CLP" test >/dev/null 2>&1; then
-  printf 'clp accepted a provider file without mode 600.\n' >&2
+if HOME="$test_home" PATH="$claude_bin:$PATH" "$MYCLAUDE" test >/dev/null 2>&1; then
+  printf 'myclaude accepted a provider file without mode 600.\n' >&2
   exit 1
 fi
 

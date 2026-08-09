@@ -3,8 +3,8 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: clp --list
-       clp <provider> [claude arguments...]
+Usage: myclaude --list
+       myclaude <provider> [claude arguments...]
 
 Load ~/.config/envs/<provider>/.env and launch Claude Code.
 The file must be owned by the current user, have mode 600, and define exactly:
@@ -15,7 +15,7 @@ EOF
 }
 
 die() {
-  printf 'clp: %s\n' "$*" >&2
+  printf 'myclaude: %s\n' "$*" >&2
   exit 1
 }
 

@@ -120,13 +120,18 @@
     label: "{{ item }}"
   when: personal_ai_tools | length > 0
 
+- name: Remove renamed personal CLI script
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.local/bin/clp"
+    state: absent
+
 - name: Install personal CLI scripts
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../scripts/personal-bin/{{ item }}"
     dest: "{{ ansible_facts['user_dir'] }}/.local/bin/{{ item }}"
     mode: "0755"
   loop:
-    - clp
+    - myclaude
     - gac
     - gpc
     - http
