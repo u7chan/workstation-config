@@ -83,6 +83,10 @@ grep -Fqx '    MISE_LOCKED: "1"' <<<"$locked_install_task" || {
 grep -Fqx '      - /usr/bin/flock' <<<"$locked_install_task"
 grep -Fqx '      - "{{ ansible_facts['\''user_dir'\''] }}/.local/state/workstation-update/update.lock"' \
   <<<"$locked_install_task"
+grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/bin' <<<"$locked_install_task" || {
+  printf 'bootstrap-ai-mise-order: locked base mise install must add ~/.local/bin to PATH.\n' >&2
+  exit 1
+}
 
 grep -Fq '/.local/bin/update-ai' "$personal_tasks"
 grep -Fq 'MISE_LOCKED: "1"' "$personal_tasks"

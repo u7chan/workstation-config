@@ -144,6 +144,8 @@ grep -Fq 'exec "$mise_bin" exec node -- "$0" "$@"' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'MISE_LOCKED: "1"' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq 'Install locked mise tools before personal role tasks' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
+  "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
 "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 "$ROOT_DIR/tests/claude-settings-smoke.sh"

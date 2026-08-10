@@ -11,19 +11,23 @@ elif [[ -x $HOME/.local/bin/mise ]]; then
 else
   mise_bin="$(command -v mise || true)"
 fi
+[[ -n $mise_bin ]] || {
+  printf 'playwright-cli-smoke: mise is not installed\n' >&2
+  exit 1
+}
 
-if [[ -n $mise_bin ]]; then
-  export MISE_CONFIG_FILE="$ROOT_DIR/provisioning/mise/config.toml"
-  export MISE_LOCKED=1
-  playwright_cli_bin="$("$mise_bin" which playwright-cli)"
-  [[ $playwright_cli_bin == "$HOME/.local/share/mise/"* ]]
-else
-  playwright_cli_bin="$(command -v playwright-cli || true)"
-  [[ -n $playwright_cli_bin ]] || {
-    printf 'playwright-cli is not installed.\n' >&2
-    exit 1
-  }
-fi
+export MISE_CONFIG_FILE="$ROOT_DIR/provisioning/mise/config.toml"
+export MISE_LOCKED=1
+playwright_cli_bin="$("$mise_bin" which playwright-cli)"
+[[ -x $playwright_cli_bin ]] || {
+  printf 'playwright-cli-smoke: mise did not resolve an executable playwright-cli binary: %s\n' "$playwright_cli_bin" >&2
+  exit 1
+}
+
+[[ $playwright_cli_bin == "$HOME/.local/share/mise/"* ]] || {
+  printf 'playwright-cli-smoke: expected mise-managed path, got %s\n' "$playwright_cli_bin" >&2
+  exit 1
+}
 
 "$playwright_cli_bin" --help >/dev/null
 

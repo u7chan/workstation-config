@@ -154,6 +154,10 @@
     MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
     MISE_LOCKED: "1"
     MISE_YES: "1"
+    PATH: >-
+      {{ ansible_facts['user_dir'] }}/.local/bin:{{
+      ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
   changed_when: false
 
 - name: Remove bootstrap-only APT gh
