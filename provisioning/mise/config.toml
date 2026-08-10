@@ -24,3 +24,4 @@ zoxide = "latest"
 fzf = "latest"
 gh = "latest"
 cagent = { version = "1.0.1", filter_bins = "cagent" }
+"npm:@playwright/cli" = "latest"

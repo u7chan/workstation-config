@@ -130,7 +130,7 @@ psql --version
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。
 
 - Node.js LTS、Bun 1.x、uv
-- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent
+- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent、Playwright CLI
 
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 

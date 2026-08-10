@@ -108,6 +108,10 @@ backend = "core:node"
 checksum = "sha256:783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8"
 url = "https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-x64.tar.gz"
 
+[[tools."npm:@playwright/cli"]]
+version = "0.1.18"
+backend = "npm:@playwright/cli"
+
 [[tools.ripgrep]]
 version = "15.1.0"
 backend = "aqua:BurntSushi/ripgrep"

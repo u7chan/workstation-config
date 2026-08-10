@@ -13,6 +13,7 @@
 | [Yazi](https://github.com/sxyazi/yazi) | 非同期I/Oベースのファイルマネージャ | `yazi` | `sxyazi/yazi` |
 | [Starship](https://github.com/starship/starship) | shell prompt | Bash起動時に自動で有効化 | `starship/starship` |
 | [cagent](https://github.com/u7chan/code-agent-launcher) | Agent起動コマンドを統一するlauncher | `cagent --help` | `u7chan/code-agent-launcher` |
+| [Playwright CLI](https://github.com/microsoft/playwright-cli) | coding agent向けのブラウザ自動化CLI | `playwright-cli --help` | `npm:@playwright/cli` |
 | [fzf](https://github.com/junegunn/fzf) | インタラクティブな曖昧検索 | `fzf` | `junegunn/fzf` |
 | [zoxide](https://github.com/ajeetdsouza/zoxide) | 頻繁に使うディレクトリへの高速ジャンプ（fzf連携） | `z <query>`, `zi` | `ajeetdsouza/zoxide` |
 
