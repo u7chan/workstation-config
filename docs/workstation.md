@@ -106,6 +106,19 @@ containerd、Buildx、Compose pluginを導入し、`docker.service`と
 このtestはlocalの`default` Docker context、service状態、`docker info`、Buildx、
 Compose、およびsmoke containerを検証します。
 
+## PostgreSQLクライアント（psql）
+
+PostgreSQLサーバーやdaemonは導入せず、クライアントのみをAPTの`postgresql-client`
+パッケージで`base`プロファイルに導入します。miseのtool定義やlockfileには追加しません。
+バージョンはUbuntu 26.04のAPT repositoryが提供する版に従います。
+
+接続情報や認証情報（`.pgpass`など）は管理対象外です。導入後は次で確認できます。
+
+```bash
+psql --version
+./tests/psql-smoke.sh
+```
+
 ## 開発時の確認
 
 ```bash
