@@ -140,7 +140,10 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。
 
-更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。リポジトリの`provisioning/mise/`を`MISE_CONFIG_DIR`でグローバル設定ディレクトリに切り替え、`~/.config/mise/config.toml`を参照・更新対象から除外します。`MISE_CONFIG_FILE`（`MISE_GLOBAL_CONFIG_FILE`）はリポジトリが`$HOME`配下にある場合、`~/.config/mise/config.toml`が祖先ディレクトリのプロジェクト設定として優先されるため機能しません。
+更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
+
+- `MISE_CONFIG_DIR`でリポジトリの`provisioning/mise/`をグローバル設定ディレクトリに切り替え、`~/.config/mise/config.toml`を参照・更新対象から除外します
+- `MISE_CONFIG_FILE`（`MISE_GLOBAL_CONFIG_FILE`）は、リポジトリが`$HOME`配下にある場合に`~/.config/mise/config.toml`が祖先ディレクトリのプロジェクト設定として優先されるため、この用途では機能しません
 
 ```bash
 MISE_CONFIG_DIR="$PWD/provisioning/mise" mise upgrade
