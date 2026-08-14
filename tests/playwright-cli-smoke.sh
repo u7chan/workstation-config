@@ -16,7 +16,7 @@ fi
   exit 1
 }
 
-export MISE_CONFIG_FILE="$ROOT_DIR/provisioning/mise/config.toml"
+export MISE_CONFIG_DIR="$ROOT_DIR/provisioning/mise"
 export MISE_LOCKED=1
 playwright_cli_bin="$("$mise_bin" which playwright-cli)"
 [[ -x $playwright_cli_bin ]] || {

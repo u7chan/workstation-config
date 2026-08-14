@@ -14,7 +14,12 @@ export HOME="$test_dir/home"
 export XDG_CACHE_HOME="$test_dir/cache"
 export XDG_DATA_HOME="$test_dir/data"
 export XDG_STATE_HOME="$test_dir/state"
-export MISE_CONFIG_FILE="$ROOT_DIR/provisioning/mise/config.toml"
+export MISE_CONFIG_DIR="$ROOT_DIR/provisioning/mise"
+# HOME is redirected to the test dir, so the MISE_CONFIG_DIR override does not
+# filter the real ~/.config/mise/config.toml from ancestor directory discovery.
+# Ceiling at the repo root keeps the smoke test fully isolated from the
+# bootstrap-deployed global config.
+export MISE_CEILING_PATHS="$ROOT_DIR"
 export MISE_DATA_DIR="${MISE_DATA_DIR:-$test_dir/mise-data}"
 export MISE_CACHE_DIR="${MISE_CACHE_DIR:-$test_dir/mise-cache}"
 export MISE_STATE_DIR="${MISE_STATE_DIR:-$test_dir/mise-state}"
