@@ -31,8 +31,8 @@ cagent_bin="$("$mise_bin" which cagent)"
 }
 
 version_output="$("$cagent_bin" --version)"
-[[ $version_output == 1.0.1 ]] || {
-  printf 'cagent-smoke: expected version 1.0.1, got %s\n' "$version_output" >&2
+[[ $version_output == 1.1.0 ]] || {
+  printf 'cagent-smoke: expected version 1.1.0, got %s\n' "$version_output" >&2
   exit 1
 }
 
