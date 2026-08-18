@@ -24,7 +24,44 @@ SCRIPT
   chmod +x "$HOME/.local/bin/codex"
   cat >"$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
-printf 'pi test\n'
+set -euo pipefail
+package_settings="$HOME/.pi/agent/settings.json"
+case "${1:-}" in
+  --version)
+    printf '0.84.2\n'
+    ;;
+  list)
+    if [[ -f $package_settings ]] && \
+      jq -e '((.packages? // []) | type == "array" and length > 0)' \
+        "$package_settings" >/dev/null; then
+      printf 'User packages:\n'
+      jq -r '.packages[] | "  " + .' "$package_settings"
+    else
+      printf 'No packages installed.\n'
+    fi
+    ;;
+  install|update)
+    [[ ${2:-} == npm:pi-web-access ]]
+    printf 'pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+    mkdir -p -- "${package_settings%/*}"
+    temporary_path="$(mktemp "${package_settings}.tmp.XXXXXXXXXX")"
+    if [[ -f $package_settings ]]; then
+      jq --arg source "${2}" '
+        .packages = (
+          if (.packages? | type) == "array" then .packages else [] end
+          | if index($source) == null then . + [$source] else . end
+        )
+      ' "$package_settings" >"$temporary_path"
+    else
+      jq -n --arg source "${2}" '{packages: [$source]}' >"$temporary_path"
+    fi
+    mv -- "$temporary_path" "$package_settings"
+    ;;
+  *)
+    printf 'unexpected pi command: %s\n' "$*" >&2
+    exit 1
+    ;;
+esac
 SCRIPT
   chmod +x "$HOME/.local/bin/pi"
 }
@@ -54,10 +91,23 @@ SCRIPT
 EOF
 chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
 
+mkdir -p "$HOME/.pi/agent/extensions"
+printf '%s\n' '{"packages":["npm:existing"],"unmanaged":{"keep":true}}' \
+  >"$HOME/.pi/agent/settings.json"
+printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state.ts"
+
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 
 grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$log"
 grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
+grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
+[[ -e "$HOME/.pi/agent/extensions/herdr-agent-state.ts" ]]
+[[ ! -e "$HOME/.pi/web-search.json" ]]
+jq -e '
+  .packages == ["npm:existing", "npm:pi-web-access"]
+  and .unmanaged.keep == true
+  and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
+' "$HOME/.pi/agent/settings.json" >/dev/null
 grep -Fqx 'curl claude exclusion=' "$log"
 grep -Fqx 'curl opencode exclusion=' "$log"
 grep -Fq '  "autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
@@ -84,7 +134,42 @@ SCRIPT
   chmod +x "\$HOME/.local/bin/codex"
   cat >"\$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
-printf 'pi test\n'
+set -euo pipefail
+package_settings="\$HOME/.pi/agent/settings.json"
+case "\${1:-}" in
+  --version)
+    printf '0.84.2\n'
+    ;;
+  list)
+    if [[ -f \$package_settings ]] && jq -e '((.packages? // []) | type == "array" and length > 0)' "\$package_settings" >/dev/null; then
+      printf 'User packages:\\n'
+      jq -r '.packages[] | "  " + .' "\$package_settings"
+    else
+      printf 'No packages installed.\\n'
+    fi
+    ;;
+  install|update)
+    [[ \${2:-} == npm:pi-web-access ]]
+    printf 'pi %s\\n' "\$*" >>"\$TEST_INSTALL_LOG"
+    mkdir -p -- "\${package_settings%/*}"
+    temporary_path="\$(mktemp "\${package_settings}.tmp.XXXXXXXXXX")"
+    if [[ -f \$package_settings ]]; then
+      jq --arg source "\${2}" '
+        .packages = (
+          if (.packages? | type) == "array" then .packages else [] end
+          | if index(\$source) == null then . + [\$source] else . end
+        )
+      ' "\$package_settings" >"\$temporary_path"
+    else
+      jq -n --arg source "\${2}" '{packages: [\$source]}' >"\$temporary_path"
+    fi
+    mv -- "\$temporary_path" "\$package_settings"
+    ;;
+  *)
+    printf 'unexpected pi command: %s\\n' "\$*" >&2
+    exit 1
+    ;;
+esac
 SCRIPT
   chmod +x "\$HOME/.local/bin/pi"
 }
@@ -122,6 +207,7 @@ EOF
       ;;
     pi)
       grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
+      grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"
       if grep -Eq '^curl ' "$flag_log"; then
         printf 'pi flag should not invoke curl.\n' >&2
         exit 1

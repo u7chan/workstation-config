@@ -18,6 +18,108 @@ command -v npm >/dev/null 2>&1 || die "npm is required"
 command -v curl >/dev/null 2>&1 || die "curl is required"
 [[ -r "$HOME/.safe-chain/scripts/init-posix.sh" ]] || die "Safe-chain shell integration is required"
 
+readonly PI_WEB_ACCESS_SOURCE="npm:pi-web-access"
+readonly PI_MINIMUM_VERSION_MAJOR=0
+readonly PI_MINIMUM_VERSION_MINOR=37
+readonly PI_MINIMUM_VERSION_PATCH=3
+
+configure_pi_npm_command() {
+  command -v jq >/dev/null 2>&1 || die "jq is required to configure Pi's npm command"
+
+  local pi_agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+  local settings_path="$pi_agent_dir/settings.json"
+  local temporary_path=""
+  local expected_npm_command='["mise","exec","node","--","safe-chain","npm"]'
+
+  mkdir -p -- "$pi_agent_dir"
+  chmod 0700 -- "$pi_agent_dir"
+  if [[ -e $settings_path && ! -f $settings_path ]]; then
+    die "Pi settings path is not a regular file: $settings_path"
+  fi
+
+  if [[ -f $settings_path ]]; then
+    jq -e 'type == "object"' "$settings_path" >/dev/null || \
+      die "Pi settings must contain a JSON object: $settings_path"
+    if jq -e --argjson expected "$expected_npm_command" \
+      '.npmCommand == $expected' "$settings_path" >/dev/null; then
+      return 0
+    fi
+  fi
+
+  temporary_path="$(mktemp "$pi_agent_dir/.settings.json.tmp.XXXXXXXXXX")"
+  cleanup_pi_settings_temp() {
+    [[ -z $temporary_path ]] || rm -f -- "$temporary_path"
+  }
+  trap cleanup_pi_settings_temp EXIT
+
+  if [[ -f $settings_path ]]; then
+    jq --argjson npm_command "$expected_npm_command" \
+      '.npmCommand = $npm_command' "$settings_path" >"$temporary_path" || \
+      die "could not update Pi npm command: $settings_path"
+    chmod --reference="$settings_path" "$temporary_path"
+  else
+    jq --argjson npm_command "$expected_npm_command" \
+      -n '{npmCommand: $npm_command}' >"$temporary_path" || \
+      die "could not create Pi settings: $settings_path"
+    chmod 0600 "$temporary_path"
+  fi
+
+  mv -- "$temporary_path" "$settings_path"
+  temporary_path=""
+  trap - EXIT
+}
+
+pi_version_is_supported() {
+  local version=$1
+  local major minor patch
+  if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-+].*)?$ ]]; then
+    return 1
+  fi
+  major=${BASH_REMATCH[1]}
+  minor=${BASH_REMATCH[2]}
+  patch=${BASH_REMATCH[3]}
+  ((major > PI_MINIMUM_VERSION_MAJOR)) || \
+    ((major == PI_MINIMUM_VERSION_MAJOR && minor > PI_MINIMUM_VERSION_MINOR)) || \
+    ((major == PI_MINIMUM_VERSION_MAJOR && minor == PI_MINIMUM_VERSION_MINOR && \
+      patch >= PI_MINIMUM_VERSION_PATCH))
+}
+
+require_supported_pi() {
+  command -v pi >/dev/null 2>&1 || die "Pi CLI is required"
+  local pi_version
+  pi_version="$(NO_COLOR=1 pi --version)" || die "could not determine Pi version"
+  pi_version_is_supported "$pi_version" || \
+    die "Pi >= ${PI_MINIMUM_VERSION_MAJOR}.${PI_MINIMUM_VERSION_MINOR}.${PI_MINIMUM_VERSION_PATCH} is required (found: $pi_version)"
+}
+
+pi_web_access_is_installed() {
+  local package_list
+  package_list="$(NO_COLOR=1 pi list --no-approve)" || return 1
+  awk '
+    /^User packages:$/ { in_user = 1; next }
+    /^Project packages:$/ { in_user = 0 }
+    in_user && $0 ~ /^  npm:pi-web-access( \(filtered\))?$/ { found += 1 }
+    END { exit found != 1 }
+  ' <<<"$package_list"
+}
+
+ensure_pi_web_access() {
+  require_supported_pi
+  configure_pi_npm_command
+
+  printf '==> Ensuring Pi Web Access package through Pi\n'
+  if pi_web_access_is_installed; then
+    SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="pi-web-access" NO_COLOR=1 \
+      pi update "$PI_WEB_ACCESS_SOURCE" --no-approve
+  else
+    SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="pi-web-access" NO_COLOR=1 \
+      pi install "$PI_WEB_ACCESS_SOURCE" --no-approve
+  fi
+
+  pi_web_access_is_installed || \
+    die "Pi Web Access package was not registered in the user scope"
+}
+
 install_codex=false
 install_claude=false
 install_opencode=false
@@ -57,6 +159,7 @@ if [[ $install_pi == true ]]; then
   printf '==> Updating Pi coding agent through Safe-chain\n'
   SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/*" \
     npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
+  ensure_pi_web_access
 fi
 
 if [[ $install_claude == true ]]; then
