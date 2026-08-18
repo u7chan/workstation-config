@@ -1,2 +1,4 @@
 .ansible/
 *.retry
+# Pi project-local package/resource state is machine-local and is not managed here.
+.pi/

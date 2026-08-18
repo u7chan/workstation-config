@@ -138,7 +138,7 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
-Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`をglobal packageとして導入・更新します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
@@ -297,7 +297,20 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 
 auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
-Codex、Claude Code、OpenCode、Pi本体の更新入口は`update-ai`だけです。`update-ai`はmise管理のNode.js環境へ入り直してから各CLIを更新し、WSLが継承したWindows側のnpm shimへフォールバックしないようにします。Codex更新時は`@openai/codex`、Pi更新時は同じスコープに属する依存パッケージも含めて`@earendil-works/*`をSafe-chainのminimum package age対象外に一時指定しますが、malware検査は維持します。Piのnpm更新には`--ignore-scripts`を付けます。Claude Codeは`DISABLE_AUTOUPDATER=1`、OpenCodeは`~/.config/opencode/opencode.json`の`autoupdate: false`で内蔵自動更新を停止します。
+PiのHerdr extensionと`pi-web-access`は別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。`pi-web-access`導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
+
+Pi本体と`pi-web-access`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.37.3以上を前提とし、未導入時は`pi install npm:pi-web-access`、導入済みなら`pi update npm:pi-web-access`を実行します。Pi packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
+
+Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。bootstrap/update時は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`packages`配列、認証、ユーザー設定などの未管理キーは保持します。
+
+`pi-web-access`は次のツールを提供します。
+
+- `web_search`
+- `fetch_content`
+- `get_search_content`
+- `source_check`
+
+初期状態はzero-config routing（Exa MCP、PiのCodex loginが利用可能な場合のOpenAI search）を使用します。API key、OAuth token、cookie、auth state、cache、履歴はリポジトリで管理しません。任意設定の`~/.pi/web-search.json`も手動管理とし、今回のbootstrapでは作成・コピーしません。
 
 ```bash
 update-ai
@@ -410,6 +423,8 @@ myupdate
 
 更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
+Piを選択した更新では、Pi本体の更新後に`pi-web-access`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。
+
 ## Bashのローカル設定
 
 共通のBash初期化はchezmoi管理の`~/.config/workstation/shell/init.bash`から読み込みます。Ubuntu標準の`~/.bashrc`はそのまま残し、管理済み初期化ファイルを読み込むブロックだけを追加します。
@@ -500,7 +515,17 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Piは同じスコープの依存パッケージも取得するため、`@earendil-works/*`を対象外にします。Piのnpm更新には`--ignore-scripts`を付けます。これらの例外はmalware検査を無効化しません。
+CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、`pi-web-access`のPackage manager内部npmには`pi-web-access`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+
+Pi Web Accessの導入確認は外部モデルを使わずに次で行えます。
+
+```bash
+pi --version
+pi list
+./tests/pi-web-access-smoke.sh
+```
+
+手動のPi smokeでは、Piを起動して`web_search`、`fetch_content`、`get_search_content`、`source_check`が表示されることを確認します。API keyなしのzero-config search、Codex subscription login済み環境でのOpenAI search認証再利用は外部ネットワーク状態に依存するため、CIの必須条件にはしません。
 
 ## プロンプト
 

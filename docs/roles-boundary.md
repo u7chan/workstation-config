@@ -27,15 +27,16 @@
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
 | mise 管理ツール（Node.js LTS, Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Hunk, Lazygit, Lazydocker, Yazi, Starship, Herdr, cagent, Playwright CLI） | 担当 | 担当 | mise は `base` で導入。`cagent`はlockedなGitHub Release assetで両プロファイルに導入 |
 | AI CLI（Codex / Claude Code / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
+| Pi Web Access Package（`pi-web-access`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない |
 | Herdr integration（Codex / Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
 | AI CLI 設定（Codex / Claude Code / OpenCode / cagent） | — | 担当 | Codex / OpenCode / cagent は chezmoi source として配置。`~/.claude/statusline.py` は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
 | 個人 CLI スクリプト（myclaude, gac, gpc, http, http-lan, myupdate） | — | 担当 | `personal` role の `scripts/personal-bin/` |
 | 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
-Pi本体は`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。パッケージは`--ignore-scripts`付きでインストールし、minimum package ageの対象外を一時指定します。Piはmiseのtool定義および`mise.lock`には追加しません。
+Pi本体は`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。パッケージは`--ignore-scripts`付きでインストールし、minimum package ageの対象外を一時指定します。Piはmiseのtool定義および`mise.lock`には追加しません。`personal_ai_tools`でPiが選択されている場合だけ、続けてPi公式Package managerが`npm:pi-web-access`をglobal scopeへ導入・更新します。Piの`npmCommand`は`mise exec node -- safe-chain npm`へ収束させますが、`~/.pi/agent/settings.json`の`packages`配列やその他のユーザー設定は書き換えません。
 
-Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成stateはどちらの管理対象にも含めません。
+Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Piでは`herdr-agent-state.ts`と`pi-web-access`のnpm packageを別管理し、互いのファイル・登録を上書きしません。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成stateはどちらの管理対象にも含めません。
 
 ## 補足
 

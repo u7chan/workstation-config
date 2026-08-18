@@ -153,7 +153,43 @@ EOF
 
 cat >"$linux_bin/pi" <<'EOF'
 #!/usr/bin/env bash
-printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+set -euo pipefail
+package_marker="$HOME/.pi/agent/pi-web-access.installed"
+case "${1:-}" in
+  --version)
+    printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+    printf '0.84.2\n'
+    ;;
+  list)
+    printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+    if [[ -e $package_marker ]]; then
+      printf 'User packages:\n  npm:pi-web-access\n'
+    else
+      printf 'No packages installed.\n'
+    fi
+    ;;
+  install|update)
+    [[ ${2:-} == npm:pi-web-access ]]
+    printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+    mise exec node -- safe-chain npm install pi-web-access
+    mkdir -p -- "${package_marker%/*}"
+    : >"$package_marker"
+    ;;
+  *)
+    printf 'unexpected linux pi command: %s\n' "$*" >&2
+    exit 1
+    ;;
+esac
+EOF
+
+cat >"$linux_bin/safe-chain" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ ${1:-} == npm ]]
+printf 'linux safe-chain %s exclusion=%s\n' "$*" \
+  "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
+shift
+"$TEST_LINUX_BIN/npm" "$@"
 EOF
 
 cat >"$windows_bin/npm" <<'EOF'
@@ -174,6 +210,7 @@ printf 'windows pi must not run\n' >&2
 exit 127
 EOF
 chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/codex" "$linux_bin/pi" \
+  "$linux_bin/safe-chain" \
   "$windows_bin/npm" "$windows_bin/codex" "$windows_bin/pi"
 
 HOME="$test_home" \
@@ -185,6 +222,8 @@ TEST_LINUX_BIN="$linux_bin" \
 grep -Fqx 'mise exec node' "$log"
 grep -Fqx 'linux npm install --global @openai/codex@latest' "$log"
 grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
+grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
+grep -Fqx 'linux safe-chain npm install pi-web-access exclusion=pi-web-access' "$log"
 grep -Fqx 'linux codex --version' "$log"
 grep -Fqx 'linux pi --version' "$log"
 if grep -Fq 'windows npm' "$log" || grep -Fq 'windows codex' "$log" || grep -Fq 'windows pi' "$log"; then
