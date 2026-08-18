@@ -154,7 +154,7 @@ EOF
 cat >"$linux_bin/pi" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-package_marker="$HOME/.pi/agent/pi-web-access.installed"
+package_settings="$HOME/.pi/agent/settings.json"
 case "${1:-}" in
   --version)
     printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
@@ -162,8 +162,11 @@ case "${1:-}" in
     ;;
   list)
     printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
-    if [[ -e $package_marker ]]; then
-      printf 'User packages:\n  npm:pi-web-access\n'
+    if [[ -f $package_settings ]] && \
+      jq -e '((.packages? // []) | type == "array" and length > 0)' \
+        "$package_settings" >/dev/null; then
+      printf 'User packages:\n'
+      jq -r '.packages[] | "  " + .' "$package_settings"
     else
       printf 'No packages installed.\n'
     fi
@@ -172,8 +175,19 @@ case "${1:-}" in
     [[ ${2:-} == npm:pi-web-access ]]
     printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
     mise exec node -- safe-chain npm install pi-web-access
-    mkdir -p -- "${package_marker%/*}"
-    : >"$package_marker"
+    mkdir -p -- "${package_settings%/*}"
+    temporary_path="$(mktemp "${package_settings}.tmp.XXXXXXXXXX")"
+    if [[ -f $package_settings ]]; then
+      jq --arg source "${2}" '
+        .packages = (
+          if (.packages? | type) == "array" then .packages else [] end
+          | if index($source) == null then . + [$source] else . end
+        )
+      ' "$package_settings" >"$temporary_path"
+    else
+      jq -n --arg source "${2}" '{packages: [$source]}' >"$temporary_path"
+    fi
+    mv -- "$temporary_path" "$package_settings"
     ;;
   *)
     printf 'unexpected linux pi command: %s\n' "$*" >&2

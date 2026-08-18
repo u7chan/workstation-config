@@ -34,7 +34,7 @@
 | 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
-Pi本体は`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。パッケージは`--ignore-scripts`付きでインストールし、minimum package ageの対象外を一時指定します。Piはmiseのtool定義および`mise.lock`には追加しません。`personal_ai_tools`でPiが選択されている場合だけ、続けてPi公式Package managerが`npm:pi-web-access`をglobal scopeへ導入・更新します。Piの`npmCommand`は`mise exec node -- safe-chain npm`へ収束させますが、`~/.pi/agent/settings.json`の`packages`配列やその他のユーザー設定は書き換えません。
+Pi本体は`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。パッケージは`--ignore-scripts`付きでインストールし、minimum package ageの対象外を一時指定します。Piはmiseのtool定義および`mise.lock`には追加しません。`personal_ai_tools`でPiが選択されている場合だけ、続けてPi公式Package managerが`npm:pi-web-access`をglobal scopeへ導入・更新します。`update-ai`は`settings.json`全体や`packages`配列を直接管理せず、Piの`npmCommand`だけを`mise exec node -- safe-chain npm`へ収束させます。対象packageの`packages`への追加・更新はPi公式Package managerが行い、既存のpackagesエントリやその他のユーザー設定は保持されます。
 
 Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Piでは`herdr-agent-state.ts`と`pi-web-access`のnpm packageを別管理し、互いのファイル・登録を上書きしません。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成stateはどちらの管理対象にも含めません。
 

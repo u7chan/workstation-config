@@ -57,14 +57,17 @@ EOF
 cat >"$fixture_bin/pi" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-package_marker="$HOME/.pi/agent/pi-web-access.installed"
+package_settings="$HOME/.pi/agent/settings.json"
 case "${1:-}" in
   --version)
     printf '0.84.2\n'
     ;;
   list)
-    if [[ -e $package_marker ]]; then
-      printf 'User packages:\n  npm:pi-web-access\n'
+    if [[ -f $package_settings ]] && \
+      jq -e '((.packages? // []) | type == "array" and length > 0)' \
+        "$package_settings" >/dev/null; then
+      printf 'User packages:\n'
+      jq -r '.packages[] | "  " + .' "$package_settings"
     else
       printf 'No packages installed.\n'
     fi
@@ -73,8 +76,19 @@ case "${1:-}" in
     [[ ${2:-} == npm:pi-web-access ]]
     printf 'pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
     mise exec node -- safe-chain npm install pi-web-access
-    mkdir -p -- "${package_marker%/*}"
-    : >"$package_marker"
+    mkdir -p -- "${package_settings%/*}"
+    temporary_path="$(mktemp "${package_settings}.tmp.XXXXXXXXXX")"
+    if [[ -f $package_settings ]]; then
+      jq --arg source "${2}" '
+        .packages = (
+          if (.packages? | type) == "array" then .packages else [] end
+          | if index($source) == null then . + [$source] else . end
+        )
+      ' "$package_settings" >"$temporary_path"
+    else
+      jq -n --arg source "${2}" '{packages: [$source]}' >"$temporary_path"
+    fi
+    mv -- "$temporary_path" "$package_settings"
     ;;
   *)
     printf 'unexpected Pi command: %s\n' "$*" >&2
@@ -112,7 +126,7 @@ cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
 package_list="$(HOME="$fixture_home" PATH="$fixture_bin:$PATH" pi list)"
 [[ $(grep -c '^  npm:pi-web-access$' <<<"$package_list") -eq 1 ]]
 jq -e '
-  .packages == ["npm:existing"]
+  .packages == ["npm:existing", "npm:pi-web-access"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$fixture_home/.pi/agent/settings.json" >/dev/null
@@ -148,6 +162,9 @@ UPDATE_AI_MISE_ACTIVE=1 \
   "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
 
 [[ ! -e "$no_pi_home/.pi" ]]
-! grep -q 'pi-web-access' "$no_pi_log"
+if grep -q 'pi-web-access' "$no_pi_log"; then
+  printf 'Non-Pi update must not invoke Pi Web Access.\n' >&2
+  exit 1
+fi
 
 printf 'Pi Web Access smoke checks passed.\n'

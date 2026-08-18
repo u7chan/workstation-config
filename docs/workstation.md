@@ -301,7 +301,7 @@ PiのHerdr extensionと`pi-web-access`は別の管理境界にあり、前者は
 
 Pi本体と`pi-web-access`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.37.3以上を前提とし、未導入時は`pi install npm:pi-web-access`、導入済みなら`pi update npm:pi-web-access`を実行します。Pi packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
 
-Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。bootstrap/update時は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`packages`配列、認証、ユーザー設定などの未管理キーは保持します。
+Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。`npm:pi-web-access`の`packages`への追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
 
 `pi-web-access`は次のツールを提供します。
 
