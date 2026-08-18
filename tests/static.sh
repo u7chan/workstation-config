@@ -63,7 +63,7 @@ bash -n "$ROOT_DIR/tests/yazi-smoke.sh"
 bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
 bash -n "$ROOT_DIR/scripts/update-ai"
 bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
-bash -n "$ROOT_DIR/tests/pi-web-access-smoke.sh"
+bash -n "$ROOT_DIR/tests/pi-packages-smoke.sh"
 bash -n "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
 bash -n "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 bash -n "$ROOT_DIR/scripts/merge-claude-settings"
@@ -137,11 +137,17 @@ if ! curl -sI --fail --max-time 10 "$safe_chain_url" >/dev/null; then
 fi
 grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex"' "$ROOT_DIR/scripts/update-ai"
 grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/\*"' "$ROOT_DIR/scripts/update-ai"
-grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="pi-web-access"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package"' "$ROOT_DIR/scripts/update-ai"
 grep -q 'npm install --global @openai/codex@latest' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'pi install "$PI_WEB_ACCESS_SOURCE"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'pi update "$PI_WEB_ACCESS_SOURCE"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '"npm:pi-web-access"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '"npm:pi-codex-image-gen"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'pi install "$source"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'pi update "$source"' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'pi list --no-approve' "$ROOT_DIR/scripts/update-ai"
+if grep -Fq '@howaboua/pi-codex-conversion' "$ROOT_DIR/scripts/update-ai"; then
+  printf 'Issue #127 package must not be managed by this change.\n' >&2
+  exit 1
+fi
 grep -Fq -- '--no-approve' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'PI_MINIMUM_VERSION_PATCH=3' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'expected_npm_command=' "$ROOT_DIR/scripts/update-ai"
@@ -156,10 +162,12 @@ grep -Fq "personal_ai_tools | map('regex_replace', '^', '--')" \
   "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 grep -Fq "when: personal_ai_tools | length > 0" \
   "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-if grep -R -Fq 'pi-web-access' "$ROOT_DIR/ansible/roles/base"; then
-  printf 'Pi Web Access must not be managed by the base role.\n' >&2
-  exit 1
-fi
+for pi_package in pi-web-access pi-codex-image-gen; do
+  if grep -R -Fq "$pi_package" "$ROOT_DIR/ansible/roles/base"; then
+    printf 'Pi package must not be managed by the base role: %s\n' "$pi_package" >&2
+    exit 1
+  fi
+done
 grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq 'Install locked mise tools before personal role tasks' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
@@ -167,7 +175,7 @@ grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
 "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
 "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 "$ROOT_DIR/tests/ai-clis-smoke.sh"
-"$ROOT_DIR/tests/pi-web-access-smoke.sh"
+"$ROOT_DIR/tests/pi-packages-smoke.sh"
 "$ROOT_DIR/tests/claude-settings-smoke.sh"
 "$ROOT_DIR/tests/statusline-smoke.sh"
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
@@ -179,7 +187,12 @@ grep -Fq 'fetch_content' "$ROOT_DIR/docs/workstation.md"
 grep -Fq 'get_search_content' "$ROOT_DIR/docs/workstation.md"
 grep -Fq 'source_check' "$ROOT_DIR/docs/workstation.md"
 grep -Fq '~/.pi/web-search.json' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'Pi Web Access Package' "$ROOT_DIR/docs/roles-boundary.md"
+grep -Fq 'pi-codex-image-gen' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'codex_generate_image' "$ROOT_DIR/docs/workstation.md"
+grep -Fq '~/.pi/agent/extensions/codex-image-gen.json' "$ROOT_DIR/docs/workstation.md"
+grep -Fq '~/.pi/agent/generated-images/' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'tools.imageGeneration' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'Pi Packages' "$ROOT_DIR/docs/roles-boundary.md"
 grep -Fq 'Herdr integrationの生成hook/plugin' "$ROOT_DIR/docs/roles-boundary.md"
 grep -q 'type -a herdr cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'command -v herdr; command -v cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
@@ -220,8 +233,8 @@ if find "$ROOT_DIR/home" -type f \( \
   printf 'Herdr-generated runtime data must not be managed by chezmoi.\n' >&2
   exit 1
 fi
-if git -C "$ROOT_DIR" ls-files | grep -Eiq '(^|/)(web-search\.json|dot_pi|pi/)(/|$)'; then
-  printf 'Pi Web Access settings and runtime state must not be Git-managed.\n' >&2
+if git -C "$ROOT_DIR" ls-files | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|generated-images|dot_pi|pi/)(/|$)'; then
+  printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
   exit 1
 fi
 
@@ -420,7 +433,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
     "$ROOT_DIR/scripts/update-ai" \
     "$ROOT_DIR/tests/ai-clis-smoke.sh" \
-    "$ROOT_DIR/tests/pi-web-access-smoke.sh" \
+    "$ROOT_DIR/tests/pi-packages-smoke.sh" \
     "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh" \
     "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
     "$ROOT_DIR/tests/safe-chain-smoke.sh" \

@@ -138,7 +138,7 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
-Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`をglobal packageとして導入・更新します。
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`と`npm:pi-codex-image-gen`をglobal packageとして導入・更新します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
@@ -297,11 +297,11 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 
 auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
-PiのHerdr extensionと`pi-web-access`は別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。`pi-web-access`導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
+PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
-Pi本体と`pi-web-access`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.37.3以上を前提とし、未導入時は`pi install npm:pi-web-access`、導入済みなら`pi update npm:pi-web-access`を実行します。Pi packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
+Pi本体と`pi-web-access`、`pi-codex-image-gen`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.37.3以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
 
-Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。`npm:pi-web-access`の`packages`への追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
+Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。2つのPackage sourceの追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
 
 `pi-web-access`は次のツールを提供します。
 
@@ -310,11 +310,18 @@ Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mis
 - `get_search_content`
 - `source_check`
 
-初期状態はzero-config routing（Exa MCP、PiのCodex loginが利用可能な場合のOpenAI search）を使用します。API key、OAuth token、cookie、auth state、cache、履歴はリポジトリで管理しません。任意設定の`~/.pi/web-search.json`も手動管理とし、今回のbootstrapでは作成・コピーしません。
+初期状態はzero-config routing（Exa MCP、PiのCodex loginが利用可能な場合のOpenAI search）を使用します。API key、OAuth token、cookie、auth state、cache、履歴はリポジトリで管理しません。任意設定の`~/.pi/web-search.json`も手動管理とし、bootstrapでは作成・コピーしません。
+
+`pi-codex-image-gen`は`codex_generate_image`を提供し、Piの既存`openai-codex` loginを再利用して画像生成と、最大5枚のlocal画像または会話内画像を入力にした編集を行います。通常のPi tool経路では`OPENAI_API_KEY`は不要です。Package同梱のCLI fallbackを明示的に選ぶ場合は別途API keyが必要ですが、そのkeyもこのリポジトリでは管理しません。
+
+初期導入では`~/.pi/agent/extensions/codex-image-gen.json`を作成しません。保存先を指定しないtool callはupstream defaultの`save=global`により`~/.pi/agent/generated-images/<session-id>/`配下へ保存されます。agentがproject assetとして`save=project`を明示した場合は`.pi/generated-images/`へ保存されますが、リポジトリの`.pi/`はignore対象でありtracked filesを変更しません。生成画像、OAuth token、auth state、session、履歴、cacheはGit管理しません。
+
+別Issue #127の`@howaboua/pi-codex-conversion`はこの変更では導入・設定しません。現行upstreamでは画像tool名が`imagegen`であり、`codex_generate_image`との同名衝突はありませんが、画像生成の責務は重複します。将来#127を実装するときは`codex_generate_image`を標準経路とし、conversion側の`tools.imageGeneration`と`tools.imageGenerationOnly`を無効にして、他のCodex adapter機能だけを利用します。
 
 ```bash
 update-ai
 ./tests/ai-clis-smoke.sh
+./tests/pi-packages-smoke.sh
 ```
 
 chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はCodexを既定agent、`reasoner`を既定profileとし、CodexとOpenCode GoのLaunch ProfileおよびHerdrのstart/run templateを定義します。既定profileは設定の`default_profile`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
@@ -423,7 +430,7 @@ myupdate
 
 更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
-Piを選択した更新では、Pi本体の更新後に`pi-web-access`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。
+Piを選択した更新では、Pi本体の更新後に`pi-web-access`と`pi-codex-image-gen`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。
 
 ## Bashのローカル設定
 
@@ -515,17 +522,19 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、`pi-web-access`のPackage manager内部npmには`pi-web-access`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`または`pi-codex-image-gen`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
 
-Pi Web Accessの導入確認は外部モデルを使わずに次で行えます。
+Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 
 ```bash
 pi --version
 pi list
-./tests/pi-web-access-smoke.sh
+./tests/pi-packages-smoke.sh
 ```
 
-手動のPi smokeでは、Piを起動して`web_search`、`fetch_content`、`get_search_content`、`source_check`が表示されることを確認します。API keyなしのzero-config search、Codex subscription login済み環境でのOpenAI search認証再利用は外部ネットワーク状態に依存するため、CIの必須条件にはしません。
+手動のWeb access smokeでは、Piを起動して`web_search`、`fetch_content`、`get_search_content`、`source_check`が表示されることを確認します。API keyなしのzero-config search、Codex subscription login済み環境でのOpenAI search認証再利用は外部ネットワーク状態に依存するため、CIの必須条件にはしません。
+
+画像生成の手動smokeは`openai-codex`へ`/login`した新しいPi sessionで行います。`OPENAI_API_KEY`を設定せずに画像生成を依頼し、`codex_generate_image`の呼び出し、結果の表示、追跡可能な保存path、有効かつ0 byteでないPNG/JPEG/WebP、tracked filesに差分がないことを確認します。続けて生成画像の背景変更などを依頼し、元画像を残したまま編集結果が別画像として得られることを確認します。実モデルと外部backendを使うためCIの必須条件にはしません。
 
 ## プロンプト
 

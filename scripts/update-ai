@@ -18,7 +18,10 @@ command -v npm >/dev/null 2>&1 || die "npm is required"
 command -v curl >/dev/null 2>&1 || die "curl is required"
 [[ -r "$HOME/.safe-chain/scripts/init-posix.sh" ]] || die "Safe-chain shell integration is required"
 
-readonly PI_WEB_ACCESS_SOURCE="npm:pi-web-access"
+readonly -a PI_PACKAGE_SOURCES=(
+  "npm:pi-web-access"
+  "npm:pi-codex-image-gen"
+)
 readonly PI_MINIMUM_VERSION_MAJOR=0
 readonly PI_MINIMUM_VERSION_MINOR=37
 readonly PI_MINIMUM_VERSION_PATCH=3
@@ -92,32 +95,45 @@ require_supported_pi() {
     die "Pi >= ${PI_MINIMUM_VERSION_MAJOR}.${PI_MINIMUM_VERSION_MINOR}.${PI_MINIMUM_VERSION_PATCH} is required (found: $pi_version)"
 }
 
-pi_web_access_is_installed() {
+pi_package_is_installed() {
+  local source=$1
   local package_list
   package_list="$(NO_COLOR=1 pi list --no-approve)" || return 1
-  awk '
+  awk -v source="$source" '
     /^User packages:$/ { in_user = 1; next }
     /^Project packages:$/ { in_user = 0 }
-    in_user && $0 ~ /^  npm:pi-web-access( \(filtered\))?$/ { found += 1 }
+    in_user {
+      package_source = $0
+      sub(/^  /, "", package_source)
+      sub(/ \(filtered\)$/, "", package_source)
+      if (package_source == source) found += 1
+    }
     END { exit found != 1 }
   ' <<<"$package_list"
 }
 
-ensure_pi_web_access() {
+ensure_pi_packages() {
+  local source npm_package
+
   require_supported_pi
   configure_pi_npm_command
 
-  printf '==> Ensuring Pi Web Access package through Pi\n'
-  if pi_web_access_is_installed; then
-    SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="pi-web-access" NO_COLOR=1 \
-      pi update "$PI_WEB_ACCESS_SOURCE" --no-approve
-  else
-    SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="pi-web-access" NO_COLOR=1 \
-      pi install "$PI_WEB_ACCESS_SOURCE" --no-approve
-  fi
+  for source in "${PI_PACKAGE_SOURCES[@]}"; do
+    [[ $source == npm:* ]] || die "Unsupported Pi package source: $source"
+    npm_package=${source#npm:}
 
-  pi_web_access_is_installed || \
-    die "Pi Web Access package was not registered in the user scope"
+    printf '==> Ensuring Pi package %s through Pi\n' "$source"
+    if pi_package_is_installed "$source"; then
+      SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package" NO_COLOR=1 \
+        pi update "$source" --no-approve
+    else
+      SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package" NO_COLOR=1 \
+        pi install "$source" --no-approve
+    fi
+
+    pi_package_is_installed "$source" || \
+      die "Pi package was not registered exactly once in the user scope: $source"
+  done
 }
 
 install_codex=false
@@ -159,7 +175,7 @@ if [[ $install_pi == true ]]; then
   printf '==> Updating Pi coding agent through Safe-chain\n'
   SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/*" \
     npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
-  ensure_pi_web_access
+  ensure_pi_packages
 fi
 
 if [[ $install_claude == true ]]; then
