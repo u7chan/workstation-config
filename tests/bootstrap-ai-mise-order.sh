@@ -172,9 +172,15 @@ case "${1:-}" in
     fi
     ;;
   install|update)
-    [[ ${2:-} == npm:pi-web-access ]]
+    case "${2:-}" in
+      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      *)
+        printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
+        exit 1
+        ;;
+    esac
     printf 'linux pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
-    mise exec node -- safe-chain npm install pi-web-access
+    mise exec node -- safe-chain npm install "${2#npm:}"
     mkdir -p -- "${package_settings%/*}"
     temporary_path="$(mktemp "${package_settings}.tmp.XXXXXXXXXX")"
     if [[ -f $package_settings ]]; then
@@ -237,7 +243,9 @@ grep -Fqx 'mise exec node' "$log"
 grep -Fqx 'linux npm install --global @openai/codex@latest' "$log"
 grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
+grep -Fqx 'linux pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'linux safe-chain npm install pi-web-access exclusion=pi-web-access' "$log"
+grep -Fqx 'linux safe-chain npm install pi-codex-image-gen exclusion=pi-codex-image-gen' "$log"
 grep -Fqx 'linux codex --version' "$log"
 grep -Fqx 'linux pi --version' "$log"
 if grep -Fq 'windows npm' "$log" || grep -Fq 'windows codex' "$log" || grep -Fq 'windows pi' "$log"; then

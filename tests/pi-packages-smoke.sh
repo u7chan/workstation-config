@@ -73,9 +73,15 @@ case "${1:-}" in
     fi
     ;;
   install|update)
-    [[ ${2:-} == npm:pi-web-access ]]
+    case "${2:-}" in
+      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      *)
+        printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
+        exit 1
+        ;;
+    esac
     printf 'pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
-    mise exec node -- safe-chain npm install pi-web-access
+    mise exec node -- safe-chain npm install "${2#npm:}"
     mkdir -p -- "${package_settings%/*}"
     temporary_path="$(mktemp "${package_settings}.tmp.XXXXXXXXXX")"
     if [[ -f $package_settings ]]; then
@@ -116,22 +122,27 @@ run_pi_update
 cp "$fixture_home/.pi/agent/settings.json" "$test_dir/settings.after-first"
 run_pi_update
 
-[[ $(grep -c '^pi install npm:pi-web-access --no-approve$' "$fixture_log") -eq 1 ]]
-[[ $(grep -c '^pi update npm:pi-web-access --no-approve$' "$fixture_log") -eq 1 ]]
-[[ $(grep -c '^safe-chain npm install pi-web-access exclusion=pi-web-access$' "$fixture_log") -eq 2 ]]
+for package in pi-web-access pi-codex-image-gen; do
+  [[ $(grep -c "^pi install npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
+  [[ $(grep -c "^pi update npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
+  [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
+done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
 [[ $(grep -c '^core npm ' "$fixture_log") -eq 2 ]]
 cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
 
 package_list="$(HOME="$fixture_home" PATH="$fixture_bin:$PATH" pi list)"
 [[ $(grep -c '^  npm:pi-web-access$' <<<"$package_list") -eq 1 ]]
+[[ $(grep -c '^  npm:pi-codex-image-gen$' <<<"$package_list") -eq 1 ]]
 jq -e '
-  .packages == ["npm:existing", "npm:pi-web-access"]
+  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$fixture_home/.pi/agent/settings.json" >/dev/null
 [[ -e "$fixture_home/.pi/agent/extensions/herdr-agent-state.ts" ]]
 [[ ! -e "$fixture_home/.pi/web-search.json" ]]
+[[ ! -e "$fixture_home/.pi/agent/extensions/codex-image-gen.json" ]]
+[[ ! -e "$fixture_home/.pi/agent/generated-images" ]]
 if find "$fixture_home/.pi/agent" -maxdepth 1 -name '.settings.json.tmp.*' -print -quit | grep -q .; then
   printf 'Pi settings temporary files must be removed.\n' >&2
   exit 1
@@ -162,9 +173,9 @@ UPDATE_AI_MISE_ACTIVE=1 \
   "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
 
 [[ ! -e "$no_pi_home/.pi" ]]
-if grep -q 'pi-web-access' "$no_pi_log"; then
-  printf 'Non-Pi update must not invoke Pi Web Access.\n' >&2
+if grep -Eq 'pi-web-access|pi-codex-image-gen' "$no_pi_log"; then
+  printf 'Non-Pi update must not invoke Pi package management.\n' >&2
   exit 1
 fi
 
-printf 'Pi Web Access smoke checks passed.\n'
+printf 'Pi package smoke checks passed.\n'

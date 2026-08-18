@@ -41,7 +41,13 @@ case "${1:-}" in
     fi
     ;;
   install|update)
-    [[ ${2:-} == npm:pi-web-access ]]
+    case "${2:-}" in
+      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      *)
+        printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
+        exit 1
+        ;;
+    esac
     printf 'pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
     mkdir -p -- "${package_settings%/*}"
     temporary_path="$(mktemp "${package_settings}.tmp.XXXXXXXXXX")"
@@ -101,10 +107,13 @@ printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state
 grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$log"
 grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
+grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
 [[ -e "$HOME/.pi/agent/extensions/herdr-agent-state.ts" ]]
 [[ ! -e "$HOME/.pi/web-search.json" ]]
+[[ ! -e "$HOME/.pi/agent/extensions/codex-image-gen.json" ]]
+[[ ! -e "$HOME/.pi/agent/generated-images" ]]
 jq -e '
-  .packages == ["npm:existing", "npm:pi-web-access"]
+  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$HOME/.pi/agent/settings.json" >/dev/null
@@ -149,7 +158,13 @@ case "\${1:-}" in
     fi
     ;;
   install|update)
-    [[ \${2:-} == npm:pi-web-access ]]
+    case "\${2:-}" in
+      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      *)
+        printf 'unexpected Pi package source: %s\\n' "\${2:-}" >&2
+        exit 1
+        ;;
+    esac
     printf 'pi %s\\n' "\$*" >>"\$TEST_INSTALL_LOG"
     mkdir -p -- "\${package_settings%/*}"
     temporary_path="\$(mktemp "\${package_settings}.tmp.XXXXXXXXXX")"
@@ -208,6 +223,7 @@ EOF
     pi)
       grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
       grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"
+      grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$flag_log"
       if grep -Eq '^curl ' "$flag_log"; then
         printf 'pi flag should not invoke curl.\n' >&2
         exit 1
