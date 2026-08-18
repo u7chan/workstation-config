@@ -144,6 +144,9 @@ EOF
 cat >"$linux_bin/node" <<'EOF'
 #!/usr/bin/env bash
 printf 'linux node %s\n' "$*" >>"$TEST_INSTALL_LOG"
+if [[ ${1:-} == --version ]]; then
+  printf 'v24.18.0\n'
+fi
 EOF
 
 cat >"$linux_bin/codex" <<'EOF'
@@ -173,7 +176,7 @@ case "${1:-}" in
     ;;
   install|update)
     case "${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
       *)
         printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
         exit 1
@@ -244,8 +247,10 @@ grep -Fqx 'linux npm install --global @openai/codex@latest' "$log"
 grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'linux pi install npm:pi-codex-image-gen --no-approve' "$log"
+grep -Fqx 'linux pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
 grep -Fqx 'linux safe-chain npm install pi-web-access exclusion=pi-web-access' "$log"
 grep -Fqx 'linux safe-chain npm install pi-codex-image-gen exclusion=pi-codex-image-gen' "$log"
+grep -Fqx 'linux safe-chain npm install @howaboua/pi-codex-conversion exclusion=@howaboua/pi-codex-conversion' "$log"
 grep -Fqx 'linux codex --version' "$log"
 grep -Fqx 'linux pi --version' "$log"
 if grep -Fq 'windows npm' "$log" || grep -Fq 'windows codex' "$log" || grep -Fq 'windows pi' "$log"; then

@@ -138,7 +138,7 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
-Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`と`npm:pi-codex-image-gen`をglobal packageとして導入・更新します。
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`をglobal packageとして導入・更新します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
@@ -299,9 +299,9 @@ auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理し�
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
-Pi本体と`pi-web-access`、`pi-codex-image-gen`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.37.3以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
+Pi本体と`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.82以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
 
-Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。2つのPackage sourceの追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
+Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。3つのPackage sourceの追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
 
 `pi-web-access`は次のツールを提供します。
 
@@ -316,7 +316,9 @@ Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mis
 
 初期導入では`~/.pi/agent/extensions/codex-image-gen.json`を作成しません。保存先を指定しないtool callはupstream defaultの`save=global`により`~/.pi/agent/generated-images/<session-id>/`配下へ保存されます。agentがproject assetとして`save=project`を明示した場合は`.pi/generated-images/`へ保存されますが、リポジトリの`.pi/`はignore対象でありtracked filesを変更しません。生成画像、OAuth token、auth state、session、履歴、cacheはGit管理しません。
 
-別Issue #127の`@howaboua/pi-codex-conversion`はこの変更では導入・設定しません。現行upstreamでは画像tool名が`imagegen`であり、`codex_generate_image`との同名衝突はありませんが、画像生成の責務は重複します。将来#127を実装するときは`codex_generate_image`を標準経路とし、conversion側の`tools.imageGeneration`と`tools.imageGenerationOnly`を無効にして、他のCodex adapter機能だけを利用します。
+`@howaboua/pi-codex-conversion`はPi 0.82以上、Node.js 22.19以上を要求し、x64/arm64向けのLinux native helperを同梱します。Codex/GPT系モデルでadapterを自動有効化し、`exec_command`、`write_stdin`、`apply_patch`、`view_image`とCodex向けprompt/tool adaptationを提供します。構造化adapterでは通常のPiのread/edit/writeを置き換えますが、対象外モデルへ切り替えると通常のPi tool surfaceへ戻ります。
+
+専用Packageとの責務重複を避けるため、`update-ai --pi`は`~/.pi/agent/pi-codex-conversion.json`を作成・更新し、`tools.webRun`、`tools.imageGeneration`、`tools.webRunOnly`、`tools.imageGenerationOnly`だけをfalseへ収束させます。この4キー以外の既存キーは保持し、ファイル自体はGit管理しません。これによりWebは`pi-web-access`の`web_search` / `fetch_content` / `get_search_content` / `source_check`、画像生成は`pi-codex-image-gen`の`codex_generate_image`を標準経路とし、conversionの`web_run` / `imagegen`を公開しません。conversionの`view_image`は画像入力のため維持します。
 
 ```bash
 update-ai
@@ -430,7 +432,7 @@ myupdate
 
 更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
-Piを選択した更新では、Pi本体の更新後に`pi-web-access`と`pi-codex-image-gen`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。
+Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
 
 ## Bashのローカル設定
 
@@ -522,7 +524,7 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`または`pi-codex-image-gen`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
 
 Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 
@@ -535,6 +537,8 @@ pi list
 手動のWeb access smokeでは、Piを起動して`web_search`、`fetch_content`、`get_search_content`、`source_check`が表示されることを確認します。API keyなしのzero-config search、Codex subscription login済み環境でのOpenAI search認証再利用は外部ネットワーク状態に依存するため、CIの必須条件にはしません。
 
 画像生成の手動smokeは`openai-codex`へ`/login`した新しいPi sessionで行います。`OPENAI_API_KEY`を設定せずに画像生成を依頼し、`codex_generate_image`の呼び出し、結果の表示、追跡可能な保存path、有効かつ0 byteでないPNG/JPEG/WebP、tracked filesに差分がないことを確認します。続けて生成画像の背景変更などを依頼し、元画像を残したまま編集結果が別画像として得られることを確認します。実モデルと外部backendを使うためCIの必須条件にはしません。
+
+Codex conversionの手動smokeは`node --version`がv22.19以上、`pi --version`がv0.82以上のUbuntu 26.04 WSL2で行います。新しいPi sessionでCodex modelを選択し、`exec_command`による`pwd` / `git status --short`、`apply_patch`によるfixture編集、長時間コマンドの`write_stdin`継続、画像fixtureへの`view_image`を確認します。`/codex`のstatusにWeb/image toolが表示されず、`pi-web-access`の4つのWeb toolと`codex_generate_image`は同時に表示されることを確認します。`file` / `ldd`と実行smokeで`exec_bridge`、`apply_patch`、`view_image`のbundled helperを確認し、`GLIBC_* not found`、loader error、`exec_bridge` startup failureがないことを確認します。非Codex/GPT modelへ切り替えた後は通常のPi tool surfaceへ戻り、adapter toolが残留しないことも確認します。認証・外部backend・native helperを使うためCIの必須条件にはしません。
 
 ## プロンプト
 

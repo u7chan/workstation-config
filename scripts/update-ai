@@ -21,10 +21,36 @@ command -v curl >/dev/null 2>&1 || die "curl is required"
 readonly -a PI_PACKAGE_SOURCES=(
   "npm:pi-web-access"
   "npm:pi-codex-image-gen"
+  "npm:@howaboua/pi-codex-conversion"
 )
 readonly PI_MINIMUM_VERSION_MAJOR=0
-readonly PI_MINIMUM_VERSION_MINOR=37
-readonly PI_MINIMUM_VERSION_PATCH=3
+readonly PI_MINIMUM_VERSION_MINOR=82
+readonly PI_MINIMUM_VERSION_PATCH=0
+readonly NODE_MINIMUM_VERSION_MAJOR=22
+readonly NODE_MINIMUM_VERSION_MINOR=19
+readonly NODE_MINIMUM_VERSION_PATCH=0
+
+node_version_is_supported() {
+  local version=$1
+  local major minor patch
+  if [[ ! $version =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)([-+].*)?$ ]]; then
+    return 1
+  fi
+  major=${BASH_REMATCH[1]}
+  minor=${BASH_REMATCH[2]}
+  patch=${BASH_REMATCH[3]}
+  ((major > NODE_MINIMUM_VERSION_MAJOR)) || \
+    ((major == NODE_MINIMUM_VERSION_MAJOR && minor > NODE_MINIMUM_VERSION_MINOR)) || \
+    ((major == NODE_MINIMUM_VERSION_MAJOR && minor == NODE_MINIMUM_VERSION_MINOR && \
+      patch >= NODE_MINIMUM_VERSION_PATCH))
+}
+
+require_supported_node() {
+  local node_version
+  node_version="$(node --version)" || die "could not determine Node.js version"
+  node_version_is_supported "$node_version" || \
+    die "Node.js >= ${NODE_MINIMUM_VERSION_MAJOR}.${NODE_MINIMUM_VERSION_MINOR}.${NODE_MINIMUM_VERSION_PATCH} is required for Pi packages (found: $node_version)"
+}
 
 configure_pi_npm_command() {
   command -v jq >/dev/null 2>&1 || die "jq is required to configure Pi's npm command"
@@ -72,6 +98,58 @@ configure_pi_npm_command() {
   trap - EXIT
 }
 
+configure_pi_codex_conversion() {
+  command -v jq >/dev/null 2>&1 || die "jq is required to configure Pi Codex conversion"
+
+  local pi_agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+  local config_path="$pi_agent_dir/pi-codex-conversion.json"
+  local temporary_path=""
+
+  mkdir -p -- "$pi_agent_dir"
+  chmod 0700 -- "$pi_agent_dir"
+  if [[ -e $config_path && ! -f $config_path ]]; then
+    die "Pi Codex conversion config path is not a regular file: $config_path"
+  fi
+
+  if [[ -f $config_path ]]; then
+    jq -e 'type == "object"' "$config_path" >/dev/null || \
+      die "Pi Codex conversion config must contain a JSON object: $config_path"
+  fi
+
+  temporary_path="$(mktemp "$pi_agent_dir/.pi-codex-conversion.json.tmp.XXXXXXXXXX")"
+  cleanup_pi_codex_conversion_temp() {
+    [[ -z $temporary_path ]] || rm -f -- "$temporary_path"
+  }
+  trap cleanup_pi_codex_conversion_temp EXIT
+
+  if [[ -f $config_path ]]; then
+    jq '
+      .tools = (if (.tools? | type) == "object" then .tools else {} end)
+      | .tools.webRun = false
+      | .tools.imageGeneration = false
+      | .tools.webRunOnly = false
+      | .tools.imageGenerationOnly = false
+    ' "$config_path" >"$temporary_path" || \
+      die "could not update Pi Codex conversion config: $config_path"
+    chmod --reference="$config_path" "$temporary_path"
+  else
+    jq -n '
+      {tools: {
+        webRun: false,
+        imageGeneration: false,
+        webRunOnly: false,
+        imageGenerationOnly: false
+      }}
+    ' >"$temporary_path" || \
+      die "could not create Pi Codex conversion config: $config_path"
+    chmod 0600 "$temporary_path"
+  fi
+
+  mv -- "$temporary_path" "$config_path"
+  temporary_path=""
+  trap - EXIT
+}
+
 pi_version_is_supported() {
   local version=$1
   local major minor patch
@@ -92,7 +170,7 @@ require_supported_pi() {
   local pi_version
   pi_version="$(NO_COLOR=1 pi --version)" || die "could not determine Pi version"
   pi_version_is_supported "$pi_version" || \
-    die "Pi >= ${PI_MINIMUM_VERSION_MAJOR}.${PI_MINIMUM_VERSION_MINOR}.${PI_MINIMUM_VERSION_PATCH} is required (found: $pi_version)"
+    die "Pi >= ${PI_MINIMUM_VERSION_MAJOR}.${PI_MINIMUM_VERSION_MINOR}.${PI_MINIMUM_VERSION_PATCH} is required for the selected Pi packages (found: $pi_version)"
 }
 
 pi_package_is_installed() {
@@ -134,6 +212,8 @@ ensure_pi_packages() {
     pi_package_is_installed "$source" || \
       die "Pi package was not registered exactly once in the user scope: $source"
   done
+
+  configure_pi_codex_conversion
 }
 
 install_codex=false
@@ -172,6 +252,7 @@ if [[ $install_codex == true ]]; then
 fi
 
 if [[ $install_pi == true ]]; then
+  require_supported_node
   printf '==> Updating Pi coding agent through Safe-chain\n'
   SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/*" \
     npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
