@@ -42,7 +42,7 @@ case "${1:-}" in
     ;;
   install|update)
     case "${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
       *)
         printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
         exit 1
@@ -79,7 +79,11 @@ exit 99
 EOF
 cat >"$test_bin/node" <<'EOF'
 #!/usr/bin/env bash
-exit 99
+if [[ ${1:-} == --version ]]; then
+  printf 'v24.18.0\n'
+else
+  exit 99
+fi
 EOF
 cat >"$test_bin/curl" <<'EOF'
 #!/usr/bin/env bash
@@ -108,15 +112,22 @@ grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@lates
 grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
+grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
 [[ -e "$HOME/.pi/agent/extensions/herdr-agent-state.ts" ]]
 [[ ! -e "$HOME/.pi/web-search.json" ]]
 [[ ! -e "$HOME/.pi/agent/extensions/codex-image-gen.json" ]]
 [[ ! -e "$HOME/.pi/agent/generated-images" ]]
 jq -e '
-  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen"]
+  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen", "npm:@howaboua/pi-codex-conversion"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$HOME/.pi/agent/settings.json" >/dev/null
+jq -e '
+  .tools.webRun == false
+  and .tools.imageGeneration == false
+  and .tools.webRunOnly == false
+  and .tools.imageGenerationOnly == false
+' "$HOME/.pi/agent/pi-codex-conversion.json" >/dev/null
 grep -Fqx 'curl claude exclusion=' "$log"
 grep -Fqx 'curl opencode exclusion=' "$log"
 grep -Fq '  "autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
@@ -159,7 +170,7 @@ case "\${1:-}" in
     ;;
   install|update)
     case "\${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
       *)
         printf 'unexpected Pi package source: %s\\n' "\${2:-}" >&2
         exit 1
@@ -224,6 +235,13 @@ EOF
       grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
       grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$flag_log"
+      grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$flag_log"
+      jq -e '
+        .tools.webRun == false
+        and .tools.imageGeneration == false
+        and .tools.webRunOnly == false
+        and .tools.imageGenerationOnly == false
+      ' "$HOME/.pi/agent/pi-codex-conversion.json" >/dev/null
       if grep -Eq '^curl ' "$flag_log"; then
         printf 'pi flag should not invoke curl.\n' >&2
         exit 1

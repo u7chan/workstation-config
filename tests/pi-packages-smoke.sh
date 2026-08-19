@@ -17,7 +17,11 @@ exit 99
 EOF
   cat >"$fixture_bin/node" <<'EOF'
 #!/usr/bin/env bash
-exit 99
+if [[ ${1:-} == --version ]]; then
+  printf '%s\n' "${FIXTURE_NODE_VERSION:-v24.18.0}"
+else
+  exit 99
+fi
 EOF
   cat >"$fixture_bin/curl" <<'EOF'
 #!/usr/bin/env bash
@@ -60,7 +64,7 @@ set -euo pipefail
 package_settings="$HOME/.pi/agent/settings.json"
 case "${1:-}" in
   --version)
-    printf '0.84.2\n'
+    printf '%s\n' "${FIXTURE_PI_VERSION:-0.84.2}"
     ;;
   list)
     if [[ -f $package_settings ]] && \
@@ -74,7 +78,7 @@ case "${1:-}" in
     ;;
   install|update)
     case "${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
       *)
         printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
         exit 1
@@ -109,8 +113,14 @@ printf '%s\n' '{"packages":["npm:existing"],"unmanaged":{"keep":true}}' \
   >"$fixture_home/.pi/agent/settings.json"
 printf '%s\n' 'export default {}' \
   >"$fixture_home/.pi/agent/extensions/herdr-agent-state.ts"
+printf '%s\n' '{"unmanaged":{"keep":true},"tools":{"custom":"keep","webRun":true,"imageGeneration":true,"webRunOnly":true,"imageGenerationOnly":true}}' \
+  >"$fixture_home/.pi/agent/pi-codex-conversion.json"
 
 run_pi_update() {
+  local pi_version=${1:-0.84.2}
+  local node_version=${2:-v24.18.0}
+  FIXTURE_PI_VERSION="$pi_version" \
+  FIXTURE_NODE_VERSION="$node_version" \
   HOME="$fixture_home" \
   PATH="$fixture_bin:$fixture_home/.local/bin:$PATH" \
   TEST_INSTALL_LOG="$fixture_log" \
@@ -118,32 +128,71 @@ run_pi_update() {
     "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
 }
 
-run_pi_update
-cp "$fixture_home/.pi/agent/settings.json" "$test_dir/settings.after-first"
-run_pi_update
+assert_version_rejected() {
+  local test_name=$1
+  local pi_version=$2
+  local node_version=$3
+  local expected_error=$4
+  local error_path="$test_dir/$test_name.error"
 
-for package in pi-web-access pi-codex-image-gen; do
+  if run_pi_update "$pi_version" "$node_version" 2>"$error_path"; then
+    printf '%s must be rejected.\n' "$test_name" >&2
+    exit 1
+  fi
+  grep -Fq "$expected_error" "$error_path"
+  [[ $(grep -c '^pi ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
+  [[ $(grep -c '^safe-chain npm ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
+}
+
+assert_version_rejected \
+  node-prerelease 0.84.2 v22.19.0-rc.1 'Node.js >= 22.19.0 is required'
+assert_version_rejected \
+  pi-prerelease 0.84.2-rc.1 v24.18.0 'Pi >= 0.84.2 is required'
+assert_version_rejected \
+  old-pi 0.84.1 v24.18.0 'Pi >= 0.84.2 is required'
+[[ $(grep -c '^core npm ' "$fixture_log" 2>/dev/null || true) -eq 2 ]]
+
+# Build metadata is accepted because it does not change the release version.
+run_pi_update 0.84.2+build.1 v24.18.0
+cp "$fixture_home/.pi/agent/settings.json" "$test_dir/settings.after-first"
+cp "$fixture_home/.pi/agent/pi-codex-conversion.json" "$test_dir/codex-conversion.after-first"
+run_pi_update 0.84.2 v24.18.0
+
+for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion; do
   [[ $(grep -c "^pi install npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
   [[ $(grep -c "^pi update npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
   [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
-[[ $(grep -c '^core npm ' "$fixture_log") -eq 2 ]]
+[[ $(grep -c '^core npm ' "$fixture_log") -eq 4 ]]
 cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
+cmp "$test_dir/codex-conversion.after-first" \
+  "$fixture_home/.pi/agent/pi-codex-conversion.json"
 
 package_list="$(HOME="$fixture_home" PATH="$fixture_bin:$PATH" pi list)"
 [[ $(grep -c '^  npm:pi-web-access$' <<<"$package_list") -eq 1 ]]
 [[ $(grep -c '^  npm:pi-codex-image-gen$' <<<"$package_list") -eq 1 ]]
+[[ $(grep -c '^  npm:@howaboua/pi-codex-conversion$' <<<"$package_list") -eq 1 ]]
 jq -e '
-  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen"]
+  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen", "npm:@howaboua/pi-codex-conversion"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$fixture_home/.pi/agent/settings.json" >/dev/null
+jq -e '
+  .unmanaged.keep == true
+  and .tools.custom == "keep"
+  and .tools.webRun == false
+  and .tools.imageGeneration == false
+  and .tools.webRunOnly == false
+  and .tools.imageGenerationOnly == false
+' "$fixture_home/.pi/agent/pi-codex-conversion.json" >/dev/null
 [[ -e "$fixture_home/.pi/agent/extensions/herdr-agent-state.ts" ]]
 [[ ! -e "$fixture_home/.pi/web-search.json" ]]
 [[ ! -e "$fixture_home/.pi/agent/extensions/codex-image-gen.json" ]]
 [[ ! -e "$fixture_home/.pi/agent/generated-images" ]]
-if find "$fixture_home/.pi/agent" -maxdepth 1 -name '.settings.json.tmp.*' -print -quit | grep -q .; then
+if find "$fixture_home/.pi/agent" -maxdepth 1 \( \
+  -name '.settings.json.tmp.*' -o -name '.pi-codex-conversion.json.tmp.*' \
+\) -print -quit | grep -q .; then
   printf 'Pi settings temporary files must be removed.\n' >&2
   exit 1
 fi
@@ -173,7 +222,7 @@ UPDATE_AI_MISE_ACTIVE=1 \
   "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
 
 [[ ! -e "$no_pi_home/.pi" ]]
-if grep -Eq 'pi-web-access|pi-codex-image-gen' "$no_pi_log"; then
+if grep -Eq 'pi-web-access|pi-codex-image-gen|pi-codex-conversion' "$no_pi_log"; then
   printf 'Non-Pi update must not invoke Pi package management.\n' >&2
   exit 1
 fi

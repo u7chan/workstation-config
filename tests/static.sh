@@ -141,16 +141,21 @@ grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package"' "$ROOT_DIR/s
 grep -q 'npm install --global @openai/codex@latest' "$ROOT_DIR/scripts/update-ai"
 grep -Fq '"npm:pi-web-access"' "$ROOT_DIR/scripts/update-ai"
 grep -Fq '"npm:pi-codex-image-gen"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '"npm:@howaboua/pi-codex-conversion"' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'pi install "$source"' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'pi update "$source"' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'pi list --no-approve' "$ROOT_DIR/scripts/update-ai"
-if grep -Fq '@howaboua/pi-codex-conversion' "$ROOT_DIR/scripts/update-ai"; then
-  printf 'Issue #127 package must not be managed by this change.\n' >&2
-  exit 1
-fi
+grep -Fq 'require_supported_node' "$ROOT_DIR/scripts/update-ai"
 grep -Fq -- '--no-approve' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'PI_MINIMUM_VERSION_PATCH=3' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'PI_MINIMUM_VERSION_MINOR=84' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'PI_MINIMUM_VERSION_PATCH=2' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'NODE_MINIMUM_VERSION_MINOR=19' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'expected_npm_command=' "$ROOT_DIR/scripts/update-ai"
+grep -Fq 'config_path="$pi_agent_dir/pi-codex-conversion.json"' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '.tools.webRun = false' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '.tools.imageGeneration = false' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '.tools.webRunOnly = false' "$ROOT_DIR/scripts/update-ai"
+grep -Fq '.tools.imageGenerationOnly = false' "$ROOT_DIR/scripts/update-ai"
 grep -Fq 'safe-chain","npm' "$ROOT_DIR/scripts/update-ai"
 grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
 grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"
@@ -162,7 +167,7 @@ grep -Fq "personal_ai_tools | map('regex_replace', '^', '--')" \
   "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
 grep -Fq "when: personal_ai_tools | length > 0" \
   "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-for pi_package in pi-web-access pi-codex-image-gen; do
+for pi_package in pi-web-access pi-codex-image-gen pi-codex-conversion; do
   if grep -R -Fq "$pi_package" "$ROOT_DIR/ansible/roles/base"; then
     printf 'Pi package must not be managed by the base role: %s\n' "$pi_package" >&2
     exit 1
@@ -181,19 +186,31 @@ grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'pi-web-access' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'web_search' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'fetch_content' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'get_search_content' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'source_check' "$ROOT_DIR/docs/workstation.md"
-grep -Fq '~/.pi/web-search.json' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'pi-codex-image-gen' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'codex_generate_image' "$ROOT_DIR/docs/workstation.md"
-grep -Fq '~/.pi/agent/extensions/codex-image-gen.json' "$ROOT_DIR/docs/workstation.md"
-grep -Fq '~/.pi/agent/generated-images/' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'tools.imageGeneration' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'Pi Packages一覧' "$ROOT_DIR/README.md"
+grep -Fq 'Pi Packages一覧' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'pi-web-access' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'web_search' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'fetch_content' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'get_search_content' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'source_check' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '~/.pi/web-search.json' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'pi-codex-image-gen' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '@howaboua/pi-codex-conversion' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'exec_command' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'write_stdin' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'codex_generate_image' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '~/.pi/agent/generated-images/' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '~/.pi/agent/pi-codex-conversion.json' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'tools.imageGeneration' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq 'tools.webRun' "$ROOT_DIR/docs/pi-packages.md"
 grep -Fq 'Pi Packages' "$ROOT_DIR/docs/roles-boundary.md"
+grep -Fq 'pi-packages.md' "$ROOT_DIR/docs/roles-boundary.md"
 grep -Fq 'Herdr integrationの生成hook/plugin' "$ROOT_DIR/docs/roles-boundary.md"
+test -f "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '| `npm:pi-web-access` |' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '| `npm:pi-codex-image-gen` |' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '| `npm:@howaboua/pi-codex-conversion` |' "$ROOT_DIR/docs/pi-packages.md"
+grep -Fq '0.84.2' "$ROOT_DIR/docs/pi-packages.md"
 grep -q 'type -a herdr cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'command -v herdr; command -v cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'expected_tools' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
@@ -233,7 +250,7 @@ if find "$ROOT_DIR/home" -type f \( \
   printf 'Herdr-generated runtime data must not be managed by chezmoi.\n' >&2
   exit 1
 fi
-if git -C "$ROOT_DIR" ls-files | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|generated-images|dot_pi|pi/)(/|$)'; then
+if git -C "$ROOT_DIR" ls-files | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
   printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
   exit 1
 fi
