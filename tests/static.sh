@@ -186,6 +186,7 @@ grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'Pi Packages一覧' "$ROOT_DIR/README.md"
 grep -Fq 'Pi Packages一覧' "$ROOT_DIR/docs/workstation.md"
 grep -Fq 'pi-web-access' "$ROOT_DIR/docs/pi-packages.md"
 grep -Fq 'web_search' "$ROOT_DIR/docs/pi-packages.md"
