@@ -299,7 +299,7 @@ auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理し�
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
-Pi本体と`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.82以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。
+Pi本体と`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。Packageごとの用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
 
 Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。3つのPackage sourceの追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
 
@@ -316,7 +316,7 @@ Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mis
 
 初期導入では`~/.pi/agent/extensions/codex-image-gen.json`を作成しません。保存先を指定しないtool callはupstream defaultの`save=global`により`~/.pi/agent/generated-images/<session-id>/`配下へ保存されます。agentがproject assetとして`save=project`を明示した場合は`.pi/generated-images/`へ保存されますが、リポジトリの`.pi/`はignore対象でありtracked filesを変更しません。生成画像、OAuth token、auth state、session、履歴、cacheはGit管理しません。
 
-`@howaboua/pi-codex-conversion`はPi 0.82以上、Node.js 22.19以上を要求し、x64/arm64向けのLinux native helperを同梱します。Codex/GPT系モデルでadapterを自動有効化し、`exec_command`、`write_stdin`、`apply_patch`、`view_image`とCodex向けprompt/tool adaptationを提供します。構造化adapterでは通常のPiのread/edit/writeを置き換えますが、対象外モデルへ切り替えると通常のPi tool surfaceへ戻ります。
+`@howaboua/pi-codex-conversion`はPi 0.84.2以上、Node.js 22.19以上を要求し、x64/arm64向けのLinux native helperを同梱します。Codex/GPT系モデルでadapterを自動有効化し、`exec_command`、`write_stdin`、`apply_patch`、`view_image`とCodex向けprompt/tool adaptationを提供します。構造化adapterでは通常のPiのread/edit/writeを置き換えますが、対象外モデルへ切り替えると通常のPi tool surfaceへ戻ります。
 
 専用Packageとの責務重複を避けるため、`update-ai --pi`は`~/.pi/agent/pi-codex-conversion.json`を作成・更新し、`tools.webRun`、`tools.imageGeneration`、`tools.webRunOnly`、`tools.imageGenerationOnly`だけをfalseへ収束させます。この4キー以外の既存キーは保持し、ファイル自体はGit管理しません。これによりWebは`pi-web-access`の`web_search` / `fetch_content` / `get_search_content` / `source_check`、画像生成は`pi-codex-image-gen`の`codex_generate_image`を標準経路とし、conversionの`web_run` / `imagegen`を公開しません。conversionの`view_image`は画像入力のため維持します。
 
@@ -538,7 +538,7 @@ pi list
 
 画像生成の手動smokeは`openai-codex`へ`/login`した新しいPi sessionで行います。`OPENAI_API_KEY`を設定せずに画像生成を依頼し、`codex_generate_image`の呼び出し、結果の表示、追跡可能な保存path、有効かつ0 byteでないPNG/JPEG/WebP、tracked filesに差分がないことを確認します。続けて生成画像の背景変更などを依頼し、元画像を残したまま編集結果が別画像として得られることを確認します。実モデルと外部backendを使うためCIの必須条件にはしません。
 
-Codex conversionの手動smokeは`node --version`がv22.19以上、`pi --version`がv0.82以上のUbuntu 26.04 WSL2で行います。新しいPi sessionでCodex modelを選択し、`exec_command`による`pwd` / `git status --short`、`apply_patch`によるfixture編集、長時間コマンドの`write_stdin`継続、画像fixtureへの`view_image`を確認します。`/codex`のstatusにWeb/image toolが表示されず、`pi-web-access`の4つのWeb toolと`codex_generate_image`は同時に表示されることを確認します。`file` / `ldd`と実行smokeで`exec_bridge`、`apply_patch`、`view_image`のbundled helperを確認し、`GLIBC_* not found`、loader error、`exec_bridge` startup failureがないことを確認します。非Codex/GPT modelへ切り替えた後は通常のPi tool surfaceへ戻り、adapter toolが残留しないことも確認します。認証・外部backend・native helperを使うためCIの必須条件にはしません。
+Codex conversionの手動smokeは`node --version`がv22.19以上、`pi --version`がv0.84.2以上のUbuntu 26.04 WSL2で行います。新しいPi sessionでCodex modelを選択し、`exec_command`による`pwd` / `git status --short`、`apply_patch`によるfixture編集、長時間コマンドの`write_stdin`継続、画像fixtureへの`view_image`を確認します。`/codex`のstatusにWeb/image toolが表示されず、`pi-web-access`の4つのWeb toolと`codex_generate_image`は同時に表示されることを確認します。`file` / `ldd`と実行smokeで`exec_bridge`、`apply_patch`、`view_image`のbundled helperを確認し、`GLIBC_* not found`、loader error、`exec_bridge` startup failureがないことを確認します。非Codex/GPT modelへ切り替えた後は通常のPi tool surfaceへ戻り、adapter toolが残留しないことも確認します。認証・外部backend・native helperを使うためCIの必須条件にはしません。
 
 ## プロンプト
 

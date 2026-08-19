@@ -64,7 +64,7 @@ set -euo pipefail
 package_settings="$HOME/.pi/agent/settings.json"
 case "${1:-}" in
   --version)
-    printf '0.84.2\n'
+    printf '%s\n' "${FIXTURE_PI_VERSION:-0.84.2}"
     ;;
   list)
     if [[ -f $package_settings ]] && \
@@ -117,6 +117,8 @@ printf '%s\n' '{"unmanaged":{"keep":true},"tools":{"custom":"keep","webRun":true
   >"$fixture_home/.pi/agent/pi-codex-conversion.json"
 
 run_pi_update() {
+  local pi_version=${1:-0.84.2}
+  FIXTURE_PI_VERSION="$pi_version" \
   HOME="$fixture_home" \
   PATH="$fixture_bin:$fixture_home/.local/bin:$PATH" \
   TEST_INSTALL_LOG="$fixture_log" \
@@ -124,7 +126,17 @@ run_pi_update() {
     "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
 }
 
-run_pi_update
+old_pi_error="$test_dir/old-pi.error"
+if run_pi_update 0.84.1 2>"$old_pi_error"; then
+  printf 'Pi 0.84.1 must be rejected.\n' >&2
+  exit 1
+fi
+grep -Fq 'Pi >= 0.84.2 is required' "$old_pi_error"
+[[ $(grep -c '^pi ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
+[[ $(grep -c '^safe-chain npm ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
+[[ $(grep -c '^core npm ' "$fixture_log" 2>/dev/null || true) -eq 1 ]]
+
+run_pi_update 0.84.2
 cp "$fixture_home/.pi/agent/settings.json" "$test_dir/settings.after-first"
 cp "$fixture_home/.pi/agent/pi-codex-conversion.json" "$test_dir/codex-conversion.after-first"
 run_pi_update
@@ -135,7 +147,7 @@ for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion; d
   [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
-[[ $(grep -c '^core npm ' "$fixture_log") -eq 2 ]]
+[[ $(grep -c '^core npm ' "$fixture_log") -eq 3 ]]
 cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
 cmp "$test_dir/codex-conversion.after-first" \
   "$fixture_home/.pi/agent/pi-codex-conversion.json"
