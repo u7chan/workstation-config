@@ -78,7 +78,7 @@ case "${1:-}" in
     ;;
   install|update)
     case "${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion|npm:@ogulcancelik/pi-session-recall) ;;
       *)
         printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
         exit 1
@@ -158,7 +158,7 @@ cp "$fixture_home/.pi/agent/settings.json" "$test_dir/settings.after-first"
 cp "$fixture_home/.pi/agent/pi-codex-conversion.json" "$test_dir/codex-conversion.after-first"
 run_pi_update 0.84.2 v24.18.0
 
-for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion; do
+for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion @ogulcancelik/pi-session-recall; do
   [[ $(grep -c "^pi install npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
   [[ $(grep -c "^pi update npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
   [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
@@ -173,8 +173,9 @@ package_list="$(HOME="$fixture_home" PATH="$fixture_bin:$PATH" pi list)"
 [[ $(grep -c '^  npm:pi-web-access$' <<<"$package_list") -eq 1 ]]
 [[ $(grep -c '^  npm:pi-codex-image-gen$' <<<"$package_list") -eq 1 ]]
 [[ $(grep -c '^  npm:@howaboua/pi-codex-conversion$' <<<"$package_list") -eq 1 ]]
+[[ $(grep -c '^  npm:@ogulcancelik/pi-session-recall$' <<<"$package_list") -eq 1 ]]
 jq -e '
-  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen", "npm:@howaboua/pi-codex-conversion"]
+  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen", "npm:@howaboua/pi-codex-conversion", "npm:@ogulcancelik/pi-session-recall"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$fixture_home/.pi/agent/settings.json" >/dev/null
@@ -190,6 +191,8 @@ jq -e '
 [[ ! -e "$fixture_home/.pi/web-search.json" ]]
 [[ ! -e "$fixture_home/.pi/agent/extensions/codex-image-gen.json" ]]
 [[ ! -e "$fixture_home/.pi/agent/generated-images" ]]
+[[ ! -e "$fixture_home/.pi/agent/sessions" ]]
+[[ ! -e "$fixture_home/.pi/agent/session-recall.json" ]]
 if find "$fixture_home/.pi/agent" -maxdepth 1 \( \
   -name '.settings.json.tmp.*' -o -name '.pi-codex-conversion.json.tmp.*' \
 \) -print -quit | grep -q .; then
@@ -222,7 +225,7 @@ UPDATE_AI_MISE_ACTIVE=1 \
   "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
 
 [[ ! -e "$no_pi_home/.pi" ]]
-if grep -Eq 'pi-web-access|pi-codex-image-gen|pi-codex-conversion' "$no_pi_log"; then
+if grep -Eq 'pi-web-access|pi-codex-image-gen|pi-codex-conversion|pi-session-recall' "$no_pi_log"; then
   printf 'Non-Pi update must not invoke Pi package management.\n' >&2
   exit 1
 fi

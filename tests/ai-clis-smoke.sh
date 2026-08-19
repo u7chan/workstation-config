@@ -42,7 +42,7 @@ case "${1:-}" in
     ;;
   install|update)
     case "${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion|npm:@ogulcancelik/pi-session-recall) ;;
       *)
         printf 'unexpected Pi package source: %s\n' "${2:-}" >&2
         exit 1
@@ -113,12 +113,13 @@ grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-script
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
+grep -Fqx 'pi install npm:@ogulcancelik/pi-session-recall --no-approve' "$log"
 [[ -e "$HOME/.pi/agent/extensions/herdr-agent-state.ts" ]]
 [[ ! -e "$HOME/.pi/web-search.json" ]]
 [[ ! -e "$HOME/.pi/agent/extensions/codex-image-gen.json" ]]
 [[ ! -e "$HOME/.pi/agent/generated-images" ]]
 jq -e '
-  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen", "npm:@howaboua/pi-codex-conversion"]
+  .packages == ["npm:existing", "npm:pi-web-access", "npm:pi-codex-image-gen", "npm:@howaboua/pi-codex-conversion", "npm:@ogulcancelik/pi-session-recall"]
   and .unmanaged.keep == true
   and .npmCommand == ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ' "$HOME/.pi/agent/settings.json" >/dev/null
@@ -170,7 +171,7 @@ case "\${1:-}" in
     ;;
   install|update)
     case "\${2:-}" in
-      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion) ;;
+      npm:pi-web-access|npm:pi-codex-image-gen|npm:@howaboua/pi-codex-conversion|npm:@ogulcancelik/pi-session-recall) ;;
       *)
         printf 'unexpected Pi package source: %s\\n' "\${2:-}" >&2
         exit 1
@@ -236,6 +237,7 @@ EOF
       grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$flag_log"
+      grep -Fqx 'pi install npm:@ogulcancelik/pi-session-recall --no-approve' "$flag_log"
       jq -e '
         .tools.webRun == false
         and .tools.imageGeneration == false

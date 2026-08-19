@@ -132,13 +132,15 @@ psql --version
 - Node.js LTS、Bun 1.x、uv
 - ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent、Playwright CLI
 
+`ripgrep`はPi Package専用の一時依存ではなく、`base` / `personal`の両profileでmiseが恒久的に管理する共通CLIです。`pi-session-recall`の`session_search`はglobal sessions root全体を`rg -i -F`で検索するため、global JSONLが増えても高速かつliteralな検索を標準経路として再現できます。`rg`がない場合のgrep / Node scan fallbackはPackage側に残りますが、workstationではrgを優先backendとして利用します。
+
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 
 CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-tools.md)を参照してください。
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
-Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`をglobal packageとして導入・更新します。
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`、`npm:@ogulcancelik/pi-session-recall`をglobal packageとして導入・更新します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
@@ -293,15 +295,15 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 | Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
-| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・session・履歴は管理しない |
+| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
 auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
-Pi本体と3つのPi Packageの更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの詳細な用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
+Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの詳細な用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
 
-`update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
+`update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
 ```bash
 update-ai
@@ -415,7 +417,7 @@ myupdate
 
 更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
-Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
+Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
 
 ## Bashのローカル設定
 
@@ -507,7 +509,7 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
 
 Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 
@@ -522,6 +524,10 @@ pi list
 画像生成の手動smokeは`openai-codex`へ`/login`した新しいPi sessionで行います。`OPENAI_API_KEY`を設定せずに画像生成を依頼し、`codex_generate_image`の呼び出し、結果の表示、追跡可能な保存path、有効かつ0 byteでないPNG/JPEG/WebP、tracked filesに差分がないことを確認します。続けて生成画像の背景変更などを依頼し、元画像を残したまま編集結果が別画像として得られることを確認します。実モデルと外部backendを使うためCIの必須条件にはしません。
 
 Codex conversionの手動smokeは`node --version`がv22.19以上、`pi --version`がv0.84.2以上のUbuntu 26.04 WSL2で行います。新しいPi sessionでCodex modelを選択し、`exec_command`による`pwd` / `git status --short`、`apply_patch`によるfixture編集、長時間コマンドの`write_stdin`継続、画像fixtureへの`view_image`を確認します。`/codex`のstatusにWeb/image toolが表示されず、`pi-web-access`の4つのWeb toolと`codex_generate_image`は同時に表示されることを確認します。`file` / `ldd`と実行smokeで`exec_bridge`、`apply_patch`、`view_image`のbundled helperを確認し、`GLIBC_* not found`、loader error、`exec_bridge` startup failureがないことを確認します。非Codex/GPT modelへ切り替えた後は通常のPi tool surfaceへ戻り、adapter toolが残留しないことも確認します。認証・外部backend・native helperを使うためCIの必須条件にはしません。
+
+Pi session recallの手動smokeは、同一・別project directoryのglobal session scopeとprivacy boundaryを確認します。`/tmp/pi-recall-project-a`で`RECALL_SMOKE_7F31A`のような一意なmarkerを含むsession A1を作成して終了し、`/tmp/pi-recall-project-b`の新規session B1からmarkerを自然言語で質問してください。`session_search`がcurrent cwdに限定されずA1の`~/.pi/agent/sessions/**`を発見し、`session_query`がA1の判断を回答することを確認します。query modelを`openai-codex`（または`/session-recall`で選択したmodel）にして実際の回答まで確認します。sessionには機微情報が含まれる可能性があり、`session_query`は選択した会話をquery modelへ送るため、送信先と認証状態を確認してください。認証・外部LLMが必要なためCIの必須条件にはしません。
+
+CIのstatic jobは`ubuntu-slim`上でbootstrapやmise installを行わず、`tests/static.sh`がmanaged tool設定と実環境の`command -v rg` / `rg --version`を検証します。そのためCIだけはAPTで`ripgrep`を導入します。これはworkstationの導入経路をAPTへ変更するものではなく、mise管理の恒久的なrg優先backendをCIで再現するための依存関係です。
 
 ## プロンプト
 
