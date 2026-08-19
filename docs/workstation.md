@@ -299,26 +299,9 @@ auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理し�
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
-Pi本体と`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`の更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの登録と`~/.pi/agent/npm/`はPiが管理し、chezmoiは管理しません。Packageごとの用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
+Pi本体と3つのPi Packageの更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの詳細な用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
 
-Pi Package manager内部のnpm経路は、Pi公式の`npmCommand`設定を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定して固定します。`update-ai`は既存の`~/.pi/agent/settings.json`をJSONとして読み戻し、このキーだけをatomicにmergeするため、`settings.json`全体や`packages`配列を直接管理しません。3つのPackage sourceの追加・更新はPi公式Package managerが行い、既存のpackagesエントリ、認証、ユーザー設定などの未管理キーは保持します。
-
-`pi-web-access`は次のツールを提供します。
-
-- `web_search`
-- `fetch_content`
-- `get_search_content`
-- `source_check`
-
-初期状態はzero-config routing（Exa MCP、PiのCodex loginが利用可能な場合のOpenAI search）を使用します。API key、OAuth token、cookie、auth state、cache、履歴はリポジトリで管理しません。任意設定の`~/.pi/web-search.json`も手動管理とし、bootstrapでは作成・コピーしません。
-
-`pi-codex-image-gen`は`codex_generate_image`を提供し、Piの既存`openai-codex` loginを再利用して画像生成と、最大5枚のlocal画像または会話内画像を入力にした編集を行います。通常のPi tool経路では`OPENAI_API_KEY`は不要です。Package同梱のCLI fallbackを明示的に選ぶ場合は別途API keyが必要ですが、そのkeyもこのリポジトリでは管理しません。
-
-初期導入では`~/.pi/agent/extensions/codex-image-gen.json`を作成しません。保存先を指定しないtool callはupstream defaultの`save=global`により`~/.pi/agent/generated-images/<session-id>/`配下へ保存されます。agentがproject assetとして`save=project`を明示した場合は`.pi/generated-images/`へ保存されますが、リポジトリの`.pi/`はignore対象でありtracked filesを変更しません。生成画像、OAuth token、auth state、session、履歴、cacheはGit管理しません。
-
-`@howaboua/pi-codex-conversion`はPi 0.84.2以上、Node.js 22.19以上を要求し、x64/arm64向けのLinux native helperを同梱します。Codex/GPT系モデルでadapterを自動有効化し、`exec_command`、`write_stdin`、`apply_patch`、`view_image`とCodex向けprompt/tool adaptationを提供します。構造化adapterでは通常のPiのread/edit/writeを置き換えますが、対象外モデルへ切り替えると通常のPi tool surfaceへ戻ります。
-
-専用Packageとの責務重複を避けるため、`update-ai --pi`は`~/.pi/agent/pi-codex-conversion.json`を作成・更新し、`tools.webRun`、`tools.imageGeneration`、`tools.webRunOnly`、`tools.imageGenerationOnly`だけをfalseへ収束させます。この4キー以外の既存キーは保持し、ファイル自体はGit管理しません。これによりWebは`pi-web-access`の`web_search` / `fetch_content` / `get_search_content` / `source_check`、画像生成は`pi-codex-image-gen`の`codex_generate_image`を標準経路とし、conversionの`web_run` / `imagegen`を公開しません。conversionの`view_image`は画像入力のため維持します。
+`update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
 ```bash
 update-ai

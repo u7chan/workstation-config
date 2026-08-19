@@ -34,7 +34,7 @@
 | 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
-Pi本体は`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。パッケージは`--ignore-scripts`付きでインストールし、minimum package ageの対象外を一時指定します。Piはmiseのtool定義および`mise.lock`には追加しません。`personal_ai_tools`でPiが選択されている場合だけ、続けてPi公式Package managerが`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`をglobal scopeへ導入・更新します。`update-ai`は`settings.json`全体や`packages`配列を直接管理せず、Piの`npmCommand`だけを`mise exec node -- safe-chain npm`へ収束させます。対象Packageの`packages`への追加・更新はPi公式Package managerが行い、既存のpackagesエントリやその他のユーザー設定は保持されます。conversionの`pi-codex-conversion.json`は、専用Packageを標準経路にするための4つのWeb/image tool設定だけをfragment mergeでfalseへ収束させ、その他のユーザー設定を保持します。
+Pi本体とPi Packagesは`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。`personal_ai_tools`でPiが選択されている場合だけglobal scopeへ導入し、`base`では変更しません。要件、Packageごとの所有権、設定merge、Safe-chain経路、検証手順は[Pi Packages一覧](pi-packages.md)に集約しています。
 
 Pi Packageのsource、要件、設定所有権、Safe-chain経路、責務境界、検証手順は[Pi Packages一覧](pi-packages.md)に集約します。ここでは`base` / `personal`の導入条件とHerdrとの大まかな境界だけを扱います。
 
