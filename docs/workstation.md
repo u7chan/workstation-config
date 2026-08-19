@@ -132,6 +132,8 @@ psql --version
 - Node.js LTS、Bun 1.x、uv
 - ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent、Playwright CLI
 
+`ripgrep`はPi Package専用の一時依存ではなく、`base` / `personal`の両profileでmiseが恒久的に管理する共通CLIです。`pi-session-recall`の`session_search`はglobal sessions root全体を`rg -i -F`で検索するため、global JSONLが増えても高速かつliteralな検索を標準経路として再現できます。`rg`がない場合のgrep / Node scan fallbackはPackage側に残りますが、workstationではrgを優先backendとして利用します。
+
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 
 CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-tools.md)を参照してください。
@@ -524,6 +526,8 @@ pi list
 Codex conversionの手動smokeは`node --version`がv22.19以上、`pi --version`がv0.84.2以上のUbuntu 26.04 WSL2で行います。新しいPi sessionでCodex modelを選択し、`exec_command`による`pwd` / `git status --short`、`apply_patch`によるfixture編集、長時間コマンドの`write_stdin`継続、画像fixtureへの`view_image`を確認します。`/codex`のstatusにWeb/image toolが表示されず、`pi-web-access`の4つのWeb toolと`codex_generate_image`は同時に表示されることを確認します。`file` / `ldd`と実行smokeで`exec_bridge`、`apply_patch`、`view_image`のbundled helperを確認し、`GLIBC_* not found`、loader error、`exec_bridge` startup failureがないことを確認します。非Codex/GPT modelへ切り替えた後は通常のPi tool surfaceへ戻り、adapter toolが残留しないことも確認します。認証・外部backend・native helperを使うためCIの必須条件にはしません。
 
 Pi session recallの手動smokeは、同一・別project directoryのglobal session scopeとprivacy boundaryを確認します。`/tmp/pi-recall-project-a`で`RECALL_SMOKE_7F31A`のような一意なmarkerを含むsession A1を作成して終了し、`/tmp/pi-recall-project-b`の新規session B1からmarkerを自然言語で質問してください。`session_search`がcurrent cwdに限定されずA1の`~/.pi/agent/sessions/**`を発見し、`session_query`がA1の判断を回答することを確認します。query modelを`openai-codex`（または`/session-recall`で選択したmodel）にして実際の回答まで確認します。sessionには機微情報が含まれる可能性があり、`session_query`は選択した会話をquery modelへ送るため、送信先と認証状態を確認してください。認証・外部LLMが必要なためCIの必須条件にはしません。
+
+CIのstatic jobは`ubuntu-slim`上でbootstrapやmise installを行わず、`tests/static.sh`がmanaged tool設定と実環境の`command -v rg` / `rg --version`を検証します。そのためCIだけはAPTで`ripgrep`を導入します。これはworkstationの導入経路をAPTへ変更するものではなく、mise管理の恒久的なrg優先backendをCIで再現するための依存関係です。
 
 ## プロンプト
 
