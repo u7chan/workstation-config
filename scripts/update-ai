@@ -22,6 +22,7 @@ readonly -a PI_PACKAGE_SOURCES=(
   "npm:pi-web-access"
   "npm:pi-codex-image-gen"
   "npm:@howaboua/pi-codex-conversion"
+  "npm:@ogulcancelik/pi-session-recall"
 )
 readonly PI_MINIMUM_VERSION_MAJOR=0
 readonly PI_MINIMUM_VERSION_MINOR=84
