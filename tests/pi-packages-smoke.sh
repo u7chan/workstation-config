@@ -18,7 +18,7 @@ EOF
   cat >"$fixture_bin/node" <<'EOF'
 #!/usr/bin/env bash
 if [[ ${1:-} == --version ]]; then
-  printf 'v24.18.0\n'
+  printf '%s\n' "${FIXTURE_NODE_VERSION:-v24.18.0}"
 else
   exit 99
 fi
@@ -118,7 +118,9 @@ printf '%s\n' '{"unmanaged":{"keep":true},"tools":{"custom":"keep","webRun":true
 
 run_pi_update() {
   local pi_version=${1:-0.84.2}
+  local node_version=${2:-v24.18.0}
   FIXTURE_PI_VERSION="$pi_version" \
+  FIXTURE_NODE_VERSION="$node_version" \
   HOME="$fixture_home" \
   PATH="$fixture_bin:$fixture_home/.local/bin:$PATH" \
   TEST_INSTALL_LOG="$fixture_log" \
@@ -126,20 +128,35 @@ run_pi_update() {
     "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
 }
 
-old_pi_error="$test_dir/old-pi.error"
-if run_pi_update 0.84.1 2>"$old_pi_error"; then
-  printf 'Pi 0.84.1 must be rejected.\n' >&2
-  exit 1
-fi
-grep -Fq 'Pi >= 0.84.2 is required' "$old_pi_error"
-[[ $(grep -c '^pi ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
-[[ $(grep -c '^safe-chain npm ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
-[[ $(grep -c '^core npm ' "$fixture_log" 2>/dev/null || true) -eq 1 ]]
+assert_version_rejected() {
+  local test_name=$1
+  local pi_version=$2
+  local node_version=$3
+  local expected_error=$4
+  local error_path="$test_dir/$test_name.error"
 
-run_pi_update 0.84.2
+  if run_pi_update "$pi_version" "$node_version" 2>"$error_path"; then
+    printf '%s must be rejected.\n' "$test_name" >&2
+    exit 1
+  fi
+  grep -Fq "$expected_error" "$error_path"
+  [[ $(grep -c '^pi ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
+  [[ $(grep -c '^safe-chain npm ' "$fixture_log" 2>/dev/null || true) -eq 0 ]]
+}
+
+assert_version_rejected \
+  node-prerelease 0.84.2 v22.19.0-rc.1 'Node.js >= 22.19.0 is required'
+assert_version_rejected \
+  pi-prerelease 0.84.2-rc.1 v24.18.0 'Pi >= 0.84.2 is required'
+assert_version_rejected \
+  old-pi 0.84.1 v24.18.0 'Pi >= 0.84.2 is required'
+[[ $(grep -c '^core npm ' "$fixture_log" 2>/dev/null || true) -eq 2 ]]
+
+# Build metadata is accepted because it does not change the release version.
+run_pi_update 0.84.2+build.1 v24.18.0
 cp "$fixture_home/.pi/agent/settings.json" "$test_dir/settings.after-first"
 cp "$fixture_home/.pi/agent/pi-codex-conversion.json" "$test_dir/codex-conversion.after-first"
-run_pi_update
+run_pi_update 0.84.2 v24.18.0
 
 for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion; do
   [[ $(grep -c "^pi install npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
@@ -147,7 +164,7 @@ for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion; d
   [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
-[[ $(grep -c '^core npm ' "$fixture_log") -eq 3 ]]
+[[ $(grep -c '^core npm ' "$fixture_log") -eq 4 ]]
 cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
 cmp "$test_dir/codex-conversion.after-first" \
   "$fixture_home/.pi/agent/pi-codex-conversion.json"
