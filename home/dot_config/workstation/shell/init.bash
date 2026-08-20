@@ -26,6 +26,21 @@ export VISUAL=nvim
 alias g=git
 alias h=herdr
 
+__workstation_open() {
+  local path="${1:-.}"
+  local windows_path
+
+  if [[ $# -gt 1 ]]; then
+    printf 'open: expected at most one path\n' >&2
+    return 2
+  fi
+
+  windows_path="$(wslpath -w "$path")" || return
+  command explorer.exe "$windows_path"
+}
+
+alias open='__workstation_open'
+
 if [[ -f "$HOME/.config/workstation/shell/local.bash" && -r "$HOME/.config/workstation/shell/local.bash" ]]; then
   # shellcheck disable=SC1091
   source "$HOME/.config/workstation/shell/local.bash"
