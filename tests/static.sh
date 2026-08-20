@@ -416,6 +416,8 @@ test_bin="$test_dir/bin"
 mkdir -p "$test_home/.config/workstation/shell" "$test_bin"
 printf '#!/usr/bin/env bash\nprintf "C:\\\\mock"\n' >"$test_bin/wslpath"
 chmod +x "$test_bin/wslpath"
+printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1"\nexit 1\n' >"$test_bin/explorer.exe"
+chmod +x "$test_bin/explorer.exe"
 printf 'alias g=echo\n' >"$test_home/.config/workstation/shell/local.bash"
 printf '# Ubuntu default\n' >"$test_bashrc"
 "$ROOT_DIR/home/modify_dot_bashrc" <"$test_bashrc" >"${test_bashrc}.first"
@@ -443,6 +445,9 @@ interactive_output="$({
       [[ $(grep -o "starship_precmd" <<<"$PROMPT_COMMAND" | wc -l) -le 1 ]]
       alias g | grep -q "alias g=.*echo"
       alias h | grep -q "alias h=.*herdr"
+      alias open | grep -q "alias open=.*__workstation_open"
+      [[ $(open .) == C:\\mock ]]
+      open . >/dev/null
     ' _ "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 } 2>&1)" || {
   printf '%s\n' "$interactive_output" >&2

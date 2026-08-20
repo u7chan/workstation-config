@@ -423,6 +423,8 @@ Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-cod
 
 共通のBash初期化はchezmoi管理の`~/.config/workstation/shell/init.bash`から読み込みます。Ubuntu標準の`~/.bashrc`はそのまま残し、管理済み初期化ファイルを読み込むブロックだけを追加します。
 
+共通aliasとして`g=git`、`h=herdr`、`open <path>`を管理します。`open`はWSL標準の`explorer.exe`と`wslpath`を使い、Windows側のエクスプローラーでLinuxのファイルまたはディレクトリを開きます。
+
 マシン固有のworkspace aliasなどは、`~/.config/workstation/shell/local.bash`へ記述してください。このファイルはGitおよびchezmoiの管理対象外で、bootstrapは既存内容を変更せずmode 600を維持します。
 
 ## 個人CLI
