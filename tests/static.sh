@@ -108,6 +108,8 @@ fi
 bash -n "$ROOT_DIR/home/modify_dot_bashrc"
 bash -n "$ROOT_DIR/home/modify_dot_gitconfig"
 bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+bash -n "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-agents.sh"
+bash -n "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-datetime.sh"
 bash -n "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 
 workaround_tasks="$ROOT_DIR/ansible/roles/base/tasks/main.yml"
@@ -465,6 +467,8 @@ if command -v shellcheck >/dev/null 2>&1; then
     "$ROOT_DIR/home/modify_dot_bashrc" \
     "$ROOT_DIR/home/modify_dot_gitconfig" \
     "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
+    "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-agents.sh" \
+    "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-datetime.sh" \
     "$ROOT_DIR/scripts/update-ai" \
     "$ROOT_DIR/tests/ai-clis-smoke.sh" \
     "$ROOT_DIR/tests/pi-packages-smoke.sh" \
