@@ -10,7 +10,7 @@ trap 'rm -rf "$test_dir"' EXIT
 
 fixture_home="$test_dir/home"
 fixture_bin="$fixture_home/.local/bin"
-fixture_herdr="$fixture_home/.local/share/mise/installs/herdr/0.8.0/herdr"
+fixture_herdr="$fixture_home/.local/share/mise/installs/herdr/0.8.2/herdr"
 mkdir -p "$fixture_bin" "${fixture_herdr%/*}"
 
 cat >"$fixture_bin/update-ai" <<'EOF'
