@@ -35,8 +35,13 @@ __workstation_open() {
     return 2
   fi
 
+  if ! command -v wslpath >/dev/null 2>&1 || ! command -v explorer.exe >/dev/null 2>&1; then
+    printf 'open: WSL interop is unavailable; ensure wslpath and explorer.exe are available\n' >&2
+    return 127
+  fi
+
   windows_path="$(wslpath -w "$path")" || return
-  command explorer.exe "$windows_path"
+  command explorer.exe "$windows_path" || true
 }
 
 alias open='__workstation_open'
