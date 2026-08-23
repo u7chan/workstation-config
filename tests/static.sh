@@ -194,6 +194,7 @@ grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
 "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 "$ROOT_DIR/tests/ai-clis-smoke.sh"
 "$ROOT_DIR/tests/pi-packages-smoke.sh"
+"$ROOT_DIR/tests/pi-keybindings-smoke.sh"
 "$ROOT_DIR/tests/claude-settings-smoke.sh"
 "$ROOT_DIR/tests/statusline-smoke.sh"
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
