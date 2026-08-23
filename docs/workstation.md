@@ -29,7 +29,7 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 ./bootstrap base
 ```
 
-`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
+`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Piが選択されている場合だけchezmoiが`~/.pi/agent/keybindings.json`を配置し、未選択の場合はbootstrapが削除します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
 
 `personal`では任意RoleとしてDocker CEも既定で導入します。Dockerを導入しない
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
@@ -295,7 +295,7 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 | Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
-| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。Pi Packageのsession recallもglobal user runtimeとして扱う |
+| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしWSL2/Windows Terminal向け画像貼り付けキーバインドの`~/.pi/agent/keybindings.json`だけはchezmoiが管理し、Pi選択時のみ配置する。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
 auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
@@ -304,6 +304,8 @@ PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerd
 Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの詳細な用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
 
 `update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
+
+唯一の例外がWSL2/Windows Terminal向けの画像貼り付けキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`を削除します。管理対象ファイルのため、ローカルで直接編集した内容は次回bootstrap時にリポジトリの宣言状態へ戻ります。
 
 ```bash
 update-ai
@@ -520,6 +522,14 @@ pi --version
 pi list
 ./tests/pi-packages-smoke.sh
 ```
+
+Piの画像貼り付けキーバインドの配置はjqとchezmoiを使って確認できます。`WORKSTATION_PI_SELECTED`の有無による`.chezmoiignore`の切替と、選択時の配置内容、非選択時に既存ファイルを触らないことを検証します。
+
+```bash
+./tests/pi-keybindings-smoke.sh
+```
+
+実際に`Alt+V`で画像を貼り付けられるかはWindows Terminal上のPi入力欄での人力確認が必要です。
 
 手動のWeb access smokeでは、Piを起動して`web_search`、`fetch_content`、`get_search_content`、`source_check`が表示されることを確認します。API keyなしのzero-config search、Codex subscription login済み環境でのOpenAI search認証再利用は外部ネットワーク状態に依存するため、CIの必須条件にはしません。
 

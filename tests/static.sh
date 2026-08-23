@@ -49,6 +49,13 @@ grep -q '^yazi = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
 test ! -e "$ROOT_DIR/mise/config.toml"
 test ! -e "$ROOT_DIR/mise/mise.lock"
 grep -Fxq '.pi/' "$ROOT_DIR/.gitignore"
+test -f "$ROOT_DIR/home/dot_pi/agent/keybindings.json"
+grep -Fqx '  "app.clipboard.pasteImage": ["alt+v"]' "$ROOT_DIR/home/dot_pi/agent/keybindings.json"
+grep -Fq 'WORKSTATION_PI_SELECTED="$PI_SELECTED"' "$ROOT_DIR/bootstrap"
+grep -Fq 'rm -f -- "$HOME/.pi/agent/keybindings.json"' "$ROOT_DIR/bootstrap"
+grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
+grep -Fqx '.pi/agent/keybindings.json' "$ROOT_DIR/home/.chezmoiignore"
+grep -Fq 'Install pinned chezmoi binary' "$ROOT_DIR/.github/workflows/secret-scan.yml"
 grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/config.toml"' \
   "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/mise.lock"' \
@@ -67,6 +74,7 @@ bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
 bash -n "$ROOT_DIR/scripts/update-ai"
 bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
 bash -n "$ROOT_DIR/tests/pi-packages-smoke.sh"
+bash -n "$ROOT_DIR/tests/pi-keybindings-smoke.sh"
 bash -n "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
 bash -n "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 bash -n "$ROOT_DIR/scripts/merge-claude-settings"
@@ -187,6 +195,7 @@ grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
 "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
 "$ROOT_DIR/tests/ai-clis-smoke.sh"
 "$ROOT_DIR/tests/pi-packages-smoke.sh"
+"$ROOT_DIR/tests/pi-keybindings-smoke.sh"
 "$ROOT_DIR/tests/claude-settings-smoke.sh"
 "$ROOT_DIR/tests/statusline-smoke.sh"
 grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
@@ -194,6 +203,9 @@ grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"
 grep -Fq 'Pi Packages一覧' "$ROOT_DIR/README.md"
 grep -Fq 'Pi Packages一覧' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'dot_pi/agent/keybindings.json' "$ROOT_DIR/docs/workstation.md"
+grep -Fq 'keybindings.json' "$ROOT_DIR/docs/roles-boundary.md"
+grep -Fq 'pi-keybindings-smoke' "$ROOT_DIR/docs/workstation.md"
 grep -Fq 'pi-web-access' "$ROOT_DIR/docs/pi-packages.md"
 grep -Fq 'web_search' "$ROOT_DIR/docs/pi-packages.md"
 grep -Fq 'fetch_content' "$ROOT_DIR/docs/pi-packages.md"
@@ -264,7 +276,9 @@ if find "$ROOT_DIR/home" -type f \( \
   printf 'Herdr-generated runtime data must not be managed by chezmoi.\n' >&2
   exit 1
 fi
-if git -C "$ROOT_DIR" ls-files | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
+# home/dot_pi/agent/keybindings.json is the only allowed Pi user config in Git.
+if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
+  | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
   printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
   exit 1
 fi

@@ -30,6 +30,7 @@
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
 | Herdr integration（Codex / Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
 | AI CLI 設定（Codex / Claude Code / OpenCode / cagent） | — | 担当 | Codex / OpenCode / cagent は chezmoi source として配置。`~/.claude/statusline.py` は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
+| Pi ユーザー設定（`~/.pi/agent/keybindings.json`） | — | 担当 | WSL2/Windows Terminal向け画像貼り付けキーバインド（`Alt+V`）。chezmoiが`home/dot_pi/agent/keybindings.json`を管理し、bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ配置し、未選択・`base`では削除する。その他のPiユーザー設定は管理しない |
 | 個人 CLI スクリプト（myclaude, gac, gpc, http, http-lan, myupdate） | — | 担当 | `personal` role の `scripts/personal-bin/` |
 | 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
@@ -40,7 +41,7 @@ Pi本体とPi Packagesは`personal`の`update-ai`がmise管理のNode.js/npmとS
 
 Pi Packageのsource、要件、設定所有権、Safe-chain経路、責務境界、検証手順は[Pi Packages一覧](pi-packages.md)に集約します。ここでは`base` / `personal`の導入条件とHerdrとの大まかな境界だけを扱います。
 
-Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Piでは`herdr-agent-state.ts`とPi Packagesを別管理し、互いのファイル・登録を上書きしません。Pi Packagesが所有する登録、conversionのmanaged fragment、`pi-codex-image-gen`の生成画像と任意設定もユーザーruntimeとして扱います。`@ogulcancelik/pi-session-recall`の`~/.pi/agent/sessions/**`と`session-recall.json`もユーザーruntimeであり、global sessionの本文をchezmoiやGitへ取り込みません。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成画像、生成stateはどちらの管理対象にも含めません。
+Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Piでは`herdr-agent-state.ts`とPi Packagesを別管理し、互いのファイル・登録を上書きしません。Pi Packagesが所有する登録、conversionのmanaged fragment、`pi-codex-image-gen`の生成画像と任意設定もユーザーruntimeとして扱います。`@ogulcancelik/pi-session-recall`の`~/.pi/agent/sessions/**`と`session-recall.json`もユーザーruntimeであり、global sessionの本文をchezmoiやGitへ取り込みません。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成画像、生成stateはどちらの管理対象にも含めません。Piユーザー設定で唯一の例外が`~/.pi/agent/keybindings.json`で、WSL2/Windows Terminal向け画像貼り付けキーバインドとしてchezmoiが管理します。Pi選択時だけ配置し、未選択時にはbootstrapが削除します。
 
 ## 補足
 
