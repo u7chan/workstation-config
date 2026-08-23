@@ -42,14 +42,18 @@ readonly PROFILE="${1:-personal}"
 
 PERSONAL_AI_TOOLS_EXTRA_VAR=""
 CLAUDE_SELECTED=false
+PI_SELECTED=false
 [[ $PROFILE == "personal" ]] && CLAUDE_SELECTED=true
+[[ $PROFILE == "personal" ]] && PI_SELECTED=true
 if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
   [[ $PROFILE == "personal" ]] || die "WORKSTATION_PERSONAL_AI_TOOLS requires the personal profile"
   if [[ -z $WORKSTATION_PERSONAL_AI_TOOLS ]]; then
     CLAUDE_SELECTED=false
+    PI_SELECTED=false
     PERSONAL_AI_TOOLS_EXTRA_VAR='[]'
   else
     CLAUDE_SELECTED=false
+    PI_SELECTED=false
     IFS=',' read -r -a requested_ai_tools <<<"$WORKSTATION_PERSONAL_AI_TOOLS"
     ((${#requested_ai_tools[@]} > 0)) || die "WORKSTATION_PERSONAL_AI_TOOLS must not be empty"
 
@@ -62,6 +66,9 @@ if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
       if [[ $ai_tool == "claude" ]]; then
         CLAUDE_SELECTED=true
       fi
+      if [[ $ai_tool == "pi" ]]; then
+        PI_SELECTED=true
+      fi
       [[ $personal_ai_tools_json == "[" ]] || personal_ai_tools_json+=,
       personal_ai_tools_json+="\"$ai_tool\""
     done
@@ -71,6 +78,7 @@ if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
 fi
 readonly PERSONAL_AI_TOOLS_EXTRA_VAR
 readonly CLAUDE_SELECTED
+readonly PI_SELECTED
 
 [[ ${EUID} -ne 0 ]] || die "run as a regular user, not root"
 [[ -r /etc/os-release ]] || die "cannot read /etc/os-release"
@@ -133,9 +141,14 @@ trap restrict_ai_config_directories EXIT
 restrict_ai_config_directories
 
 printf '==> Applying chezmoi source\n'
-"$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force
+WORKSTATION_PI_SELECTED="$PI_SELECTED" \
+  "$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force
 
 restrict_ai_config_directories
+
+if [[ $PI_SELECTED == false ]]; then
+  rm -f -- "$HOME/.pi/agent/keybindings.json"
+fi
 
 if [[ $CLAUDE_SELECTED == true ]]; then
   printf '==> Merging Claude Code settings\n'
