@@ -87,7 +87,7 @@ wsl -l
       "cursorColor": "#BEBEBE",
       "cursorShape": "filledBox",
       "font": {
-        "face": "Meslo Nerd Font",
+        "face": "MesloLGM Nerd Font",
         "size": 12,
         "weight": "medium"
       },
@@ -126,14 +126,14 @@ wsl -l
 | `shift+enter` → `\n` | Claude Code、Codex、OpenCodeなどのAI CLIで、送信せず入力中に改行する。 |
 | `ctrl+w` → `null` | ターミナルタブの誤終了を防ぎ、Herdrのパネル操作との競合を避ける。 |
 | `colorScheme: One Half Dark` | Windows Terminal標準の配色へ統一し、未定義の`Dimidium`には依存しない。 |
-| `font.face: Meslo Nerd Font` | Starshipなどが使うNerd Fontアイコンを正しく表示する。 |
+| `font.face: MesloLGM Nerd Font` | Starshipなどが使うNerd Fontアイコンを正しく表示する。 |
 | `opacity: 50` / `useAcrylic: true` | 背景を半透明のアクリル表示にする。 |
 | `defaultProfile` | 固定GUIDの`Windows PowerShell`プロファイルを既定にする。 |
 | `Windows PowerShell`の`commandline` | 手動プロファイルが`cmd.exe`ではなく`powershell.exe`を起動するようにする。 |
 | `disabledProfileSources` | WSLの動的プロファイル自動生成を無効化し、手動プロファイルとの重複を防ぐ。 |
 | WSLの`commandline` | 自動検出プロファイルに依存せず、指定したディストリビューションを起動する。 |
 
-フォントの導入手順は[workstation-notes](https://github.com/u7chan/workstation-notes)を参照してください。フォント未導入の状態では、アイコンや区切り文字が正しく表示されません。
+フォントの導入手順は[workstation-notes](https://github.com/u7chan/workstation-notes)を参照してください。フォント未導入の状態では、アイコンや区切り文字が正しく表示されません。Nerd Fontsの`Meslo.zip`には`MesloLGS`/`MesloLGM`/`MesloLGL`系のバリアントのみが含まれるため、インストールしたバリアントの実際のファミリー名（例: `MesloLGM Nerd Font`）を`font.face`に指定してください。
 
 ## 反映と復元
 
