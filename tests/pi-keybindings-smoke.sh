@@ -16,14 +16,16 @@ fi
 expected_file="$ROOT_DIR/home/dot_pi/agent/keybindings.json"
 readonly expected_file
 
-# The managed file declares exactly one binding.
+# The managed file declares exactly two bindings.
 jq -e '
-  length == 1 and
-  .["app.clipboard.pasteImage"] == ["alt+v"]
+  length == 2 and
+  .["app.clipboard.pasteImage"] == ["alt+v"] and
+  .["app.message.dequeue"] == ["alt+up"]
 ' "$expected_file" >/dev/null
 
 expected_content='{
-  "app.clipboard.pasteImage": ["alt+v"]
+  "app.clipboard.pasteImage": ["alt+v"],
+  "app.message.dequeue": ["alt+up"]
 }
 '
 cmp <(printf '%s' "$expected_content") "$expected_file"
