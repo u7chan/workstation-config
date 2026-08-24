@@ -87,7 +87,7 @@ wsl -l
       "cursorColor": "#BEBEBE",
       "cursorShape": "filledBox",
       "font": {
-        "face": "JetBrainsMono Nerd Font Mono",
+        "face": "Meslo Nerd Font",
         "size": 12,
         "weight": "medium"
       },
@@ -126,7 +126,7 @@ wsl -l
 | `shift+enter` → `\n` | Claude Code、Codex、OpenCodeなどのAI CLIで、送信せず入力中に改行する。 |
 | `ctrl+w` → `null` | ターミナルタブの誤終了を防ぎ、Herdrのパネル操作との競合を避ける。 |
 | `colorScheme: One Half Dark` | Windows Terminal標準の配色へ統一し、未定義の`Dimidium`には依存しない。 |
-| `font.face: JetBrainsMono Nerd Font Mono` | Starshipなどが使うNerd Fontアイコンを正しく表示する。 |
+| `font.face: Meslo Nerd Font` | Starshipなどが使うNerd Fontアイコンを正しく表示する。 |
 | `opacity: 50` / `useAcrylic: true` | 背景を半透明のアクリル表示にする。 |
 | `defaultProfile` | 固定GUIDの`Windows PowerShell`プロファイルを既定にする。 |
 | `Windows PowerShell`の`commandline` | 手動プロファイルが`cmd.exe`ではなく`powershell.exe`を起動するようにする。 |
