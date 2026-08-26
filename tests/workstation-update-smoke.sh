@@ -10,8 +10,7 @@ trap 'rm -rf "$test_dir"' EXIT
 
 fixture_home="$test_dir/home"
 fixture_bin="$fixture_home/.local/bin"
-fixture_herdr="$fixture_home/.local/share/mise/installs/herdr/0.8.2/herdr"
-mkdir -p "$fixture_bin" "${fixture_herdr%/*}"
+mkdir -p "$fixture_bin"
 
 cat >"$fixture_bin/update-ai" <<'EOF'
 #!/usr/bin/env bash
@@ -54,23 +53,13 @@ case "$*" in
       exit 42
     fi
     ;;
-  'which herdr')
-    printf 'mise-which:herdr\n' >>"$TEST_COMMAND_LOG"
-    printf '%s\n' "$TEST_HERDR_BIN"
-    ;;
   *)
     printf 'unexpected mise command: %s\n' "$*" >&2
     exit 1
     ;;
 esac
 EOF
-
-cat >"$fixture_herdr" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-printf 'herdr-bin:%s\n' "$*" >>"$TEST_COMMAND_LOG"
-EOF
-chmod +x "$fixture_bin/update-ai" "$fixture_bin/mise" "$fixture_herdr"
+chmod +x "$fixture_bin/update-ai" "$fixture_bin/mise"
 
 prepare_run() {
   local name=$1
@@ -89,7 +78,6 @@ run_update() {
   PATH="$fixture_bin:/usr/bin:/bin" \
   TEST_COUNTER_DIR="$RUN_COUNTER_DIR" \
   TEST_COMMAND_LOG="$RUN_COMMAND_LOG" \
-  TEST_HERDR_BIN="$fixture_herdr" \
   TEST_AI_FAILURES="${TEST_AI_FAILURES:-0}" \
   TEST_MISE_FAILURES="${TEST_MISE_FAILURES:-0}" \
   TEST_STARTED_FILE="${TEST_STARTED_FILE:-}" \
@@ -98,15 +86,17 @@ run_update() {
     env "${optional_environment[@]}" "$MYUPDATE"
 }
 
-# All steps succeed and Herdr plugins are retained after the upgrade.
+# All steps succeed and the Herdr update does not install plugins.
 prepare_run normal
 normal_output="$(run_update 2>&1)"
 grep -Fq 'all updates completed successfully' <<<"$normal_output"
 [[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1: ]]
 [[ $(sed -n '2p' "$RUN_COMMAND_LOG") == mise:1 ]]
-grep -Fqx 'mise-which:herdr' "$RUN_COMMAND_LOG"
-grep -Fqx 'herdr-bin:plugin install smarzban/herdr-file-viewer --yes' "$RUN_COMMAND_LOG"
-grep -Fqx 'herdr-bin:plugin install persiyanov/herdr-reviewr --yes' "$RUN_COMMAND_LOG"
+[[ $(wc -l <"$RUN_COMMAND_LOG") -eq 2 ]]
+if grep -Eq 'plugin[[:space:]]+install|herdr-bin|mise-which:herdr' "$RUN_COMMAND_LOG"; then
+  printf 'Herdr update unexpectedly installed or resolved a plugin.\n' >&2
+  exit 1
+fi
 
 # First failures are retried independently and can still aggregate to success.
 prepare_run retry-success

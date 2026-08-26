@@ -127,22 +127,6 @@
   register: herdr_binary  # noqa var-naming[no-role-prefix]
   changed_when: false
 
-- name: Install Herdr plugins
-  ansible.builtin.command:
-    argv:
-      - "{{ herdr_binary.stdout | trim }}"
-      - plugin
-      - install
-      - "{{ item }}"
-      - --yes
-  loop: "{{ herdr_plugins }}"
-  changed_when: false
-  environment:
-    MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
-    PATH: >-
-      {{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
-      ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
-
 - name: Install locked mise tools before personal role tasks
   ansible.builtin.command:
     argv:
@@ -155,8 +139,7 @@
     MISE_LOCKED: "1"
     MISE_YES: "1"
     PATH: >-
-      {{ ansible_facts['user_dir'] }}/.local/bin:{{
-      ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+      {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
       ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
   changed_when: false
 

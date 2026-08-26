@@ -243,7 +243,20 @@ grep -q 'command -v herdr; command -v cagent' "$ROOT_DIR/tests/wsl-restart-smoke
 grep -q 'expected_tools' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'herdr integration status' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
 grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-test -f "$ROOT_DIR/home/dot_config/herdr/config.toml"
+herdr_config="$ROOT_DIR/home/dot_config/herdr/config.toml"
+test -f "$herdr_config"
+grep -Fqx 'command = "u7chan.file-viewer.open-file-viewer"' "$herdr_config"
+grep -Fq 'key     = "prefix+y"' "$herdr_config"
+grep -Fq 'command = "yazi"' "$herdr_config"
+grep -Fq 'key     = "prefix+d"' "$herdr_config"
+grep -Fq 'command = "lazydocker"' "$herdr_config"
+grep -Fq 'key     = "prefix+g"' "$herdr_config"
+grep -Fq 'command = "lazygit"' "$herdr_config"
+if grep -Eq '^key[[:space:]]*=[[:space:]]*"prefix\+[hr]"' "$herdr_config"; then
+  printf 'Removed Herdr keybindings must not be managed.\n' >&2
+  exit 1
+fi
+test ! -e "$ROOT_DIR/home/dot_config/herdr/plugins/config/herdr-file-viewer/config.toml"
 test -f "$ROOT_DIR/home/dot_codex/config.toml"
 grep -Fxq 'hooks = true' "$ROOT_DIR/home/dot_codex/config.toml"
 grep -Fxq 'apps = false' "$ROOT_DIR/home/dot_codex/config.toml"

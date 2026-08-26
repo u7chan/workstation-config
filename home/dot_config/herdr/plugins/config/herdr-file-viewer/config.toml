@@ -1,4 +1,0 @@
-editor = "nvim"
-
-[keys]
-open_in_editor = ["e", "Enter"]

@@ -31,7 +31,7 @@ height  = "90%"
 [[keys.command]]
 key     = "prefix+f"
 type    = "plugin_action"
-command = "herdr-file-viewer.open-file-viewer"
+command = "u7chan.file-viewer.open-file-viewer"
 
 [[keys.command]]
 key     = "prefix+d"
@@ -46,13 +46,3 @@ type    = "popup"
 command = "lazygit"
 width   = "90%"
 height  = "90%"
-
-[[keys.command]]
-key     = "prefix+h"
-type    = "shell"
-command = "hunk-split.sh"
-
-[[keys.command]]
-key     = "prefix+r"
-type    = "plugin_action"
-command = "persiyanov.reviewr.toggle"
