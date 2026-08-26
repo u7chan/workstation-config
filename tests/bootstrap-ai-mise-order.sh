@@ -17,12 +17,11 @@ lockfile_line="$(line_number '- name: Install mise lockfile' "$base_tasks")"
 trust_line="$(line_number '- name: Trust mise global configuration' "$base_tasks")"
 herdr_upgrade_line="$(line_number '- name: Resolve latest Herdr release before locked mise install' "$base_tasks")"
 herdr_binary_line="$(line_number '- name: Resolve installed Herdr binary' "$base_tasks")"
-herdr_plugins_line="$(line_number '- name: Install Herdr plugins' "$base_tasks")"
 install_line="$(line_number '- name: Install locked mise tools before personal role tasks' "$base_tasks")"
 [[ $config_line -lt $lockfile_line && $lockfile_line -lt $trust_line && \
   $trust_line -lt $herdr_upgrade_line && $herdr_upgrade_line -lt $herdr_binary_line && \
-  $herdr_binary_line -lt $herdr_plugins_line && $herdr_plugins_line -lt $install_line ]] || {
-  printf 'bootstrap-ai-mise-order: mise configuration, lock, trust, Herdr resolution, plugin install, and locked install must be ordered.\n' >&2
+  $herdr_binary_line -lt $install_line ]] || {
+  printf 'bootstrap-ai-mise-order: mise configuration, lock, Herdr resolution, binary resolution, and locked install must be ordered.\n' >&2
   exit 1
 }
 
@@ -59,17 +58,10 @@ grep -Fqx '      - herdr' <<<"$herdr_binary_task" || {
   exit 1
 }
 
-herdr_plugins_task="$(awk '
-  $0 == "- name: Install Herdr plugins" { capture = 1 }
-  capture && /^- name: / && $0 != "- name: Install Herdr plugins" { exit }
-  capture { print }
-' "$base_tasks")"
-grep -Fqx '      - "{{ herdr_binary.stdout | trim }}"' <<<"$herdr_plugins_task" &&
-grep -Fqx '    MISE_CONFIG_FILE: "{{ ansible_facts['\''user_dir'\''] }}/.config/mise/config.toml"' \
-  <<<"$herdr_plugins_task" || {
-  printf 'bootstrap-ai-mise-order: Herdr plugins must use the resolved binary and mise config.\n' >&2
+if grep -Eq 'plugin[[:space:]]+install' "$base_tasks" "$ROOT_DIR/ansible/vars/main.yml"; then
+  printf 'bootstrap-ai-mise-order: base provisioning must not install Herdr plugins.\n' >&2
   exit 1
-}
+fi
 
 locked_install_task="$(awk '
   $0 == "- name: Install locked mise tools before personal role tasks" { capture = 1 }
