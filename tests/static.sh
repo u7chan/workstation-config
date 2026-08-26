@@ -190,7 +190,7 @@ for pi_package in pi-web-access pi-codex-image-gen pi-codex-conversion @ogulcanc
 done
 grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq 'Install locked mise tools before personal role tasks' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-grep -Fq "ansible_facts['user_dir'] }}/.local/share/mise/shims" \
+grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
   "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
 "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
