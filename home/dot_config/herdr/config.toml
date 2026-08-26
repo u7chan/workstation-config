@@ -8,7 +8,7 @@ show_agent_labels_on_pane_borders = true
 tab_bar_right = [
   { type = "command", command = "~/.config/herdr/scripts/status-resources.sh", interval_seconds = 5, timeout_seconds = 2 },
   { type = "command", command = "~/.config/herdr/scripts/status-agents.sh", interval_seconds = 5, timeout_seconds = 2 },
-  { type = "command", command = "~/.config/herdr/scripts/status-datetime.sh", interval_seconds = 5, timeout_seconds = 2 },
+  { type = "command", command = "~/.config/herdr/scripts/status-datetime.sh", interval_seconds = 1, timeout_seconds = 2 },
 ]
 tab_bar_right_separator = " \ue0b1 "  # NerdFont powerline thin chevron U+E0B1
 
