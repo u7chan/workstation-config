@@ -22,6 +22,10 @@ delta_idle=$((idle2 - idle1))
 delta_all=$((delta_busy + delta_idle))
 cpu_pct=$((delta_all > 0 ? 100 * delta_busy / delta_all : 0))
 
-mem_pct=$(awk '/^MemTotal:/ { total = $2 } /^MemAvailable:/ { avail = $2 } END { printf "%d", (total - avail) * 100 / total }' /proc/meminfo)
+# メモリ: MemTotal - MemAvailable を実質使用量として、使用率と容量(%(usedGi/totalGi))を出力
+mem_stat=$(awk '/^MemTotal:/ { total = $2 } /^MemAvailable:/ { avail = $2 } END {
+  used = total - avail
+  printf "%d(%.0f/%.0fGi)", used * 100 / total, used / (1024 ^ 2), total / (1024 ^ 2)
+}' /proc/meminfo)
 
-printf '%s %d%% %s %d%%\n' "$CPU_ICON" "$cpu_pct" "$MEM_ICON" "$mem_pct"
+printf '%s %d%% %s %s\n' "$CPU_ICON" "$cpu_pct" "$MEM_ICON" "$mem_stat"
