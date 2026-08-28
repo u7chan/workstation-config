@@ -16,7 +16,6 @@ tab_bar_right_separator = " \ue0b1 "  # NerdFont powerline thin chevron U+E0B1
 name = "catppuccin"
 
 [keys]
-prefix         = "ctrl+q"
 split_vertical = "prefix+v"
 close_pane     = "ctrl+w"
 reload_config  = "prefix+shift+r"
