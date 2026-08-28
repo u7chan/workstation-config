@@ -56,7 +56,7 @@ grep -Fq 'WORKSTATION_PI_SELECTED="$PI_SELECTED"' "$ROOT_DIR/bootstrap"
 grep -Fq 'rm -f -- "$HOME/.pi/agent/keybindings.json"' "$ROOT_DIR/bootstrap"
 grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
 grep -Fqx '.pi/agent/keybindings.json' "$ROOT_DIR/home/.chezmoiignore"
-grep -Fq 'Install pinned chezmoi binary' "$ROOT_DIR/.github/workflows/secret-scan.yml"
+grep -Fq 'Install pinned chezmoi binary' "$ROOT_DIR/.github/workflows/ci.yml"
 grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/config.toml"' \
   "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
 grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/mise.lock"' \

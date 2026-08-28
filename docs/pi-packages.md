@@ -19,7 +19,7 @@
 
 `ripgrep`はこのPackageだけの一時依存ではありません。`session_search`はglobal sessions root配下の複数projectのJSONLを、literal fixed-stringかつcase-insensitiveでオンデマンド検索するため、`rg -i -F`を恒久的な優先backendにします。高速なCLIを共通の`base` / `personal`環境へmiseで配布し、同じ検索契約を開発環境で再現します。`provisioning/mise/config.toml`の`ripgrep = "latest"`とlockfileがworkstation側の導入元・検証版を定義します。
 
-`rg`が使えない環境でも、Package upstreamのgrep、Node scan fallbackは残します。したがって`rg`は機能を壊さない絶対条件ではありませんが、workstationではglobal sessionを安定して検索するための標準経路です。CIの`ubuntu-slim`はbootstrapやmise installを実行しないため、`.github/workflows/secret-scan.yml`のstatic jobでは`ansible-core`と一緒に`ripgrep`をAPTで導入します。`tests/static.sh`はmanaged tool設定だけでなく、実環境の`command -v rg`と`rg --version`も検証するため、CIでもこの恒久的なruntime契約を再現します。
+`rg`が使えない環境でも、Package upstreamのgrep、Node scan fallbackは残します。したがって`rg`は機能を壊さない絶対条件ではありませんが、workstationではglobal sessionを安定して検索するための標準経路です。CIの`ubuntu-slim`はbootstrapやmise installを実行しないため、`.github/workflows/ci.yml`のstatic jobでは`ansible-core`と一緒に`ripgrep`、`shellcheck`、`yamllint`、`ansible-lint`をAPTで導入します。`tests/static.sh`はmanaged tool設定だけでなく、実環境の`command -v rg`と`rg --version`も検証するため、CIでもこの恒久的なruntime契約を再現します。
 
 ## 更新・検証手順
 
