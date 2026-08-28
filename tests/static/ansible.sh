@@ -17,13 +17,15 @@ case "${1:-}" in
     grep -Fq 'systemctl is-active --quiet "$user_unit"' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     grep -Fq 'systemctl --user is-system-running' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     ;;
-  vars)
+  vars-git)
     grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
+    ;;
+  vars-packages)
     grep -q '^  - jq$' "$ROOT_DIR/ansible/vars/main.yml"
     grep -q '^  - postgresql-client$' "$ROOT_DIR/ansible/vars/main.yml"
     ;;
   *)
-    printf 'Usage: %s <stage: wsl-workaround|vars>\n' "$0" >&2
+    printf 'Usage: %s <stage: wsl-workaround|vars-git|vars-packages>\n' "$0" >&2
     exit 2
     ;;
 esac
