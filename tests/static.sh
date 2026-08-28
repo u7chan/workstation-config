@@ -1,545 +1,66 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC1003,SC2016,SC2088,SC2251
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly ROOT_DIR
+export ROOT_DIR
 
-bash -n "$ROOT_DIR/bootstrap"
-"$ROOT_DIR/bootstrap" --help >/dev/null
-
-grep -Fq 'Bootstrap前の初期セットアップ' "$ROOT_DIR/README.md"
-grep -Fq 'Workstation構成ガイド' "$ROOT_DIR/README.md"
-grep -Fq 'wsl --install Ubuntu-26.04 --name sandbox' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
-grep -Fq 'wsl --unregister sandbox' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
-grep -Fq '破壊的操作' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
-test -f "$ROOT_DIR/docs/workstation.md"
-grep -Fq '[初期セットアップ手順](bootstrap-prerequisites.md)' "$ROOT_DIR/docs/workstation.md"
-test -f "$ROOT_DIR/docs/cli-tools.md"
-grep -Fq '[CLIツールガイド](cli-tools.md)' "$ROOT_DIR/docs/workstation.md"
-grep -Fq '[CLIツールガイド](docs/cli-tools.md)' "$ROOT_DIR/README.md"
-grep -Fq 'WSL sessionには反映されません' "$ROOT_DIR/docs/cli-tools.md"
-
-grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
-grep -Fq 'WORKSTATION_PERSONAL_AI_TOOLS' "$ROOT_DIR/bootstrap"
-grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
-test -f "$ROOT_DIR/claude/settings.json"
-test -x "$ROOT_DIR/scripts/merge-claude-settings"
-test -f "$ROOT_DIR/home/dot_claude/statusline.py"
-grep -Fq 'python3 ~/.claude/statusline.py' "$ROOT_DIR/claude/settings.json"
-grep -Fq 'scripts/merge-claude-settings' "$ROOT_DIR/bootstrap"
-grep -q '^node = "lts"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -q '^herdr = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -q '^ripgrep = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-command -v rg >/dev/null
-rg --version >/dev/null
-grep -Fq 'cagent = "github:u7chan/code-agent-launcher"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -Fq 'cagent = { version = "1.1.0", filter_bins = "cagent" }' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -Fq '"npm:@playwright/cli" = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -Fq 'backend = "npm:@playwright/cli"' "$ROOT_DIR/provisioning/mise/mise.lock"
-test -s "$ROOT_DIR/provisioning/mise/mise.lock"
-grep -q '^neovim = "0.12"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -q '^hunk = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -q '^lazygit = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -q '^lazydocker = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -Fq 'backend = "aqua:modem-dev/hunk"' "$ROOT_DIR/provisioning/mise/mise.lock"
-grep -Fq 'backend = "aqua:jesseduffield/lazygit"' "$ROOT_DIR/provisioning/mise/mise.lock"
-grep -Fq 'backend = "aqua:jesseduffield/lazydocker"' "$ROOT_DIR/provisioning/mise/mise.lock"
-grep -q '^yazi = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-test ! -e "$ROOT_DIR/mise/config.toml"
-test ! -e "$ROOT_DIR/mise/mise.lock"
-grep -Fxq '.pi/' "$ROOT_DIR/.gitignore"
-test -f "$ROOT_DIR/home/dot_pi/agent/keybindings.json"
-grep -Fqx '  "app.clipboard.pasteImage": ["alt+v"],' "$ROOT_DIR/home/dot_pi/agent/keybindings.json"
-grep -Fqx '  "app.message.dequeue": ["alt+up"]' "$ROOT_DIR/home/dot_pi/agent/keybindings.json"
-grep -Fq 'WORKSTATION_PI_SELECTED="$PI_SELECTED"' "$ROOT_DIR/bootstrap"
-grep -Fq 'rm -f -- "$HOME/.pi/agent/keybindings.json"' "$ROOT_DIR/bootstrap"
-grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
-grep -Fqx '.pi/agent/keybindings.json' "$ROOT_DIR/home/.chezmoiignore"
-grep -Fq 'Install pinned chezmoi binary' "$ROOT_DIR/.github/workflows/ci.yml"
-grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/config.toml"' \
-  "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/mise.lock"' \
-  "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-if grep -R -Eiq 'apt(-get)?.*(install.*)?neovim|^[[:space:]]*-[[:space:]]*neovim$' \
-  "$ROOT_DIR/ansible" "$ROOT_DIR/bootstrap"; then
-  printf 'Neovim must not be managed by APT.\n' >&2
-  exit 1
-fi
-
-test -f "$ROOT_DIR/home/dot_config/nvim/init.lua"
-test -f "$ROOT_DIR/home/dot_config/nvim/lazy-lock.json"
-bash -n "$ROOT_DIR/tests/neovim-smoke.sh"
-bash -n "$ROOT_DIR/tests/yazi-smoke.sh"
-bash -n "$ROOT_DIR/tests/safe-chain-smoke.sh"
-bash -n "$ROOT_DIR/scripts/update-ai"
-bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
-bash -n "$ROOT_DIR/tests/pi-packages-smoke.sh"
-bash -n "$ROOT_DIR/tests/pi-keybindings-smoke.sh"
-bash -n "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
-bash -n "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
-bash -n "$ROOT_DIR/scripts/merge-claude-settings"
-bash -n "$ROOT_DIR/tests/claude-settings-smoke.sh"
-bash -n "$ROOT_DIR/tests/statusline-smoke.sh"
-bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
-bash -n "$ROOT_DIR/tests/docker-smoke.sh"
-bash -n "$ROOT_DIR/tests/psql-smoke.sh"
-bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
-bash -n "$ROOT_DIR/tests/playwright-cli-smoke.sh"
-bash -n "$ROOT_DIR/scripts/personal-bin/myupdate"
-bash -n "$ROOT_DIR/tests/workstation-update-smoke.sh"
-for personal_cli in myclaude gac gpc http http-lan; do
-  bash -n "$ROOT_DIR/scripts/personal-bin/$personal_cli"
-  grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-done
-grep -Fq 'path: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/clp"' \
-  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq 'state: absent' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq 'src: "{{ playbook_dir }}/../scripts/personal-bin/myupdate"' \
-  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/myupdate"' \
-  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq 'src: myupdate.conf.j2' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.config/workstation/myupdate.conf"' \
-  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-
-test -f "$ROOT_DIR/home/dot_config/yazi/yazi.toml"
-test -f "$ROOT_DIR/home/dot_config/yazi/package.toml"
-test -f "$ROOT_DIR/home/dot_config/yazi/.gitignore"
-if find "$ROOT_DIR/home/dot_config/yazi" -mindepth 1 \( \
-  -type d \( -name plugins -o -name flavors -o -name cache -o -name history -o -name preview -o -name state \) -o \
-  -type f -name '*.log' \
-\) | grep -q .; then
-  printf 'Yazi package bodies and runtime data must not be managed by chezmoi.\n' >&2
-  exit 1
-fi
-
-bash -n "$ROOT_DIR/home/modify_dot_bashrc"
-bash -n "$ROOT_DIR/home/modify_dot_gitconfig"
-bash -n "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
-bash -n "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-agents.sh"
-bash -n "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-datetime.sh"
-bash -n "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-
-workaround_tasks="$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-workaround_handlers="$ROOT_DIR/ansible/roles/base/handlers/main.yml"
-grep -Fq '/etc/systemd/system/user@.service.d/wsl-cgroup-workaround.conf' "$workaround_tasks"
-grep -Fq 'DelegateSubgroup=' "$workaround_tasks"
-grep -Fq 'distribution_version"] is version("26.04", "==")' "$workaround_tasks"
-grep -Fq '"microsoft" in ansible_facts["kernel"] | lower' "$workaround_tasks"
-grep -Fq 'systemd 259' "$workaround_tasks"
-grep -Fq 'check_mode: false' "$workaround_tasks"
-grep -Fq 'daemon_reload: true' "$workaround_handlers"
-grep -Fq 'systemctl is-active --quiet "$user_unit"' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -Fq 'systemctl --user is-system-running' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-
-grep -q 'mise.*activate bash' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
-grep -q 'init-posix.sh' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
-grep -q '^safe_chain_version:' "$ROOT_DIR/ansible/vars/main.yml"
-grep -q '^safe_chain_installer_url:' "$ROOT_DIR/ansible/vars/main.yml"
-grep -q '^safe_chain_installer_checksum:' "$ROOT_DIR/ansible/vars/main.yml"
-# Regression check: AikidoSec/safe-chain release tags do not use a "v" prefix.
-if grep -q 'v{{ safe_chain_version }}' "$ROOT_DIR/ansible/vars/main.yml"; then
-  printf 'safe_chain_installer_url must not use a v-prefixed release tag.\n' >&2
-  exit 1
-fi
-safe_chain_version="$(awk -F'"' '/^safe_chain_version:/{print $2}' "$ROOT_DIR/ansible/vars/main.yml")"
-safe_chain_url="https://github.com/AikidoSec/safe-chain/releases/download/${safe_chain_version}/install-safe-chain.sh"
-if ! curl -sI --fail --max-time 10 "$safe_chain_url" >/dev/null; then
-  printf 'Safe-chain installer URL is not reachable: %s\n' "$safe_chain_url" >&2
-  exit 1
-fi
-grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex"' "$ROOT_DIR/scripts/update-ai"
-grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/\*"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package"' "$ROOT_DIR/scripts/update-ai"
-grep -q 'npm install --global @openai/codex@latest' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '"npm:pi-web-access"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '"npm:pi-codex-image-gen"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '"npm:@howaboua/pi-codex-conversion"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '"npm:@ogulcancelik/pi-session-recall"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'pi install "$source"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'pi update "$source"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'pi list --no-approve' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'require_supported_node' "$ROOT_DIR/scripts/update-ai"
-grep -Fq -- '--no-approve' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'PI_MINIMUM_VERSION_MINOR=84' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'PI_MINIMUM_VERSION_PATCH=2' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'NODE_MINIMUM_VERSION_MINOR=19' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'expected_npm_command=' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'config_path="$pi_agent_dir/pi-codex-conversion.json"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '.tools.webRun = false' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '.tools.imageGeneration = false' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '.tools.webRunOnly = false' "$ROOT_DIR/scripts/update-ai"
-grep -Fq '.tools.imageGenerationOnly = false' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'safe-chain","npm' "$ROOT_DIR/scripts/update-ai"
-grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
-grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"
-grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"
-grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq 'exec "$mise_bin" exec node -- "$0" "$@"' "$ROOT_DIR/scripts/update-ai"
-grep -Fq 'MISE_LOCKED: "1"' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq "personal_ai_tools | map('regex_replace', '^', '--')" \
-  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-grep -Fq "when: personal_ai_tools | length > 0" \
-  "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-for pi_package in pi-web-access pi-codex-image-gen pi-codex-conversion @ogulcancelik/pi-session-recall; do
-  if grep -R -Fq "$pi_package" "$ROOT_DIR/ansible/roles/base"; then
-    printf 'Pi package must not be managed by the base role: %s\n' "$pi_package" >&2
-    exit 1
-  fi
-done
-grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-grep -Fq 'Install locked mise tools before personal role tasks' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
-  "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-"$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
-"$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
-"$ROOT_DIR/tests/ai-clis-smoke.sh"
-"$ROOT_DIR/tests/pi-packages-smoke.sh"
-"$ROOT_DIR/tests/pi-keybindings-smoke.sh"
-"$ROOT_DIR/tests/claude-settings-smoke.sh"
-"$ROOT_DIR/tests/statusline-smoke.sh"
-grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
-grep -q '"autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
-grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'Pi Packages一覧' "$ROOT_DIR/README.md"
-grep -Fq 'Pi Packages一覧' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'dot_pi/agent/keybindings.json' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'keybindings.json' "$ROOT_DIR/docs/roles-boundary.md"
-grep -Fq 'pi-keybindings-smoke' "$ROOT_DIR/docs/workstation.md"
-grep -Fq 'pi-web-access' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'web_search' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'fetch_content' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'get_search_content' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'source_check' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '~/.pi/web-search.json' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'pi-codex-image-gen' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '@howaboua/pi-codex-conversion' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '@ogulcancelik/pi-session-recall' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'exec_command' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'write_stdin' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'codex_generate_image' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '~/.pi/agent/generated-images/' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '~/.pi/agent/pi-codex-conversion.json' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'tools.imageGeneration' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'tools.webRun' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'session_search' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'session_query' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '~/.pi/agent/sessions' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '~/.pi/agent/session-recall.json' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'background indexing' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'ripgrep' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq 'Pi Packages' "$ROOT_DIR/docs/roles-boundary.md"
-grep -Fq 'pi-packages.md' "$ROOT_DIR/docs/roles-boundary.md"
-grep -Fq 'Herdr integrationの生成hook/plugin' "$ROOT_DIR/docs/roles-boundary.md"
-test -f "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '| `npm:pi-web-access` |' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '| `npm:pi-codex-image-gen` |' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '| `npm:@howaboua/pi-codex-conversion` |' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '| `npm:@ogulcancelik/pi-session-recall` |' "$ROOT_DIR/docs/pi-packages.md"
-grep -Fq '0.84.2' "$ROOT_DIR/docs/pi-packages.md"
-grep -q 'type -a herdr cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -q 'command -v herdr; command -v cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -q 'expected_tools' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -q 'herdr integration status' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-herdr_config="$ROOT_DIR/home/dot_config/herdr/config.toml"
-test -f "$herdr_config"
-grep -Fqx 'command = "u7chan.file-viewer.open-file-viewer"' "$herdr_config"
-grep -Fq 'key     = "prefix+y"' "$herdr_config"
-grep -Fq 'command = "yazi"' "$herdr_config"
-grep -Fq 'key     = "prefix+d"' "$herdr_config"
-grep -Fq 'command = "lazydocker"' "$herdr_config"
-grep -Fq 'key     = "prefix+g"' "$herdr_config"
-grep -Fq 'command = "lazygit"' "$herdr_config"
-if grep -Eq '^key[[:space:]]*=[[:space:]]*"prefix\+[hr]"' "$herdr_config"; then
-  printf 'Removed Herdr keybindings must not be managed.\n' >&2
-  exit 1
-fi
-test ! -e "$ROOT_DIR/home/dot_config/herdr/plugins/config/herdr-file-viewer/config.toml"
-test -f "$ROOT_DIR/home/dot_codex/config.toml"
-grep -Fxq 'hooks = true' "$ROOT_DIR/home/dot_codex/config.toml"
-grep -Fxq 'apps = false' "$ROOT_DIR/home/dot_codex/config.toml"
-test -f "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq 'default_agent: codex' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq 'default_profile: reasoner' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq '  worker-codex:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -A 3 -F '  worker-codex:' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '    effort: max'
-grep -Fq '  worker-opencode:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq '  reasoner:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -A 3 -F '  reasoner:' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '    effort: high'
-grep -Fq '  reviewer:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -A 3 -F '  reviewer:' "$ROOT_DIR/home/dot_config/cagent/config.yaml" | grep -Fxq '    effort: xhigh'
-grep -Fq '  orchestrator:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq '  opencode-go:' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq '    start_command_template: "cagent {profile}"' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-grep -Fq '    run_command_template: "cagent run {profile} -- {prompt}"' "$ROOT_DIR/home/dot_config/cagent/config.yaml"
-if grep -Eq '^version:[[:space:]]*2$' "$ROOT_DIR/home/dot_config/cagent/config.yaml"; then
-  printf 'cagent config must not declare version: 2.\n' >&2
-  exit 1
-fi
-if find "$ROOT_DIR/home" -type f \( \
-  -name 'herdr-agent-state.*' -o \
-  -name 'hooks.json' -o \
-  -name 'auth.json' -o \
-  -name 'history.jsonl' -o \
-  -name '*.db' -o \
-  -name 'session.json' -o \
-  -name '*.log' \
-\) | grep -q .; then
-  printf 'Herdr-generated runtime data must not be managed by chezmoi.\n' >&2
-  exit 1
-fi
-# home/dot_pi/agent/keybindings.json is the only allowed Pi user config in Git.
-if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
-  | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
-  printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
-  exit 1
-fi
-
-grep -q '^  - git$' "$ROOT_DIR/ansible/vars/main.yml"
-grep -q '^gh = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
-grep -q '^  - jq$' "$ROOT_DIR/ansible/vars/main.yml"
-grep -q '^  - postgresql-client$' "$ROOT_DIR/ansible/vars/main.yml"
-
-docker_tasks="$ROOT_DIR/ansible/roles/docker_ce/tasks/main.yml"
-grep -Fq 'download.docker.com/linux/ubuntu' "$ROOT_DIR/ansible/vars/main.yml"
-for docker_package in docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin; do
-  grep -Fq -- "- $docker_package" "$ROOT_DIR/ansible/vars/main.yml"
-done
-grep -Fq 'containerd.service' "$docker_tasks"
-grep -Fq 'docker.service' "$docker_tasks"
-grep -Fq 'groups:' "$docker_tasks"
-grep -Fq 'personal_docker_ce_enabled | bool' "$ROOT_DIR/ansible/playbook.yml"
-grep -Fq 'docker context show' "$ROOT_DIR/tests/docker-smoke.sh"
-grep -Fq 'docker buildx version' "$ROOT_DIR/tests/docker-smoke.sh"
-grep -Fq 'docker compose' "$ROOT_DIR/tests/docker-smoke.sh"
-grep -Fq 'env \' "$ROOT_DIR/bootstrap"
-grep -Fq 'ANSIBLE_BECOME_EXE="$SUDO_EXE"' "$ROOT_DIR/bootstrap"
-grep -Fq 'ANSIBLE_BECOME_ASK_PASS="$ASK_PASS"' "$ROOT_DIR/bootstrap"
-grep -q '^"${SUDO_EXE:-sudo}" -v$' "$ROOT_DIR/bootstrap"
-grep -q '\[\[ -n \$SUDO_EXE \]\]' "$ROOT_DIR/bootstrap"
-
-ansible_env_output="$(
-  env \
-    ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
-    ANSIBLE_BECOME_EXE=/usr/bin/sudo.ws \
-    ANSIBLE_BECOME_ASK_PASS=True \
-    bash -c 'printf "%s\n%s\n%s\n" "$ANSIBLE_CONFIG" "$ANSIBLE_BECOME_EXE" "$ANSIBLE_BECOME_ASK_PASS"'
-)"
-[[ $ansible_env_output == "$ROOT_DIR/ansible/ansible.cfg"$'\n'/usr/bin/sudo.ws$'\n'True ]]
-
-test_dir="$(mktemp -d)"
-trap 'rm -rf "$test_dir"' EXIT
-
-windows_terminal_doc="$ROOT_DIR/docs/windows-terminal.md"
-test -f "$windows_terminal_doc"
-grep -Fq 'Windows Terminal設定' "$ROOT_DIR/README.md"
-grep -Fq 'wsl.exe --distribution {WSLディストリビューション名}' "$windows_terminal_doc"
-grep -Fq '"defaultProfile": "{11111111-1111-1111-1111-111111111111}"' "$windows_terminal_doc"
-grep -Fq '"commandline": "powershell.exe"' "$windows_terminal_doc"
-grep -Fq '"Windows.Terminal.Wsl"' "$windows_terminal_doc"
-windows_terminal_json_dir="$test_dir/windows-terminal-json"
-mkdir -p "$windows_terminal_json_dir"
-awk -v output_dir="$windows_terminal_json_dir" '
-  /^```json[[:space:]]*$/ {
-    if (in_block) {
-      printf "Nested JSON code block in %s.\n", FILENAME > "/dev/stderr"
-      failed = 1
-      next
-    }
-    in_block = 1
-    output_path = sprintf("%s/block-%d.json", output_dir, ++block_count)
-    next
-  }
-  /^```[[:space:]]*$/ {
-    if (in_block) {
-      in_block = 0
-    }
-    next
-  }
-  in_block {
-    print > output_path
-  }
-  END {
-    if (in_block) {
-      printf "Unterminated JSON code block in %s.\n", FILENAME > "/dev/stderr"
-      failed = 1
-    }
-    if (block_count != 1) {
-      printf "Expected exactly 1 JSON code block in %s, found %d.\n", FILENAME, block_count > "/dev/stderr"
-      failed = 1
-    }
-    exit failed
-  }
-' "$windows_terminal_doc"
-for windows_terminal_json in "$windows_terminal_json_dir"/*.json; do
-  jq empty "$windows_terminal_json"
-done
-
-gitconfig_input="$test_dir/gitconfig.input"
-gitconfig_first="$test_dir/gitconfig.first"
-gitconfig_second="$test_dir/gitconfig.second"
-cat >"$gitconfig_input" <<'EOF'
-[credential "https://github.com"]
-	helper = !/usr/bin/gh auth git-credential
-EOF
-"$ROOT_DIR/home/modify_dot_gitconfig" <"$gitconfig_input" >"$gitconfig_first"
-"$ROOT_DIR/home/modify_dot_gitconfig" <"$gitconfig_first" >"$gitconfig_second"
-cmp "$gitconfig_first" "$gitconfig_second"
-[[ $(git config --file "$gitconfig_second" init.defaultBranch) == main ]]
-[[ $(git config --file "$gitconfig_second" core.excludesFile) == '~/.config/git/ignore' ]]
-[[ $(git config --file "$gitconfig_second" --get-all 'url.https://github.com/.insteadOf' | wc -l) -eq 2 ]]
-[[ $(GIT_CONFIG_GLOBAL="$gitconfig_second" GIT_CONFIG_NOSYSTEM=1 git ls-remote --get-url git@github.com:u7chan/workstation-config.git) == https://github.com/u7chan/workstation-config.git ]]
-[[ $(GIT_CONFIG_GLOBAL="$gitconfig_second" GIT_CONFIG_NOSYSTEM=1 git ls-remote --get-url ssh://git@github.com/u7chan/workstation-config.git) == https://github.com/u7chan/workstation-config.git ]]
-git config --file "$gitconfig_second" --get-all credential.https://github.com.helper |
-  grep -Fqx '!/usr/bin/gh auth git-credential'
-! grep -Eiq 'token|private.?key|sshcommand' "$gitconfig_second"
-
-[[ $(git config --file "$gitconfig_second" alias.s) == status ]]
-[[ $(git config --file "$gitconfig_second" alias.ss) == 'status -s' ]]
-[[ $(git config --file "$gitconfig_second" alias.b) == branch ]]
-[[ $(git config --file "$gitconfig_second" alias.sw) == switch ]]
-[[ $(git config --file "$gitconfig_second" alias.swc) == 'switch -c' ]]
-[[ $(git config --file "$gitconfig_second" alias.swm) == 'switch main' ]]
-[[ $(git config --file "$gitconfig_second" alias.f) == 'fetch --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.fa) == 'fetch --all --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.fp) == 'fetch --prune --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.fap) == 'fetch --all --prune --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.pl) == 'pull --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.plr) == 'pull --rebase --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.plm) == '!git fetch origin main --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.p) == 'push --verbose' ]]
-[[ $(git config --file "$gitconfig_second" alias.puo) == 'push -u origin HEAD' ]]
-[[ $(git config --file "$gitconfig_second" alias.cm) == commit ]]
-[[ $(git config --file "$gitconfig_second" alias.cma) == 'commit --amend --no-edit' ]]
-[[ $(git config --file "$gitconfig_second" alias.lg) == 'log --oneline --graph --decorate' ]]
-[[ $(git config --file "$gitconfig_second" alias.last) == 'log -1 HEAD' ]]
-[[ $(git config --file "$gitconfig_second" alias.unstage) == 'restore --staged .' ]]
-[[ $(git config --file "$gitconfig_second" alias.discard) == 'restore .' ]]
-
-expected_aliases=(
-  alias.s alias.ss alias.b alias.sw alias.swc alias.swm
-  alias.f alias.fa alias.fp alias.fap
-  alias.pl alias.plr alias.plm
-  alias.p alias.puo
-  alias.cm alias.cma
-  alias.lg alias.last
-  alias.unstage alias.discard
-)
-mapfile -t actual_aliases < <(git config --file "$gitconfig_second" --get-regexp '^alias\.' 2>/dev/null | awk '{print $1}')
-for key in "${actual_aliases[@]}"; do
-  if ! printf '%s\n' "${expected_aliases[@]}" | grep -Fx "$key" >/dev/null; then
-    printf 'Unexpected alias %s found; only allowlisted aliases may be managed.\n' "$key" >&2
-    exit 1
-  fi
-done
-
-if git config --file "$gitconfig_second" --get-all safe.directory 2>/dev/null | grep -Fqx '*'; then
-  printf 'safe.directory=* must not be set by chezmoi.\n' >&2
-  exit 1
-fi
-
-test_bashrc="$test_dir/bashrc"
-test_home="$test_dir/home"
-test_bin="$test_dir/bin"
-mkdir -p "$test_home/.config/workstation/shell" "$test_bin"
-printf '#!/usr/bin/env bash\nprintf "C:\\\\mock"\n' >"$test_bin/wslpath"
-chmod +x "$test_bin/wslpath"
-printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$1"\nexit 1\n' >"$test_bin/explorer.exe"
-chmod +x "$test_bin/explorer.exe"
-printf 'alias g=echo\n' >"$test_home/.config/workstation/shell/local.bash"
-printf '# Ubuntu default\n' >"$test_bashrc"
-"$ROOT_DIR/home/modify_dot_bashrc" <"$test_bashrc" >"${test_bashrc}.first"
-"$ROOT_DIR/home/modify_dot_bashrc" <"${test_bashrc}.first" >"${test_bashrc}.second"
-cmp "${test_bashrc}.first" "${test_bashrc}.second"
-[[ $(grep -c '^# BEGIN workstation-config$' "${test_bashrc}.second") -eq 1 ]]
-[[ $(grep -c 'source "$HOME/.config/workstation/shell/init.bash"' "${test_bashrc}.second") -eq 1 ]]
-
-noninteractive_output="$(bash -c 'source "$1"' _ "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" 2>&1)"
-[[ -z $noninteractive_output ]]
-
-interactive_output="$({
-  HOME="$test_home" \
-  PATH="$test_bin:$PATH" \
-  WT_SESSION=test \
-  WSL_DISTRO_NAME=test \
-    bash --noprofile --norc -ic '
-      set -e
-      PROMPT_COMMAND="existing_hook"
-      source "$1"
-      source "$1"
-      prompt_state="${PROMPT_COMMAND};${STARSHIP_PROMPT_COMMAND:-}"
-      [[ $prompt_state == *existing_hook* ]]
-      [[ $(grep -o "__workstation_report_cwd" <<<"$prompt_state" | wc -l) -eq 1 ]]
-      [[ $(grep -o "starship_precmd" <<<"$PROMPT_COMMAND" | wc -l) -le 1 ]]
-      alias g | grep -q "alias g=.*echo"
-      alias h | grep -q "alias h=.*herdr"
-      alias open | grep -q "alias open=.*__workstation_open"
-      [[ $(open .) == C:\\mock ]]
-      open . >/dev/null
-    ' _ "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
-} 2>&1)" || {
-  printf '%s\n' "$interactive_output" >&2
-  exit 1
+# Static checks are split into per-area files under tests/static/. Each area
+# file exposes named stages, and this runner schedules every stage in the
+# exact statement order of the original single-file script, so fail-fast
+# still surfaces the same first failure as before. Comments reference the
+# physical line numbers of the original tests/static.sh (6b80f01), verified
+# with `git show 6b80f01:tests/static.sh | nl -ba`; blank lines are skipped.
+run() {
+  local file="$1" stage="$2"
+  printf '[static] %s %s\n' "$file" "$stage"
+  "$ROOT_DIR/tests/static/$file" "$stage"
 }
 
-if "$ROOT_DIR/bootstrap" invalid >/dev/null 2>&1; then
-  printf 'Invalid profile was accepted.\n' >&2
-  exit 1
-fi
-
-if command -v shellcheck >/dev/null 2>&1; then
-  shellcheck \
-    "$ROOT_DIR/bootstrap" \
-    "$ROOT_DIR/home/modify_dot_bashrc" \
-    "$ROOT_DIR/home/modify_dot_gitconfig" \
-    "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
-    "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-agents.sh" \
-    "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-datetime.sh" \
-    "$ROOT_DIR/scripts/update-ai" \
-    "$ROOT_DIR/tests/ai-clis-smoke.sh" \
-    "$ROOT_DIR/tests/pi-packages-smoke.sh" \
-    "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh" \
-    "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
-    "$ROOT_DIR/tests/safe-chain-smoke.sh" \
-    "$ROOT_DIR/tests/personal-cli-smoke.sh" \
-    "$ROOT_DIR/tests/docker-smoke.sh" \
-    "$ROOT_DIR/tests/cagent-smoke.sh" \
-    "$ROOT_DIR/scripts/personal-bin/myupdate" \
-    "$ROOT_DIR/tests/workstation-update-smoke.sh" \
-    "$ROOT_DIR/scripts/personal-bin/myclaude" \
-    "$ROOT_DIR/scripts/personal-bin/gac" \
-    "$ROOT_DIR/scripts/personal-bin/gpc" \
-    "$ROOT_DIR/scripts/personal-bin/http" \
-    "$ROOT_DIR/scripts/personal-bin/http-lan" \
-    "$ROOT_DIR/tests/static.sh"
-else
-  printf 'shellcheck is not installed; skipping shell checks.\n'
-fi
-
-if command -v ansible-playbook >/dev/null 2>&1; then
-  ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
-    ansible-playbook \
-    --inventory "$ROOT_DIR/ansible/inventory/localhost.yml" \
-    --extra-vars workstation_profile=base \
-    --syntax-check \
-    "$ROOT_DIR/ansible/playbook.yml"
-else
-  printf 'ansible-playbook is not installed; skipping Ansible syntax check.\n'
-fi
-
-if command -v yamllint >/dev/null 2>&1; then
-  yamllint --config-file "$ROOT_DIR/.yamllint.yml" "$ROOT_DIR/ansible"
-else
-  printf 'yamllint is not installed; skipping YAML lint.\n'
-fi
-
-if command -v ansible-lint >/dev/null 2>&1; then
-  ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
-    ansible-lint "$ROOT_DIR/ansible/playbook.yml"
-else
-  printf 'ansible-lint is not installed; skipping Ansible lint.\n'
-fi
+run bootstrap.sh syntax                  # 旧L8-9
+run docs.sh links                        # 旧L11-21
+run bootstrap.sh vars                    # 旧L23-25
+run claude.sh settings                   # 旧L26-30
+run mise.sh config                       # 旧L31-50
+run pi.sh keybindings                    # 旧L51-58
+run bootstrap.sh ci-workflow             # 旧L59
+run mise.sh ansible-base                 # 旧L60-71
+run smoke.sh syntax-tools                # 旧L72-74
+run update-ai.sh syntax                  # 旧L75
+run smoke.sh syntax-ai                   # 旧L76-80
+run claude.sh syntax                     # 旧L81
+run smoke.sh syntax-more                 # 旧L82-88
+run personal.sh syntax                   # 旧L89
+run smoke.sh syntax-update               # 旧L90
+run personal.sh role                     # 旧L91-104
+run mise.sh yazi                         # 旧L106-115
+run shell-init.sh syntax-bashrc          # 旧L117
+run gitconfig.sh syntax                  # 旧L118
+run shell-init.sh syntax-init            # 旧L119
+run herdr.sh syntax-status               # 旧L120-121 + status-resources.sh追加
+run herdr.sh syntax-wsl-restart          # 旧L122
+run ansible.sh wsl-workaround            # 旧L124-134
+run shell-init.sh mise-activate          # 旧L136-137
+run update-ai.sh safe-chain-and-greps    # 旧L138-184
+run pi.sh base-role-guard                # 旧L185-190
+run mise.sh base-role-order              # 旧L191-194
+run smoke.sh run                         # 旧L195-201
+run shell-init.sh autoupdate             # 旧L202-203
+run docs.sh pi-packages                  # 旧L204-240
+run herdr.sh wsl-restart-greps           # 旧L241-245
+run herdr.sh config                      # 旧L246-259
+run codex.sh config                      # 旧L260-262
+run cagent.sh config                     # 旧L263-280
+run herdr.sh runtime-data                # 旧L281-292
+run pi.sh runtime-data                   # 旧L293-298
+run ansible.sh vars-git                  # 旧L300
+run mise.sh gh                           # 旧L301
+run ansible.sh vars-packages             # 旧L302-303
+run docker.sh docker                     # 旧L305-316
+run bootstrap.sh sudo-env                # 旧L317-330
+run windows-terminal.sh doc-json         # 旧L332-378
+run gitconfig.sh suite                   # 旧L380-441
+run shell-init.sh bashrc-suite           # 旧L443-485
+run bootstrap.sh invalid-profile         # 旧L487-490
+run lint.sh lint                         # 旧L492-543
 
 printf 'Static checks passed.\n'
