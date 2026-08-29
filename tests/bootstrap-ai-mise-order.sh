@@ -4,24 +4,38 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
 
-base_tasks="$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-personal_tasks="$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+base_tasks_dir="$ROOT_DIR/ansible/roles/base/tasks"
+base_main="$base_tasks_dir/main.yml"
+toolchain_tasks="$base_tasks_dir/toolchain.yml"
+mise_tools_tasks="$base_tasks_dir/mise_tools.yml"
+personal_tasks="$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
+personal_vars="$ROOT_DIR/ansible/roles/personal/vars/main.yml"
 playbook="$ROOT_DIR/ansible/playbook.yml"
 
 line_number() {
   grep -n -m1 -F -- "$1" "$2" | cut -d: -f1
 }
 
-config_line="$(line_number '- name: Install mise global configuration' "$base_tasks")"
-lockfile_line="$(line_number '- name: Install mise lockfile' "$base_tasks")"
-trust_line="$(line_number '- name: Trust mise global configuration' "$base_tasks")"
-herdr_upgrade_line="$(line_number '- name: Resolve latest Herdr release before locked mise install' "$base_tasks")"
-herdr_binary_line="$(line_number '- name: Resolve installed Herdr binary' "$base_tasks")"
-install_line="$(line_number '- name: Install locked mise tools before personal role tasks' "$base_tasks")"
-[[ $config_line -lt $lockfile_line && $lockfile_line -lt $trust_line && \
-  $trust_line -lt $herdr_upgrade_line && $herdr_upgrade_line -lt $herdr_binary_line && \
-  $herdr_binary_line -lt $install_line ]] || {
-  printf 'bootstrap-ai-mise-order: mise configuration, lock, Herdr resolution, binary resolution, and locked install must be ordered.\n' >&2
+toolchain_include_line="$(line_number 'ansible.builtin.import_tasks: toolchain.yml' "$base_main")"
+mise_tools_include_line="$(line_number 'ansible.builtin.import_tasks: mise_tools.yml' "$base_main")"
+[[ $toolchain_include_line -gt 0 && $toolchain_include_line -lt $mise_tools_include_line ]] || {
+  printf 'bootstrap-ai-mise-order: toolchain must be imported before Herdr resolution and locked install.\n' >&2
+  exit 1
+}
+
+config_line="$(line_number '- name: Install mise global configuration' "$toolchain_tasks")"
+lockfile_line="$(line_number '- name: Install mise lockfile' "$toolchain_tasks")"
+trust_line="$(line_number '- name: Trust mise global configuration' "$toolchain_tasks")"
+[[ $config_line -lt $lockfile_line && $lockfile_line -lt $trust_line ]] || {
+  printf 'bootstrap-ai-mise-order: mise configuration, lock, and trust must be ordered.\n' >&2
+  exit 1
+}
+
+herdr_upgrade_line="$(line_number '- name: Resolve latest Herdr release before locked mise install' "$mise_tools_tasks")"
+herdr_binary_line="$(line_number '- name: Resolve installed Herdr binary' "$mise_tools_tasks")"
+install_line="$(line_number '- name: Install locked mise tools before personal role tasks' "$mise_tools_tasks")"
+[[ $herdr_upgrade_line -lt $herdr_binary_line && $herdr_binary_line -lt $install_line ]] || {
+  printf 'bootstrap-ai-mise-order: Herdr resolution, binary resolution, and locked install must be ordered.\n' >&2
   exit 1
 }
 
@@ -29,7 +43,7 @@ herdr_upgrade_task="$(awk '
   $0 == "- name: Resolve latest Herdr release before locked mise install" { capture = 1 }
   capture && /^- name: / && $0 != "- name: Resolve latest Herdr release before locked mise install" { exit }
   capture { print }
-' "$base_tasks")"
+' "$mise_tools_tasks")"
 grep -Fqx '      - /usr/bin/env' <<<"$herdr_upgrade_task" &&
 grep -Fqx '      - -u' <<<"$herdr_upgrade_task" &&
 grep -Fqx '      - MISE_LOCKED' <<<"$herdr_upgrade_task" &&
@@ -47,7 +61,7 @@ herdr_binary_task="$(awk '
   $0 == "- name: Resolve installed Herdr binary" { capture = 1 }
   capture && /^- name: / && $0 != "- name: Resolve installed Herdr binary" { exit }
   capture { print }
-' "$base_tasks")"
+' "$mise_tools_tasks")"
 grep -Fqx '      - /usr/bin/env' <<<"$herdr_binary_task" &&
 grep -Fqx '      - -u' <<<"$herdr_binary_task" &&
 grep -Fqx '      - MISE_LOCKED' <<<"$herdr_binary_task" &&
@@ -58,7 +72,7 @@ grep -Fqx '      - herdr' <<<"$herdr_binary_task" || {
   exit 1
 }
 
-if grep -Eq 'plugin[[:space:]]+install' "$base_tasks" "$ROOT_DIR/ansible/vars/main.yml"; then
+if grep -Eq 'plugin[[:space:]]+install' "$ROOT_DIR/ansible/vars/main.yml" "$base_tasks_dir"/*.yml; then
   printf 'bootstrap-ai-mise-order: base provisioning must not install Herdr plugins.\n' >&2
   exit 1
 fi
@@ -67,21 +81,25 @@ locked_install_task="$(awk '
   $0 == "- name: Install locked mise tools before personal role tasks" { capture = 1 }
   capture && /^- name: / && $0 != "- name: Install locked mise tools before personal role tasks" { exit }
   capture { print }
-' "$base_tasks")"
-grep -Fqx '    MISE_LOCKED: "1"' <<<"$locked_install_task" || {
-  printf 'bootstrap-ai-mise-order: locked base mise install must set MISE_LOCKED=1.\n' >&2
-  exit 1
-}
+' "$mise_tools_tasks")"
 grep -Fqx '      - /usr/bin/flock' <<<"$locked_install_task"
 grep -Fqx '      - "{{ ansible_facts['\''user_dir'\''] }}/.local/state/workstation-update/update.lock"' \
   <<<"$locked_install_task"
-grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/bin' <<<"$locked_install_task" || {
+grep -Fq 'environment: "{{ base_mise_locked_env }}"' <<<"$locked_install_task" || {
+  printf 'bootstrap-ai-mise-order: locked base mise install must use the consolidated locked env.\n' >&2
+  exit 1
+}
+grep -Fq 'MISE_LOCKED: "1"' "$ROOT_DIR/ansible/roles/base/vars/main.yml" || {
+  printf 'bootstrap-ai-mise-order: locked base mise install must set MISE_LOCKED=1.\n' >&2
+  exit 1
+}
+grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/bin' "$ROOT_DIR/ansible/roles/base/vars/main.yml" || {
   printf 'bootstrap-ai-mise-order: locked base mise install must add ~/.local/bin to PATH.\n' >&2
   exit 1
 }
 
 grep -Fq '/.local/bin/update-ai' "$personal_tasks"
-grep -Fq 'MISE_LOCKED: "1"' "$personal_tasks"
+grep -Fq 'MISE_LOCKED: "1"' "$personal_vars"
 grep -Fq "['/usr/bin/flock', ansible_facts['user_dir'] + '/.local/state/workstation-update/update.lock'" \
   "$personal_tasks"
 grep -Fq 'src: myupdate.conf.j2' "$personal_tasks"
