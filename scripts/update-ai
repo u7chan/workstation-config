@@ -31,8 +31,11 @@ readonly NODE_MINIMUM_VERSION_MAJOR=22
 readonly NODE_MINIMUM_VERSION_MINOR=19
 readonly NODE_MINIMUM_VERSION_PATCH=0
 
-node_version_is_supported() {
+version_ge() {
   local version=$1
+  local min_major=$2
+  local min_minor=$3
+  local min_patch=$4
   local major minor patch
   if [[ ! $version =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(\+.*)?$ ]]; then
     return 1
@@ -40,16 +43,66 @@ node_version_is_supported() {
   major=${BASH_REMATCH[1]}
   minor=${BASH_REMATCH[2]}
   patch=${BASH_REMATCH[3]}
-  ((major > NODE_MINIMUM_VERSION_MAJOR)) || \
-    ((major == NODE_MINIMUM_VERSION_MAJOR && minor > NODE_MINIMUM_VERSION_MINOR)) || \
-    ((major == NODE_MINIMUM_VERSION_MAJOR && minor == NODE_MINIMUM_VERSION_MINOR && \
-      patch >= NODE_MINIMUM_VERSION_PATCH))
+  ((major > min_major)) || \
+    ((major == min_major && minor > min_minor)) || \
+    ((major == min_major && minor == min_minor && patch >= min_patch))
+}
+
+# write_json_file <target_path> <temp_prefix> <kind> <update_subject> <jq_program> [jq_option...]
+#
+# Atomically (re)create <target_path> as a JSON object with jq. An existing
+# target must be a regular file containing a JSON object and is fed to jq;
+# otherwise jq starts from null with -n. The temp file inherits the target's
+# mode, or 0600 for a new file, and is installed with mv; an EXIT trap cleans
+# it up on failure.
+write_json_file() {
+  local target_path=$1
+  local temp_prefix=$2
+  local kind=$3
+  local update_subject=$4
+  local jq_program=$5
+  shift 5
+  local -a jq_options=("$@")
+  local target_dir temporary_path
+
+  target_dir="$(dirname -- "$target_path")"
+  mkdir -p -- "$target_dir"
+  chmod 0700 -- "$target_dir"
+
+  if [[ -e $target_path && ! -f $target_path ]]; then
+    die "$kind path is not a regular file: $target_path"
+  fi
+  if [[ -f $target_path ]]; then
+    jq -e 'type == "object"' "$target_path" >/dev/null || \
+      die "$kind must contain a JSON object: $target_path"
+  fi
+
+  temporary_path="$(mktemp "$target_dir/$temp_prefix.XXXXXXXXXX")"
+  cleanup_temp() {
+    [[ -z $temporary_path ]] || rm -f -- "$temporary_path"
+  }
+  trap cleanup_temp EXIT
+
+  if [[ -f $target_path ]]; then
+    jq "${jq_options[@]}" "$jq_program" "$target_path" >"$temporary_path" || \
+      die "could not update $update_subject: $target_path"
+    chmod --reference="$target_path" "$temporary_path"
+  else
+    jq -n "${jq_options[@]}" "$jq_program" >"$temporary_path" || \
+      die "could not create $kind: $target_path"
+    chmod 0600 "$temporary_path"
+  fi
+
+  mv -- "$temporary_path" "$target_path"
+  temporary_path=""
+  trap - EXIT
 }
 
 require_supported_node() {
   local node_version
   node_version="$(node --version)" || die "could not determine Node.js version"
-  node_version_is_supported "$node_version" || \
+  version_ge "$node_version" \
+    "$NODE_MINIMUM_VERSION_MAJOR" "$NODE_MINIMUM_VERSION_MINOR" "$NODE_MINIMUM_VERSION_PATCH" || \
     die "Node.js >= ${NODE_MINIMUM_VERSION_MAJOR}.${NODE_MINIMUM_VERSION_MINOR}.${NODE_MINIMUM_VERSION_PATCH} is required for Pi packages (found: $node_version)"
 }
 
@@ -58,45 +111,16 @@ configure_pi_npm_command() {
 
   local pi_agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
   local settings_path="$pi_agent_dir/settings.json"
-  local temporary_path=""
   local expected_npm_command='["mise","exec","node","--","safe-chain","npm"]'
 
-  mkdir -p -- "$pi_agent_dir"
-  chmod 0700 -- "$pi_agent_dir"
-  if [[ -e $settings_path && ! -f $settings_path ]]; then
-    die "Pi settings path is not a regular file: $settings_path"
-  fi
-
-  if [[ -f $settings_path ]]; then
-    jq -e 'type == "object"' "$settings_path" >/dev/null || \
-      die "Pi settings must contain a JSON object: $settings_path"
-    if jq -e --argjson expected "$expected_npm_command" \
+  if [[ -f $settings_path ]] && \
+    jq -e --argjson expected "$expected_npm_command" \
       '.npmCommand == $expected' "$settings_path" >/dev/null; then
-      return 0
-    fi
+    return 0
   fi
 
-  temporary_path="$(mktemp "$pi_agent_dir/.settings.json.tmp.XXXXXXXXXX")"
-  cleanup_pi_settings_temp() {
-    [[ -z $temporary_path ]] || rm -f -- "$temporary_path"
-  }
-  trap cleanup_pi_settings_temp EXIT
-
-  if [[ -f $settings_path ]]; then
-    jq --argjson npm_command "$expected_npm_command" \
-      '.npmCommand = $npm_command' "$settings_path" >"$temporary_path" || \
-      die "could not update Pi npm command: $settings_path"
-    chmod --reference="$settings_path" "$temporary_path"
-  else
-    jq --argjson npm_command "$expected_npm_command" \
-      -n '{npmCommand: $npm_command}' >"$temporary_path" || \
-      die "could not create Pi settings: $settings_path"
-    chmod 0600 "$temporary_path"
-  fi
-
-  mv -- "$temporary_path" "$settings_path"
-  temporary_path=""
-  trap - EXIT
+  write_json_file "$settings_path" ".settings.json.tmp" "Pi settings" "Pi npm command" \
+    '.npmCommand = $npm_command' --argjson npm_command "$expected_npm_command"
 }
 
 configure_pi_codex_conversion() {
@@ -104,73 +128,24 @@ configure_pi_codex_conversion() {
 
   local pi_agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
   local config_path="$pi_agent_dir/pi-codex-conversion.json"
-  local temporary_path=""
 
-  mkdir -p -- "$pi_agent_dir"
-  chmod 0700 -- "$pi_agent_dir"
-  if [[ -e $config_path && ! -f $config_path ]]; then
-    die "Pi Codex conversion config path is not a regular file: $config_path"
-  fi
-
-  if [[ -f $config_path ]]; then
-    jq -e 'type == "object"' "$config_path" >/dev/null || \
-      die "Pi Codex conversion config must contain a JSON object: $config_path"
-  fi
-
-  temporary_path="$(mktemp "$pi_agent_dir/.pi-codex-conversion.json.tmp.XXXXXXXXXX")"
-  cleanup_pi_codex_conversion_temp() {
-    [[ -z $temporary_path ]] || rm -f -- "$temporary_path"
-  }
-  trap cleanup_pi_codex_conversion_temp EXIT
-
-  if [[ -f $config_path ]]; then
-    jq '
+  write_json_file "$config_path" ".pi-codex-conversion.json.tmp" \
+    "Pi Codex conversion config" "Pi Codex conversion config" \
+    '
       .tools = (if (.tools? | type) == "object" then .tools else {} end)
       | .tools.webRun = false
       | .tools.imageGeneration = false
       | .tools.webRunOnly = false
       | .tools.imageGenerationOnly = false
-    ' "$config_path" >"$temporary_path" || \
-      die "could not update Pi Codex conversion config: $config_path"
-    chmod --reference="$config_path" "$temporary_path"
-  else
-    jq -n '
-      {tools: {
-        webRun: false,
-        imageGeneration: false,
-        webRunOnly: false,
-        imageGenerationOnly: false
-      }}
-    ' >"$temporary_path" || \
-      die "could not create Pi Codex conversion config: $config_path"
-    chmod 0600 "$temporary_path"
-  fi
-
-  mv -- "$temporary_path" "$config_path"
-  temporary_path=""
-  trap - EXIT
-}
-
-pi_version_is_supported() {
-  local version=$1
-  local major minor patch
-  if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(\+.*)?$ ]]; then
-    return 1
-  fi
-  major=${BASH_REMATCH[1]}
-  minor=${BASH_REMATCH[2]}
-  patch=${BASH_REMATCH[3]}
-  ((major > PI_MINIMUM_VERSION_MAJOR)) || \
-    ((major == PI_MINIMUM_VERSION_MAJOR && minor > PI_MINIMUM_VERSION_MINOR)) || \
-    ((major == PI_MINIMUM_VERSION_MAJOR && minor == PI_MINIMUM_VERSION_MINOR && \
-      patch >= PI_MINIMUM_VERSION_PATCH))
+    '
 }
 
 require_supported_pi() {
   command -v pi >/dev/null 2>&1 || die "Pi CLI is required"
   local pi_version
   pi_version="$(NO_COLOR=1 pi --version)" || die "could not determine Pi version"
-  pi_version_is_supported "$pi_version" || \
+  version_ge "$pi_version" \
+    "$PI_MINIMUM_VERSION_MAJOR" "$PI_MINIMUM_VERSION_MINOR" "$PI_MINIMUM_VERSION_PATCH" || \
     die "Pi >= ${PI_MINIMUM_VERSION_MAJOR}.${PI_MINIMUM_VERSION_MINOR}.${PI_MINIMUM_VERSION_PATCH} is required for the selected Pi packages (found: $pi_version)"
 }
 
