@@ -2,3 +2,6 @@
 *.retry
 # Pi project-local package/resource state is machine-local and is not managed here.
 .pi/
+# AI CLI project-local state (Codex CLI etc.) is machine-local and is not managed here.
+.agents/
+.codex/
