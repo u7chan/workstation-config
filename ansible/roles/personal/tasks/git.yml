@@ -1,0 +1,12 @@
+---
+- name: Ensure git config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/git"
+    state: directory
+    mode: "0755"
+
+- name: Configure personal git user settings
+  ansible.builtin.template:
+    src: git_config.j2
+    dest: "{{ ansible_facts['user_dir'] }}/.config/git/config"
+    mode: "0644"

@@ -5,7 +5,7 @@ ROOT_DIR="${ROOT_DIR:?ROOT_DIR must be exported by tests/static.sh}"
 
 case "${1:-}" in
   wsl-workaround)
-    workaround_tasks="$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+    workaround_tasks="$ROOT_DIR/ansible/roles/base/tasks/systemd_workaround.yml"
     workaround_handlers="$ROOT_DIR/ansible/roles/base/handlers/main.yml"
     grep -Fq '/etc/systemd/system/user@.service.d/wsl-cgroup-workaround.conf' "$workaround_tasks"
     grep -Fq 'DelegateSubgroup=' "$workaround_tasks"

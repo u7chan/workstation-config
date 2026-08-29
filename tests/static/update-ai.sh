@@ -49,13 +49,13 @@ case "${1:-}" in
     grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
     grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"
     grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"
-    grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+    grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
     grep -Fq 'exec "$mise_bin" exec node -- "$0" "$@"' "$ROOT_DIR/scripts/update-ai"
-    grep -Fq 'MISE_LOCKED: "1"' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+    grep -Fq "'MISE_LOCKED': '1'" "$ROOT_DIR/ansible/roles/personal/vars/main.yml"
     grep -Fq "personal_ai_tools | map('regex_replace', '^', '--')" \
-      "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+      "$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
     grep -Fq "when: personal_ai_tools | length > 0" \
-      "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
+      "$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
     ;;
   *)
     printf 'Usage: %s <stage: syntax|safe-chain-and-greps>\n' "$0" >&2

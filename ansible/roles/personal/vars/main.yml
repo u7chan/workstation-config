@@ -1,0 +1,15 @@
+---
+# mise 関連タスクで共有する環境変数。personal role は base role と独立して
+# 動作するため、base/vars ではなくこちらで定義する。MISE_CONFIG_FILE は
+# personal_mise_env に一度だけ定義し、他の env はそこから組み立てる。
+personal_mise_env:
+  MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
+
+personal_mise_locked_env: "{{ personal_mise_env | combine({'MISE_LOCKED': '1'}) }}"
+
+personal_mise_path: >-
+  {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{
+  ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+  ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
+
+personal_herdr_env: "{{ personal_mise_env | combine({'PATH': personal_mise_path}) }}"

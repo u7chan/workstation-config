@@ -29,9 +29,9 @@ case "${1:-}" in
     ;;
   ansible-base)
     grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/config.toml"' \
-      "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+      "$ROOT_DIR/ansible/roles/base/tasks/toolchain.yml"
     grep -Fq 'src: "{{ playbook_dir }}/../provisioning/mise/mise.lock"' \
-      "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+      "$ROOT_DIR/ansible/roles/base/tasks/toolchain.yml"
     if grep -R -Eiq 'apt(-get)?.*(install.*)?neovim|^[[:space:]]*-[[:space:]]*neovim$' \
       "$ROOT_DIR/ansible" "$ROOT_DIR/bootstrap"; then
       printf 'Neovim must not be managed by APT.\n' >&2
@@ -53,10 +53,11 @@ case "${1:-}" in
     fi
     ;;
   base-role-order)
-    grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
-    grep -Fq 'Install locked mise tools before personal role tasks' "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+    grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/toolchain.yml"
+    grep -Fq 'Install locked mise tools before personal role tasks' \
+      "$ROOT_DIR/ansible/roles/base/tasks/mise_tools.yml"
     grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
-      "$ROOT_DIR/ansible/roles/base/tasks/main.yml"
+      "$ROOT_DIR/ansible/roles/base/vars/main.yml"
     ;;
   gh)
     grep -q '^gh = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"
