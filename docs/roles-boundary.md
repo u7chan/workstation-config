@@ -60,8 +60,10 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
 - `personal_ai_tools` の許可リスト（`codex` / `claude` / `opencode` / `pi`）の正本は
   `ansible/roles/personal/defaults/main.yml` です。この集合はshell側でも検証・展開されるため、
   `bootstrap` の `WORKSTATION_PERSONAL_AI_TOOLS` 検証、`ansible/roles/personal/tasks/update_ai.yml`
-  のassert、`scripts/update-ai` のCLIフラグと同期して保守します。許可リストを変更する場合は
-  これら4箇所を同一コミットで更新してください。1箇所だけ変更すると導入経路ごとに許可集合が分岐します。
+  のassert、`scripts/update-ai` のCLIフラグ、`scripts/personal-bin/myupdate` の設定検証と同期して
+  保守します。許可リストを変更する場合はこれら5箇所を同一コミットで更新してください。
+  `myupdate` は生成された `myupdate.conf` を独自に検証するため、1箇所でも更新漏れがあると
+  導入経路ごとに許可集合が分岐します。
 - 将来的に work プロファイルを追加する場合は `personal` を継承し、`user.name` / `user.email` を上書きする想定。
 - Docker CE は `personal` の任意 Role です。`personal` 適用時も
   `--extra-vars personal_docker_ce_enabled=false` で導入をスキップできます。
