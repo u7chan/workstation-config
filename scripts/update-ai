@@ -37,7 +37,10 @@ version_ge() {
   local min_minor=$3
   local min_patch=$4
   local major minor patch
-  if [[ ! $version =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)(\+.*)?$ ]]; then
+  # Strict semver: no optional "v" prefix. Callers that receive one (e.g.
+  # `node --version`) strip it before calling, matching the length of the
+  # check the per-tool wrappers performed before unification.
+  if [[ ! $version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(\+.*)?$ ]]; then
     return 1
   fi
   major=${BASH_REMATCH[1]}
@@ -50,11 +53,10 @@ version_ge() {
 
 # write_json_file <target_path> <temp_prefix> <kind> <update_subject> <jq_program> [jq_option...]
 #
-# Atomically (re)create <target_path> as a JSON object with jq. An existing
-# target must be a regular file containing a JSON object and is fed to jq;
-# otherwise jq starts from null with -n. The temp file inherits the target's
-# mode, or 0600 for a new file, and is installed with mv; an EXIT trap cleans
-# it up on failure.
+# Atomically write <target_path> as JSON with jq, replacing the duplicated
+# mktemp -> jq -> chmod -> mv -> trap cleanup block of the callers. The
+# callers are responsible for the directory setup and the file checks that
+# must run before any early return or probe.
 write_json_file() {
   local target_path=$1
   local temp_prefix=$2
@@ -66,16 +68,6 @@ write_json_file() {
   local target_dir temporary_path
 
   target_dir="$(dirname -- "$target_path")"
-  mkdir -p -- "$target_dir"
-  chmod 0700 -- "$target_dir"
-
-  if [[ -e $target_path && ! -f $target_path ]]; then
-    die "$kind path is not a regular file: $target_path"
-  fi
-  if [[ -f $target_path ]]; then
-    jq -e 'type == "object"' "$target_path" >/dev/null || \
-      die "$kind must contain a JSON object: $target_path"
-  fi
 
   temporary_path="$(mktemp "$target_dir/$temp_prefix.XXXXXXXXXX")"
   cleanup_temp() {
@@ -101,7 +93,7 @@ write_json_file() {
 require_supported_node() {
   local node_version
   node_version="$(node --version)" || die "could not determine Node.js version"
-  version_ge "$node_version" \
+  version_ge "${node_version#v}" \
     "$NODE_MINIMUM_VERSION_MAJOR" "$NODE_MINIMUM_VERSION_MINOR" "$NODE_MINIMUM_VERSION_PATCH" || \
     die "Node.js >= ${NODE_MINIMUM_VERSION_MAJOR}.${NODE_MINIMUM_VERSION_MINOR}.${NODE_MINIMUM_VERSION_PATCH} is required for Pi packages (found: $node_version)"
 }
@@ -113,12 +105,22 @@ configure_pi_npm_command() {
   local settings_path="$pi_agent_dir/settings.json"
   local expected_npm_command='["mise","exec","node","--","safe-chain","npm"]'
 
-  if [[ -f $settings_path ]] && \
-    jq -e --argjson expected "$expected_npm_command" \
-      '.npmCommand == $expected' "$settings_path" >/dev/null; then
-    return 0
+  mkdir -p -- "$pi_agent_dir"
+  chmod 0700 -- "$pi_agent_dir"
+  if [[ -e $settings_path && ! -f $settings_path ]]; then
+    die "Pi settings path is not a regular file: $settings_path"
   fi
 
+  if [[ -f $settings_path ]]; then
+    jq -e 'type == "object"' "$settings_path" >/dev/null || \
+      die "Pi settings must contain a JSON object: $settings_path"
+    if jq -e --argjson expected "$expected_npm_command" \
+      '.npmCommand == $expected' "$settings_path" >/dev/null; then
+      return 0
+    fi
+  fi
+
+  # shellcheck disable=SC2016  # jq program stays literal when passed as an argument
   write_json_file "$settings_path" ".settings.json.tmp" "Pi settings" "Pi npm command" \
     '.npmCommand = $npm_command' --argjson npm_command "$expected_npm_command"
 }
@@ -128,6 +130,17 @@ configure_pi_codex_conversion() {
 
   local pi_agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
   local config_path="$pi_agent_dir/pi-codex-conversion.json"
+
+  mkdir -p -- "$pi_agent_dir"
+  chmod 0700 -- "$pi_agent_dir"
+  if [[ -e $config_path && ! -f $config_path ]]; then
+    die "Pi Codex conversion config path is not a regular file: $config_path"
+  fi
+
+  if [[ -f $config_path ]]; then
+    jq -e 'type == "object"' "$config_path" >/dev/null || \
+      die "Pi Codex conversion config must contain a JSON object: $config_path"
+  fi
 
   write_json_file "$config_path" ".pi-codex-conversion.json.tmp" \
     "Pi Codex conversion config" "Pi Codex conversion config" \
