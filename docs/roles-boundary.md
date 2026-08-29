@@ -46,10 +46,12 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
 ## 補足
 
 - `base` role の tasks は責務ごとに `systemd_workaround.yml` / `apt.yml` / `toolchain.yml` /
-  `mise_tools.yml` / `shell.yml` / `legacy_cleanup.yml` / `safe_chain.yml` へ分割され、
+  `mise_tools.yml` / `shell.yml` / `safe_chain.yml` へ分割され、
   `personal` role の tasks は `git.yml` / `update_ai.yml` / `herdr_integration.yml` /
-  `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。実行順序は
-  機能的に同等で、依存のない「Remove bootstrap-only APT gh」だけshell設定タスクの後ろへ移動している。
+  `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
+  移行用タスク（APT版`gh`の除去、Bun global Safe-chainの撤去、`clp`の旧名削除）は、
+  全管理対象環境で適用済み・不要物の不存在を確認できたため撤去済み。
+  残骸が再発した場合は手動で除去する。
   mise 関連の環境変数（`MISE_CONFIG_FILE` / mise shims を含む `PATH`）は各roleの `vars/main.yml` へ
   集約し、`MISE_CONFIG_FILE` は共通 env（base: `base_mise_env`、personal: `personal_mise_env`）に
   一度だけ定義して、locked install 用・Herdr integration 用の env は `combine` で組み立てる

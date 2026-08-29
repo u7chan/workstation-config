@@ -505,7 +505,7 @@ chmod 600 ~/.config/envs/<provider>/.env
 
 [Aikido Safe-chain](https://github.com/AikidoSec/safe-chain)は、npm/yarn/pnpm/npx/pnpx、Bun、およびpip/uv/poetry経由でインストールされる悪意あるパッケージをブロックします。本体は[AikidoSec/safe-chain](https://github.com/AikidoSec/safe-chain)の公式GitHub Releaseから導入し、バージョンは`ansible/vars/main.yml`の`safe_chain_version`で固定します。現在のpin対象は**1.5.12**です。
 
-bootstrapは公式のバージョン付きインストールスクリプトをダウンロードし、チェックサムを検証してから実行します。再実行時は、既存のSafe-chainバージョンを確認し、pinと一致する場合はスキップします。従来のBun globalインストール（`~/.bun/bin/safe-chain`）が残っていれば、公式バイナリへ移行する際に削除します。
+bootstrapは公式のバージョン付きインストールスクリプトをダウンロードし、チェックサムを検証してから実行します。再実行時は、既存のSafe-chainバージョンを確認し、pinと一致する場合はスキップします。旧Bun globalインストール（`~/.bun/bin/safe-chain`）からの移行は全環境で完了済みのため、bootstrapによる削除タスクは撤去しています。残骸が見つかった場合は手動で削除してください。
 
 shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理の`init.bash`から読み込みます。Safe-chainのインストーラーが`~/.bashrc`へ直接追加するsource行は、bootstrapが削除するため、 unmanagedな`~/.bashrc`への依存を残しません。
 
@@ -565,7 +565,7 @@ secret、認証情報、履歴、session stateは`local.bash`にも保存しな�
 
 ## Git・GitHub設定
 
-GitHubへの接続はHTTPSへ統一します。初回clone前の`git`と`gh`は手動で準備し、bootstrapでもbaseパッケージとして導入することで、再セットアップ時の再現性を保証します。`gh`はbootstrap時のAPT導入後、Ansibleのプロビジョニングでmise管理へ移行し、lockfileでバージョンを固定します。chezmoiは次の非機密設定だけを管理します。
+GitHubへの接続はHTTPSへ統一します。初回clone前の`git`と`gh`は[初期セットアップ手順](bootstrap-prerequisites.md)に従いAPTで手動準備します。bootstrap後はmiseが管理する`gh`がlockfileでバージョン固定され、`PATH`上でAPT版より優先されるため、再セットアップ時の再現性はmiseが保証します。APT版`gh`は認証専用で残るため、不要になったら手動で削除します。chezmoiは次の非機密設定だけを管理します。
 
 - `user.name`: `u7chan`
 - `user.email`: `34462401+u7chan@users.noreply.github.com`
