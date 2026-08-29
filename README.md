@@ -73,4 +73,4 @@ myupdate
 ## Secret Management
 
 > [!IMPORTANT]
-> secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。
+> secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。AI CLI が生成する project-local state（`.agents/` / `.codex/`）も保存しません。
