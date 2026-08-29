@@ -24,7 +24,7 @@ die() {
 
 restrict_ai_config_directories() {
   local ai_config_dir
-  for ai_config_dir in .codex .claude .config/opencode .pi/agent; do
+  for ai_config_dir in .codex .claude .config/opencode .pi; do
     if [[ -d "$HOME/$ai_config_dir" ]]; then
       chmod 0700 -- "$HOME/$ai_config_dir"
     fi
@@ -148,6 +148,7 @@ restrict_ai_config_directories
 
 if [[ $PI_SELECTED == false ]]; then
   rm -f -- "$HOME/.pi/agent/keybindings.json"
+  rm -f -- "$HOME/.pi/agent/models.json"
 fi
 
 if [[ $CLAUDE_SELECTED == true ]]; then
