@@ -13,6 +13,7 @@
 | カレントディレクトリをLANへ公開する | `http-lan 8000` | 同一LANの端末からアクセス可能 |
 | Claude Codeをprovider指定で起動する | `myclaude <provider>` | My Claude |
 | 登録済みproviderを一覧表示する | `myclaude --list` |  |
+| 選択したAI CLIとHerdrをまとめて更新する | `myupdate` | My update |
 
 各コマンドのヘルプは`<command> --help`で確認できます。
 
@@ -104,6 +105,18 @@ chmod 600 ~/.config/envs/<provider>/.env
 ```
 
 設定ファイルは現在のユーザーが所有する通常ファイルで、mode `600`である必要があります。shellとしてsourceせず、`BASE_URL`、`API_KEY`、`MODEL`の3キーだけを読み取ります。secretファイルはリポジトリやchezmoiで管理しません。
+
+## 開発ツールの手動更新
+
+### `myupdate`
+
+`personal_ai_tools`で選択したAI CLIを`update-ai`で更新し、続いてmise管理のHerdrを`mise upgrade herdr`で更新します。各処理は失敗時に5秒待って1回だけ再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、競合時は終了コード3で終了します。
+
+```bash
+myupdate
+```
+
+更新対象の選択方法（`WORKSTATION_UPDATE_AI_TOOLS`による上書き）、Pi Packageの処理内容、再provisioningとの排他制御の詳細は[Workstation構成ガイド](workstation.md#開発ツールの手動更新)を参照してください。
 
 ## 開発時の確認
 

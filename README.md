@@ -58,7 +58,7 @@ myupdate
 - [Workstation構成ガイド](docs/workstation.md): profile、Ansible role、mise、chezmoi、Docker、Neovim、Yazi、AI CLI、開発時の検証。
 - [Pi Packages一覧](docs/pi-packages.md): Pi公式Packageの用途、要件、global session scope、privacy boundary、設定所有権、Safe-chain経路、責務境界、検証手順。
 - [CLIツールガイド](docs/cli-tools.md): miseで管理するターミナルツールの用途、導入元、基本的な起動方法。
-- [個人CLIコマンドガイド](docs/personal-cli.md): Git cleanup、簡易HTTP server、Claude provider launcherの早見表と使い方。
+- [個人CLIコマンドガイド](docs/personal-cli.md): Git cleanup、簡易HTTP server、Claude provider launcher、開発ツールの手動更新の早見表と使い方。
 - [base / personal の責務分界](docs/roles-boundary.md): 各プロファイルの担当範囲と適用条件。
 - [Windows Terminal設定](docs/windows-terminal.md): 設定雛形の意図、WSLディストリビューション名の確認、反映・復元手順。
 

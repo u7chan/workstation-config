@@ -79,7 +79,10 @@ systemdのバージョン条件とdrop-inの撤去を判断してください。
 |-- bootstrap             # 単一の実行入口
 |-- ansible/              # OS基盤とプロファイル別Role
 |-- home/                 # chezmoi source
-|-- mise/                 # mise設定
+|-- provisioning/         # bootstrapが$HOMEへ配置する設定の配布元（mise設定など）
+|-- scripts/              # AI CLI更新スクリプトと個人CLI
+|-- claude/               # Claude Code設定のfragment
+|-- docs/                 # ガイド類
 `-- tests/                # bootstrap基盤の検証
 ```
 
