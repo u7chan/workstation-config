@@ -150,7 +150,28 @@ assert_version_rejected \
   pi-prerelease 0.84.2-rc.1 v24.18.0 'Pi >= 0.84.2 is required'
 assert_version_rejected \
   old-pi 0.84.1 v24.18.0 'Pi >= 0.84.2 is required'
-[[ $(grep -c '^core npm ' "$fixture_log" 2>/dev/null || true) -eq 2 ]]
+# A "v" prefix is rejected for Pi: the release tags have no prefix, and
+# accepting one would be a behavior change from the per-tool checks.
+assert_version_rejected \
+  pi-v-prefix v0.84.2 v24.18.0 'Pi >= 0.84.2 is required'
+
+# Invalid settings JSON must be rejected by the object validation with
+# exactly one jq error on stderr, before the npmCommand probe runs.
+printf '%s\n' '{' >"$fixture_home/.pi/agent/settings.json"
+if run_pi_update 0.84.2 v24.18.0 2>"$test_dir/invalid-json.error"; then
+  printf 'invalid settings JSON must be rejected.\n' >&2
+  exit 1
+fi
+[[ $(grep -c '^jq:' "$test_dir/invalid-json.error" 2>/dev/null || true) -eq 1 ]]
+grep -Fq "Pi settings must contain a JSON object: $fixture_home/.pi/agent/settings.json" \
+  "$test_dir/invalid-json.error"
+printf '%s\n' '{"packages":["npm:existing"],"unmanaged":{"keep":true}}' \
+  >"$fixture_home/.pi/agent/settings.json"
+
+# Each rejected run passes require_supported_node and performs the global Pi
+# npm install (one "core npm" call) before failing in require_supported_pi or
+# configure_pi_npm_command: pi-prerelease, old-pi, pi-v-prefix, invalid-json.
+[[ $(grep -c '^core npm ' "$fixture_log" 2>/dev/null || true) -eq 4 ]]
 
 # Build metadata is accepted because it does not change the release version.
 run_pi_update 0.84.2+build.1 v24.18.0
@@ -164,10 +185,20 @@ for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion @o
   [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
-[[ $(grep -c '^core npm ' "$fixture_log") -eq 4 ]]
+# Rejection runs passing require_supported_node (pi-prerelease, old-pi,
+# pi-v-prefix, invalid-json) contribute 4 "core npm" calls; the two successful
+# runs each add their global Pi npm install, for 6 in total before the
+# chmod regression run below.
+[[ $(grep -c '^core npm ' "$fixture_log") -eq 6 ]]
 cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
 cmp "$test_dir/codex-conversion.after-first" \
   "$fixture_home/.pi/agent/pi-codex-conversion.json"
+
+# The .pi/agent directory keeps mode 0700 even when the npmCommand probe
+# already matches and configure_pi_npm_command returns early.
+chmod 0755 "$fixture_home/.pi/agent"
+run_pi_update 0.84.2 v24.18.0
+[[ $(stat -c %a "$fixture_home/.pi/agent") == 700 ]]
 
 package_list="$(HOME="$fixture_home" PATH="$fixture_bin:$PATH" pi list)"
 [[ $(grep -c '^  npm:pi-web-access$' <<<"$package_list") -eq 1 ]]
