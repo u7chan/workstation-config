@@ -48,11 +48,13 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
 - `base` role の tasks は責務ごとに `systemd_workaround.yml` / `apt.yml` / `toolchain.yml` /
   `mise_tools.yml` / `shell.yml` / `legacy_cleanup.yml` / `safe_chain.yml` へ分割され、
   `personal` role の tasks は `git.yml` / `update_ai.yml` / `herdr_integration.yml` /
-  `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込むだけで、
-  実行順序は分割前と同一。mise 関連の環境変数（`MISE_CONFIG_FILE` / mise shims を含む `PATH`）は
-  各 role の `vars/main.yml` へ集約している（base: `base_mise_env` / `base_mise_path` /
-  `base_mise_locked_env`、personal: `personal_mise_locked_env` / `personal_mise_path` /
-  `personal_herdr_env`）。
+  `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。実行順序は
+  機能的に同等で、依存のない「Remove bootstrap-only APT gh」だけshell設定タスクの後ろへ移動している。
+  mise 関連の環境変数（`MISE_CONFIG_FILE` / mise shims を含む `PATH`）は各roleの `vars/main.yml` へ
+  集約し、`MISE_CONFIG_FILE` は共通 env（base: `base_mise_env`、personal: `personal_mise_env`）に
+  一度だけ定義して、locked install 用・Herdr integration 用の env は `combine` で組み立てる
+  （base: `base_mise_path` / `base_mise_locked_env`、personal: `personal_mise_locked_env` /
+  `personal_mise_path` / `personal_herdr_env`）。
 - `base` に含まれない責務は `personal` にも含まれません。`personal` は `base` を包含するため、
   `personal` プロファイルでは上表の `base` 列が「担当」の項目もすべて適用されます。
 - 将来的に work プロファイルを追加する場合は `personal` を継承し、`user.name` / `user.email` を上書きする想定。

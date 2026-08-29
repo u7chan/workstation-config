@@ -1,6 +1,8 @@
 ---
 # mise 関連タスクで共有する環境変数。bootstrap はログインシェル経由で
 # ansible を実行しないため、MISE_CONFIG_FILE の明示が必要になる。
+# MISE_CONFIG_FILE は base_mise_env に一度だけ定義し、locked install 用の
+# env はそこから組み立てる。
 base_mise_env:
   MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
 
@@ -8,8 +10,5 @@ base_mise_path: >-
   {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
   ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
 
-base_mise_locked_env:
-  MISE_CONFIG_FILE: "{{ ansible_facts['user_dir'] }}/.config/mise/config.toml"
-  MISE_LOCKED: "1"
-  MISE_YES: "1"
-  PATH: "{{ base_mise_path }}"
+base_mise_locked_env: >-
+  {{ base_mise_env | combine({'MISE_LOCKED': '1', 'MISE_YES': '1', 'PATH': base_mise_path}) }}

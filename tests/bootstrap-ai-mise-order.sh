@@ -89,7 +89,7 @@ grep -Fq 'environment: "{{ base_mise_locked_env }}"' <<<"$locked_install_task" |
   printf 'bootstrap-ai-mise-order: locked base mise install must use the consolidated locked env.\n' >&2
   exit 1
 }
-grep -Fq 'MISE_LOCKED: "1"' "$ROOT_DIR/ansible/roles/base/vars/main.yml" || {
+grep -Fq "'MISE_LOCKED': '1'" "$ROOT_DIR/ansible/roles/base/vars/main.yml" || {
   printf 'bootstrap-ai-mise-order: locked base mise install must set MISE_LOCKED=1.\n' >&2
   exit 1
 }
@@ -99,7 +99,7 @@ grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/bin' "$ROOT_DIR/ansible/r
 }
 
 grep -Fq '/.local/bin/update-ai' "$personal_tasks"
-grep -Fq 'MISE_LOCKED: "1"' "$personal_vars"
+grep -Fq "'MISE_LOCKED': '1'" "$personal_vars"
 grep -Fq "['/usr/bin/flock', ansible_facts['user_dir'] + '/.local/state/workstation-update/update.lock'" \
   "$personal_tasks"
 grep -Fq 'src: myupdate.conf.j2' "$personal_tasks"
