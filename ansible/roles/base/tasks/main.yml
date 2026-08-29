@@ -14,8 +14,5 @@
 - name: Create workstation shell configuration
   ansible.builtin.import_tasks: shell.yml
 
-- name: Clean up legacy artifacts
-  ansible.builtin.import_tasks: legacy_cleanup.yml
-
 - name: Install Safe-chain
   ansible.builtin.import_tasks: safe_chain.yml

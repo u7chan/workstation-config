@@ -60,6 +60,9 @@ wsl --unregister sandbox
 
 検証時のUbuntu 26.04イメージにはGitが含まれていましたが、イメージ差を吸収するためAPTでGitと`gh`の存在を保証します。
 
+> [!NOTE]
+> APT版`gh`はbootstrap前の認証にのみ使用します。bootstrapはAPT版を削除しないため、不要になったら`sudo apt purge -y gh`で手動削除してください。bootstrap後はmiseが管理する`gh`のshimが`PATH`上で優先されます。
+
 ```bash
 sudo apt update && sudo apt upgrade -y && sudo apt install -y git gh && git --version && gh --version
 ```

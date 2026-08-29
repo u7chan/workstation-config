@@ -12,9 +12,6 @@ case "${1:-}" in
       grep -q -- "- $personal_cli" "$ROOT_DIR/ansible/roles/personal/tasks/personal_cli.yml"
     done
 
-    grep -Fq 'path: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/clp"' \
-      "$ROOT_DIR/ansible/roles/personal/tasks/personal_cli.yml"
-    grep -Fq 'state: absent' "$ROOT_DIR/ansible/roles/personal/tasks/personal_cli.yml"
     grep -Fq 'src: "{{ playbook_dir }}/../scripts/personal-bin/myupdate"' \
       "$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
     grep -Fq 'dest: "{{ ansible_facts['\''user_dir'\''] }}/.local/bin/myupdate"' \
