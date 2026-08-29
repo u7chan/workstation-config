@@ -565,7 +565,7 @@ secret、認証情報、履歴、session stateは`local.bash`にも保存しな�
 
 ## Git・GitHub設定
 
-GitHubへの接続はHTTPSへ統一します。初回clone前の`git`と`gh`は手動で準備し、bootstrapでもbaseパッケージとして導入することで、再セットアップ時の再現性を保証します。`gh`はbootstrap時のAPT導入後、Ansibleのプロビジョニングでmise管理へ移行し、lockfileでバージョンを固定します。chezmoiは次の非機密設定だけを管理します。
+GitHubへの接続はHTTPSへ統一します。初回clone前の`git`と`gh`は[初期セットアップ手順](bootstrap-prerequisites.md)に従いAPTで手動準備します。bootstrap後はmiseが管理する`gh`がlockfileでバージョン固定され、`PATH`上でAPT版より優先されるため、再セットアップ時の再現性はmiseが保証します。APT版`gh`は認証専用で残るため、不要になったら手動で削除します。chezmoiは次の非機密設定だけを管理します。
 
 - `user.name`: `u7chan`
 - `user.email`: `34462401+u7chan@users.noreply.github.com`
