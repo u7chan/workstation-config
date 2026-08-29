@@ -29,7 +29,7 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 ./bootstrap base
 ```
 
-`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Piが選択されている場合だけchezmoiがWSL2/Windows Terminal向けPiキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）を`~/.pi/agent/keybindings.json`へ配置し、未選択の場合はbootstrapが削除します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
+`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Piが選択されている場合だけchezmoiがPi設定を配置します。WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）は`~/.pi/agent/keybindings.json`へ、openai-codexのGPT-5.6系コンパクション費用対策の`modelOverrides`は`~/.pi/agent/models.json`へ展開し、未選択の場合はbootstrapが削除します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
 
 `personal`では任意RoleとしてDocker CEも既定で導入します。Dockerを導入しない
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
@@ -300,7 +300,7 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 | Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
-| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしWSL2/Windows Terminal向けPiキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`だけはchezmoiが管理し、Pi選択時のみ配置する。Pi Packageのsession recallもglobal user runtimeとして扱う |
+| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは2ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`と、openai-codexのGPT-5.6系modelOverrides（コンパクション費用対策）の`~/.pi/agent/models.json`。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
 auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
@@ -310,7 +310,7 @@ Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal
 
 `update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
-唯一の例外がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`を削除します。管理対象ファイルのため、ローカルで直接編集した内容は次回bootstrap時にリポジトリの宣言状態へ戻ります。
+chezmoiがPiユーザー設定として管理する例外は2ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。openai-codexのGPT-5.6系（sol / terra / luna、組み込みcontext window 272K）は272K超過で入力費用が2倍になるため、`contextWindow`を256384へ上書きして自動コンパクションを約240K（`contextWindow - reserveTokens`、既定reserve 16Kで正確には240000）で発火させます。これはCodexの`model_auto_compact_token_limit=240000`と同等の対策です。なお対象は2026-08-29のUsage調査で超過を確認したGPT-5.6系のみで、gpt-5.5 / gpt-5.4も同種の272K超過コスト構造を持つため、必要になった場合は別途overrideを追加します。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します。管理対象ファイルのため、ローカルで直接編集した内容は次回bootstrap時にリポジトリの宣言状態へ戻ります。
 
 ```bash
 update-ai
@@ -528,7 +528,7 @@ pi list
 ./tests/pi-packages-smoke.sh
 ```
 
-Piのキーバインドの配置はjqとchezmoiを使って確認できます。`WORKSTATION_PI_SELECTED`の有無による`.chezmoiignore`の切替と、選択時の配置内容、非選択時に既存ファイルを触らないことを検証します。
+Piのキーバインドとmodels.jsonの配置はjqとchezmoiを使って確認できます。`WORKSTATION_PI_SELECTED`の有無による`.chezmoiignore`の切替と、選択時の配置内容、非選択時に既存ファイルを触らないことを検証します。
 
 ```bash
 ./tests/pi-keybindings-smoke.sh

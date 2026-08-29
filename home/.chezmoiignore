@@ -1,10 +1,11 @@
 {{- /*
-PiのキーバインドはbootstrapがPiを選択した場合だけ配置する。
+Piのキーバインド・modelOverridesはbootstrapがPiを選択した場合だけ配置する。
 bootstrapはWORKSTATION_PI_SELECTED=trueを渡し、未選択時・変数未設定時は
-このファイルをchezmoi管理対象外にする。既存ファイルの削除はbootstrapが行う。
+これらのファイルをchezmoi管理対象外にする。既存ファイルの削除はbootstrapが行う。
 ※パターンはsource内のdot_piではなく、ターゲット側の.piに一致させる。
 */}}
 {{- if ne (env "WORKSTATION_PI_SELECTED") "true" }}
 .pi/agent/keybindings.json
+.pi/agent/models.json
 {{- end }}
 README.md

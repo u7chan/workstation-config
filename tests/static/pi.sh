@@ -14,6 +14,16 @@ case "${1:-}" in
     grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
     grep -Fqx '.pi/agent/keybindings.json' "$ROOT_DIR/home/.chezmoiignore"
     ;;
+  config)
+    # ~/.pi/config.json はpiが読まない。modelOverridesは~/.pi/agent/models.jsonが正規パス
+    test -f "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fqx '        "gpt-5.6-sol": { "contextWindow": 256384 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fqx '        "gpt-5.6-luna": { "contextWindow": 256384 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fqx '        "gpt-5.6-terra": { "contextWindow": 256384 }' "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fq 'rm -f -- "$HOME/.pi/agent/models.json"' "$ROOT_DIR/bootstrap"
+    grep -Fq 'for ai_config_dir in .codex .claude .config/opencode .pi' "$ROOT_DIR/bootstrap"
+    grep -Fqx '.pi/agent/models.json' "$ROOT_DIR/home/.chezmoiignore"
+    ;;
   base-role-guard)
     for pi_package in pi-web-access pi-codex-image-gen pi-codex-conversion @ogulcancelik/pi-session-recall; do
       if grep -R -Fq "$pi_package" "$ROOT_DIR/ansible/roles/base"; then
@@ -23,8 +33,9 @@ case "${1:-}" in
     done
     ;;
   runtime-data)
-    # home/dot_pi/agent/keybindings.json is the only allowed Pi user config in Git.
+    # home/dot_pi/agent/keybindings.json と models.json のみがPiのGit管理対象ユーザー設定。
     if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
+      | grep -Fvx 'home/dot_pi/agent/models.json' \
       | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
       printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
       exit 1
