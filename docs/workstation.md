@@ -122,6 +122,33 @@ psql --version
 ./tests/psql-smoke.sh
 ```
 
+## wl-clipboard（WSLgクリップボード）
+
+Piの画像貼り付け（`Alt+V`）はクリップボードを`wl-paste`（Wayland）→`xclip`（X11）→
+`powershell.exe`（WSL interop）の順で読み取ります。WSLgが有効なWSL2では、Windows側の
+スクリーンショット（`Win+Shift+S`）がWSLgのクリップボードbridge経由でWayland側には
+`image/bmp`として見え、Piが内部でPNGへ変換して添付します。
+
+このため`wl-clipboard`を`base_apt_packages`に追加しています（issue #178）。従来は
+`wl-paste`も`xclip`も未導入のため、クリップボード読み取りがWSL interop経由の
+`powershell.exe`に依存し、binfmt_miscの登録消失（`Exec format error`）で`Alt+V`の
+画像貼り付けが無言で失敗していました。`wl-clipboard`を導入すると`wl-paste`が先に成功
+するため、WSLInteropが停止していても画像を読み取れます。失敗モードがほぼ直交する
+（WSLg停止 vs interop喪失）ため、実質的な二重化です。副次効果としてPiのテキスト
+貼り付けや`/copy`（`wl-copy`経路）も安定化します。なお`.wslconfig`でWSLgを無効化
+すると本経路は使えません。
+
+導入後は次で確認できます。
+
+```bash
+wl-paste --list-types
+./tests/wl-clipboard-smoke.sh
+```
+
+`Win+Shift+S`でスクリーンショットを撮った直後に`wl-paste --list-types`へ
+`image/bmp`（または`image/png`）が含まれていれば、Piの`Alt+V`で画像を貼り付けられます。
+WSLInterop停止状態（`powershell.exe`が`Exec format error`になる状態）でも同じく有効です。
+
 ## 開発時の確認
 
 ```bash

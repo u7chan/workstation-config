@@ -21,6 +21,7 @@ case "${1:-}" in
     bash -n "$ROOT_DIR/tests/personal-cli-smoke.sh"
     bash -n "$ROOT_DIR/tests/docker-smoke.sh"
     bash -n "$ROOT_DIR/tests/psql-smoke.sh"
+    bash -n "$ROOT_DIR/tests/wl-clipboard-smoke.sh"
     bash -n "$ROOT_DIR/tests/cagent-smoke.sh"
     bash -n "$ROOT_DIR/tests/playwright-cli-smoke.sh"
     ;;

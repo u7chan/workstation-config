@@ -11,6 +11,10 @@ base_apt_packages:
   - git
   - jq
   - postgresql-client
+  # WSLg Wayland clipboard toolkit (issue #178). Pi reads pasted images via
+  # wl-paste first, then xclip, then powershell.exe, so wl-clipboard keeps
+  # image paste (Alt+V) and /copy working even when WSLInterop is broken.
+  - wl-clipboard
 
 # Optional personal role. Set this to false with Ansible extra vars when Docker
 # is not wanted on a personal workstation.
