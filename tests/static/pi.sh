@@ -14,6 +14,14 @@ case "${1:-}" in
     grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
     grep -Fqx '.pi/agent/keybindings.json' "$ROOT_DIR/home/.chezmoiignore"
     ;;
+  web-search)
+    # issue #182: pi-web-accessのweb-search.jsonはcreate属性で非機密デフォルトのみ配布
+    test -f "$ROOT_DIR/home/dot_pi/create_web-search.json"
+    grep -Fqx '  "workflow": "auto-summary"' "$ROOT_DIR/home/dot_pi/create_web-search.json"
+    grep -Fq 'rm -f -- "$HOME/.pi/web-search.json"' "$ROOT_DIR/bootstrap"
+    grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
+    grep -Fqx '.pi/web-search.json' "$ROOT_DIR/home/.chezmoiignore"
+    ;;
   config)
     # ~/.pi/config.json はpiが読まない。modelOverridesは~/.pi/agent/models.jsonが正規パス
     test -f "$ROOT_DIR/home/dot_pi/agent/models.json"
@@ -33,16 +41,17 @@ case "${1:-}" in
     done
     ;;
   runtime-data)
-    # home/dot_pi/agent/keybindings.json と models.json のみがPiのGit管理対象ユーザー設定。
+    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/create_web-search.json のみがPiのGit管理対象ユーザー設定。
     if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
       | grep -Fvx 'home/dot_pi/agent/models.json' \
+      | grep -Fvx 'home/dot_pi/create_web-search.json' \
       | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
       printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
       exit 1
     fi
     ;;
   *)
-    printf 'Usage: %s <stage: keybindings|base-role-guard|runtime-data>\n' "$0" >&2
+    printf 'Usage: %s <stage: keybindings|config|web-search|base-role-guard|runtime-data>\n' "$0" >&2
     exit 2
     ;;
 esac
