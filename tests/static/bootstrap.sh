@@ -12,6 +12,7 @@ case "${1:-}" in
     grep -q '^MISE_LOCKED=1' "$ROOT_DIR/bootstrap"
     grep -Fq 'WORKSTATION_PERSONAL_AI_TOOLS' "$ROOT_DIR/bootstrap"
     grep -q 'chezmoi.*apply.*--no-tty.*--force' "$ROOT_DIR/bootstrap"
+    grep -Fq 'activate bash --shims' "$ROOT_DIR/bootstrap"
     ;;
   ci-workflow)
     grep -Fq 'Install pinned chezmoi binary' "$ROOT_DIR/.github/workflows/ci.yml"

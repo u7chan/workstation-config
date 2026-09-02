@@ -56,8 +56,10 @@ case "${1:-}" in
     grep -Fq 'Trust mise global configuration' "$ROOT_DIR/ansible/roles/base/tasks/toolchain.yml"
     grep -Fq 'Install locked mise tools before personal role tasks' \
       "$ROOT_DIR/ansible/roles/base/tasks/mise_tools.yml"
-    grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims' \
+    grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims:{{' \
       "$ROOT_DIR/ansible/roles/base/vars/main.yml"
+    grep -Fq '{{ ansible_facts['\''user_dir'\''] }}/.local/share/mise/shims:{{' \
+      "$ROOT_DIR/ansible/roles/personal/vars/main.yml"
     ;;
   gh)
     grep -q '^gh = "latest"' "$ROOT_DIR/provisioning/mise/config.toml"

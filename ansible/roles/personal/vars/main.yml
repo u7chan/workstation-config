@@ -8,8 +8,8 @@ personal_mise_env:
 personal_mise_locked_env: "{{ personal_mise_env | combine({'MISE_LOCKED': '1'}) }}"
 
 personal_mise_path: >-
-  {{ ansible_facts['user_dir'] }}/.local/bin:{{ ansible_facts['user_dir'] }}/.opencode/bin:{{
-  ansible_facts['user_dir'] }}/.local/share/mise/shims:{{
+  {{ ansible_facts['user_dir'] }}/.local/share/mise/shims:{{ ansible_facts['user_dir'] }}/.local/bin:{{
+  ansible_facts['user_dir'] }}/.opencode/bin:{{
   ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
 
 personal_herdr_env: "{{ personal_mise_env | combine({'PATH': personal_mise_path}) }}"

@@ -5,10 +5,13 @@ case $- in
   *) return 0 ;;
 esac
 
+# Use stable shims instead of version-specific install paths. This keeps an
+# existing shell from selecting an older tool after `mise install` and keeps
+# user-local binaries from shadowing mise-managed tools.
 if [[ -x "$HOME/.local/bin/mise" ]]; then
-  eval "$("$HOME/.local/bin/mise" activate bash)"
+  eval "$("$HOME/.local/bin/mise" activate bash --shims)"
 elif command -v mise >/dev/null 2>&1; then
-  eval "$(mise activate bash)"
+  eval "$(mise activate bash --shims)"
 fi
 
 if [[ -f "$HOME/.safe-chain/scripts/init-posix.sh" && -r "$HOME/.safe-chain/scripts/init-posix.sh" ]]; then
