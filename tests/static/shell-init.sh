@@ -12,6 +12,7 @@ case "${1:-}" in
     ;;
   mise-activate)
     grep -q 'mise.*activate bash' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+    grep -q 'activate bash --shims' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
     grep -q 'init-posix.sh' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
     ;;
   autoupdate)

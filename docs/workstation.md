@@ -166,6 +166,8 @@ WSLInterop停止状態（`powershell.exe`が`Exec format error`になる状態�
 
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 
+対話シェルでは`mise activate bash --shims`を使い、mise管理ツールのshimをPATHの先頭に置きます。バージョン固有のインストール先を直接PATHへ残さないため、bootstrapやmise更新後も既存のユーザー用バイナリが管理対象CLIを隠しません。
+
 CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-tools.md)を参照してください。
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
@@ -407,12 +409,12 @@ WORKSTATION_PERSONAL_AI_TOOLS=codex,opencode ./bootstrap personal
 
 native session restoreの実機確認では、選択済みCLIをHerdrのpane内で起動してsessionを作成した後、WSLを再起動し、Herdrへ再接続します。各paneが通常のshellではなく、対応するCLIのnative sessionとして復元されることを確認してください。認証や実モデルへのリクエストは自動テストの対象にしません。
 
-シェル初期化が反映されない場合は、一時的にmiseを有効化してcommand hashを破棄してから再確認します。
+シェル初期化が反映されない場合は、一時的にmiseのshimを有効化してcommand hashを破棄してから再確認します。
 
 ```bash
-eval "$(~/.local/bin/mise activate bash)"
+eval "$(~/.local/bin/mise activate bash --shims)"
 hash -r
-type -a herdr cagent codex claude opencode pi
+type -a gh herdr cagent codex claude opencode pi
 ```
 
 Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart smokeの`codex features list`は、この設定がCodex起動時に正常に解析されることも検証します。

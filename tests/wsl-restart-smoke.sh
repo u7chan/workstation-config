@@ -53,6 +53,13 @@ for path in "${paths[@]:0:2}"; do
   }
 done
 
+gh_path="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" \
+  bash --login -ic 'command -v gh' 2>/dev/null)"
+[[ $gh_path == "$HOME/.local/share/mise/shims/gh" ]] || {
+  printf 'wsl-restart-smoke: unexpected gh path: %s\n' "$gh_path" >&2
+  exit 1
+}
+
 for tool in "${expected_tools[@]}"; do
   tool_path="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" \
     bash --login -ic 'command -v "$1"' _ "$tool" 2>/dev/null)"

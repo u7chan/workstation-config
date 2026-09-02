@@ -166,3 +166,5 @@ MISE_YES=1 \
     "$HOME/.local/bin/mise" install
 
 printf '==> Bootstrap complete: %s\n' "$PROFILE"
+refresh_command="eval \"\$(\"\$HOME/.local/bin/mise\" activate bash --shims)\" && hash -r"
+printf '    Refresh the current shell with: %s\n' "$refresh_command"
