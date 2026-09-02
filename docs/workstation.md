@@ -557,7 +557,7 @@ pi list
 ./tests/pi-packages-smoke.sh
 ```
 
-Piのキーバインドとmodels.jsonの配置はjqとchezmoiを使って確認できます。`WORKSTATION_PI_SELECTED`の有無による`.chezmoiignore`の切替と、選択時の配置内容、非選択時に既存ファイルを触らないことを検証します。
+Piのキーバインド・models.json・web-search.jsonの配置はjqとchezmoiを使って確認できます。`WORKSTATION_PI_SELECTED`の有無による`.chezmoiignore`の切替と、選択時の配置内容、非選択時に既存ファイルを触らないことを検証します。
 
 ```bash
 ./tests/pi-keybindings-smoke.sh

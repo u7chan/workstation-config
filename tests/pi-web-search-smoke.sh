@@ -32,22 +32,29 @@ cmp <(printf '%s' "$expected_content") "$managed_file"
 ignore_template="$ROOT_DIR/home/.chezmoiignore"
 readonly ignore_template
 
-for selection in unset false; do
-  rendered="$(env -u WORKSTATION_PI_SELECTED chezmoi execute-template <"$ignore_template")"
-  if [[ $selection == false ]]; then
-    rendered="$(env WORKSTATION_PI_SELECTED=false chezmoi execute-template <"$ignore_template")"
+assert_ignore_pattern() {
+  local label=$1
+  local target=$2
+  local expected_presence=$3
+  shift 3
+  local rendered
+  rendered="$("$@" chezmoi execute-template <"$ignore_template")"
+  if [[ $expected_presence == present ]]; then
+    grep -Fxq "$target" <<<"$rendered" || {
+      printf '%s: %s must stay unmanaged.\n' "$label" "$target" >&2
+      exit 1
+    }
+  else
+    if grep -Fxq "$target" <<<"$rendered"; then
+      printf '%s: %s must be managed.\n' "$label" "$target" >&2
+      exit 1
+    fi
   fi
-  grep -Fxq '.pi/web-search.json' <<<"$rendered" || {
-    printf '%s: .pi/web-search.json must stay unmanaged.\n' "$selection" >&2
-    exit 1
-  }
-done
+}
 
-rendered_selected="$(env WORKSTATION_PI_SELECTED=true chezmoi execute-template <"$ignore_template")"
-if grep -Fxq '.pi/web-search.json' <<<"$rendered_selected"; then
-  printf 'Selected Pi: .pi/web-search.json must be managed.\n' >&2
-  exit 1
-fi
+assert_ignore_pattern 'web-search unset' '.pi/web-search.json' present env -u WORKSTATION_PI_SELECTED
+assert_ignore_pattern 'web-search false' '.pi/web-search.json' present env WORKSTATION_PI_SELECTED=false
+assert_ignore_pattern 'web-search selected' '.pi/web-search.json' absent env WORKSTATION_PI_SELECTED=true
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT

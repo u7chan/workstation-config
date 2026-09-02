@@ -16,6 +16,7 @@ case "${1:-}" in
         "$ROOT_DIR/scripts/update-ai" \
         "$ROOT_DIR/tests/ai-clis-smoke.sh" \
         "$ROOT_DIR/tests/pi-packages-smoke.sh" \
+        "$ROOT_DIR/tests/pi-web-search-smoke.sh" \
         "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh" \
         "$ROOT_DIR/tests/wsl-restart-smoke.sh" \
         "$ROOT_DIR/tests/safe-chain-smoke.sh" \

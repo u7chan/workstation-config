@@ -12,6 +12,7 @@ case "${1:-}" in
     bash -n "$ROOT_DIR/tests/ai-clis-smoke.sh"
     bash -n "$ROOT_DIR/tests/pi-packages-smoke.sh"
     bash -n "$ROOT_DIR/tests/pi-keybindings-smoke.sh"
+    bash -n "$ROOT_DIR/tests/pi-web-search-smoke.sh"
     bash -n "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
     bash -n "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
     ;;
@@ -34,6 +35,7 @@ case "${1:-}" in
     "$ROOT_DIR/tests/ai-clis-smoke.sh"
     "$ROOT_DIR/tests/pi-packages-smoke.sh"
     "$ROOT_DIR/tests/pi-keybindings-smoke.sh"
+    "$ROOT_DIR/tests/pi-web-search-smoke.sh"
     "$ROOT_DIR/tests/claude-settings-smoke.sh"
     "$ROOT_DIR/tests/statusline-smoke.sh"
     ;;
