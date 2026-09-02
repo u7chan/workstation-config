@@ -24,6 +24,7 @@ case "${1:-}" in
     grep -Fq 'dot_pi/agent/keybindings.json' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'keybindings.json' "$ROOT_DIR/docs/roles-boundary.md"
     grep -Fq 'pi-keybindings-smoke' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'pi-web-search-smoke' "$ROOT_DIR/docs/workstation.md"
 
     grep -Fq 'pi-web-access' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'web_search' "$ROOT_DIR/docs/pi-packages.md"

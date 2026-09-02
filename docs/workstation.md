@@ -29,7 +29,7 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 ./bootstrap base
 ```
 
-`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Piが選択されている場合だけchezmoiがPi設定を配置します。WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）は`~/.pi/agent/keybindings.json`へ、openai-codexのGPT-5.6系コンパクション費用対策の`modelOverrides`は`~/.pi/agent/models.json`へ展開し、未選択の場合はbootstrapが削除します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
+`personal`は常に`base`を包含します。Ansibleの`base` roleはmiseの設定をtrustした後、Herdrだけを最新版へ解決し、残りのツールをlockfile固定で導入します。続いて`personal` roleが選択済みAI CLIを更新し、AI CLIの設定ディレクトリを準備してからHerdr公式integrationを導入・検証します。その後、bootstrapはchezmoiを適用し、AI CLI設定ディレクトリのmode 0700を再適用します。Piが選択されている場合だけchezmoiがPi設定を配置します。WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）は`~/.pi/agent/keybindings.json`へ、openai-codexのGPT-5.6系コンパクション費用対策の`modelOverrides`は`~/.pi/agent/models.json`へ展開し、pi-web-accessのcuratorブラウザを開かない`workflow: "auto-summary"`デフォルトは`~/.pi/web-search.json`へ`create`属性で配布します（既存ファイルは上書きせず、API key等の手動追加は維持）。未選択の場合はbootstrapが削除します。Claudeが選択されている場合だけ、リポジトリ直下のfragmentを`~/.claude/settings.json`へmergeしてからmise installを再実行します。
 
 `personal`では任意RoleとしてDocker CEも既定で導入します。Dockerを導入しない
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
@@ -329,7 +329,7 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 | Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
-| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは2ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`と、openai-codexのGPT-5.6系modelOverrides（コンパクション費用対策）の`~/.pi/agent/models.json`。Pi Packageのsession recallもglobal user runtimeとして扱う |
+| Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは3ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`、openai-codexのGPT-5.6系modelOverrides（コンパクション費用対策）の`~/.pi/agent/models.json`、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルトを`create`属性で配布する`~/.pi/web-search.json`（既存ファイルは上書きしないため、API key等の手動追加はユーザーruntime）。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
 auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
@@ -339,7 +339,7 @@ Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal
 
 `update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
-chezmoiがPiユーザー設定として管理する例外は2ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。openai-codexのGPT-5.6系（sol / terra / luna、組み込みcontext window 272K）は272K超過で入力費用が2倍になるため、`contextWindow`を256384へ上書きして自動コンパクションを約240K（`contextWindow - reserveTokens`、既定reserve 16Kで正確には240000）で発火させます。これはCodexの`model_auto_compact_token_limit=240000`と同等の対策です。なお対象は2026-08-29のUsage調査で超過を確認したGPT-5.6系のみで、gpt-5.5 / gpt-5.4も同種の272K超過コスト構造を持つため、必要になった場合は別途overrideを追加します。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します。管理対象ファイルのため、ローカルで直接編集した内容は次回bootstrap時にリポジトリの宣言状態へ戻ります。
+chezmoiがPiユーザー設定として管理する例外は3ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。openai-codexのGPT-5.6系（sol / terra / luna、組み込みcontext window 272K）は272K超過で入力費用が2倍になるため、`contextWindow`を256384へ上書きして自動コンパクションを約240K（`contextWindow - reserveTokens`、既定reserve 16Kで正確には240000）で発火させます。これはCodexの`model_auto_compact_token_limit=240000`と同等の対策です。なお対象は2026-08-29のUsage調査で超過を確認したGPT-5.6系のみで、gpt-5.5 / gpt-5.4も同種の272K超過コスト構造を持つため、必要になった場合は別途overrideを追加します。3つ目が`home/dot_pi/create_web-search.json`です。pi-web-access v0.10.4以降の`web_search`はcuratorブラウザが自動オープンしてサマリーのApprove待ちになるため、`create`属性で`workflow: "auto-summary"`だけを配布し、ブラウザを開かずモデル生成サマリーを返します。`create`属性のため既存ファイルを上書きせず、API key等の手動追加は次回bootstrapでも維持されます。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します（`~/.pi/web-search.json`も同様に削除します）。完全管理の2ファイルはローカルで直接編集した内容が次回bootstrap時にリポジトリの宣言状態へ戻りますが、`~/.pi/web-search.json`は`create`属性のため編集内容が維持されます。
 
 ```bash
 update-ai
@@ -561,6 +561,12 @@ Piのキーバインドとmodels.jsonの配置はjqとchezmoiを使って確認�
 
 ```bash
 ./tests/pi-keybindings-smoke.sh
+```
+
+pi-web-accessの`~/.pi/web-search.json`は`home/dot_pi/create_web-search.json`の`create`属性で配布します。選択時にファイルが無ければ非機密デフォルト（`workflow: "auto-summary"`）だけが展開されること、既存ファイル（API key等を手動追加済み）が上書きされないこと、未選択時に`.chezmoiignore`が対象外にして既存ファイルを触らないことを検証します。
+
+```bash
+./tests/pi-web-search-smoke.sh
 ```
 
 実際に`Alt+V`で画像を貼り付け、`Alt+Up`でメッセージキューを復元できるかはWindows Terminal上のPi入力欄での人力確認が必要です。

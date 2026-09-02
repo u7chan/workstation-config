@@ -149,6 +149,7 @@ restrict_ai_config_directories
 if [[ $PI_SELECTED == false ]]; then
   rm -f -- "$HOME/.pi/agent/keybindings.json"
   rm -f -- "$HOME/.pi/agent/models.json"
+  rm -f -- "$HOME/.pi/web-search.json"
 fi
 
 if [[ $CLAUDE_SELECTED == true ]]; then
