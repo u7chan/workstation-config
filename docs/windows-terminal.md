@@ -49,6 +49,13 @@ wsl -l
         "input": "\n"
       },
       "id": "User.sendNewLineInput"
+    },
+    {
+      "command": {
+        "action": "sendInput",
+        "input": "\u001b[27;5;13~"
+      },
+      "id": "User.sendCtrlEnter"
     }
   ],
   "copyFormatting": "none",
@@ -70,6 +77,10 @@ wsl -l
     {
       "id": "User.sendNewLineInput",
       "keys": "shift+enter"
+    },
+    {
+      "id": "User.sendCtrlEnter",
+      "keys": "ctrl+enter"
     },
     {
       "id": null,
@@ -124,6 +135,7 @@ wsl -l
 | `copyFormatting: none` | コピー時の書式を除き、プレーンテキストとして貼り付け先へ渡す。 |
 | `copyOnSelect: false` | 範囲選択だけで自動コピーしないようにする。 |
 | `shift+enter` → `\n` | Claude Code、Codex、OpenCodeなどのAI CLIで、送信せず入力中に改行する。 |
+| `ctrl+enter` → `ESC[27;5;13~` | herdr-file-viewer のツリーで `Ctrl+Enter`（既定アクション実行）をアプリへ送信する（WT はデフォルトで送信しない）。 |
 | `ctrl+w` → `null` | ターミナルタブの誤終了を防ぎ、Herdrのパネル操作との競合を避ける。 |
 | `colorScheme: One Half Dark` | Windows Terminal標準の配色へ統一し、未定義の`Dimidium`には依存しない。 |
 | `font.face: MesloLGM Nerd Font` | Starshipなどが使うNerd Fontアイコンを正しく表示する。 |
@@ -140,8 +152,9 @@ wsl -l
 1. `settings.json`を保存し、Windows Terminalをいったんすべて終了して再起動します。
 2. PowerShellが既定で起動することと、WSLプロファイルが指定したディストリビューションを開くことを確認します。
 3. IMEが半角英数で始まること、コピー、`Shift+Enter`の改行、`Ctrl+W`でタブが閉じないことを確認します。
-4. 起動時エラーや意図しない動作があれば、Windows Terminalを終了します。
-5. バックアップを復元してから、Windows Terminalを再起動します。
+4. `cat -v`実行中に`Ctrl+Enter`で`^[[27;5;13~`が表示されること、herdr-file-viewerのツリーで`Ctrl+Enter`が既定アクションを実行することを確認します。
+5. 起動時エラーや意図しない動作があれば、Windows Terminalを終了します。
+6. バックアップを復元してから、Windows Terminalを再起動します。
 
 バックアップの復元は、作成時に表示されたバックアップパスを`$backupPath`へ設定して行います。
 
