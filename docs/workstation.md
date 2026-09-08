@@ -185,6 +185,19 @@ MISE_CONFIG_DIR="$PWD/provisioning/mise" mise lock -g --platform linux-x64
 MISE_CONFIG_DIR="$PWD/provisioning/mise" MISE_LOCKED=1 mise install
 ```
 
+Playwright CLI の Chromium は、`base` Role の mise tool 導入後に CLI が要求する revision を `playwright-cli install-browser chromium` で揃えます。手動で `mise upgrade` を実行した場合は、次回 smoke の headless `about:blank` open→close で revision のズレやブラウザ不足を検知します。
+
+```bash
+./tests/playwright-cli-smoke.sh
+```
+
+smoke が失敗した場合は、次の1コマンドで Chromium を再同期してから smoke を再実行します。
+
+```bash
+playwright-cli install-browser chromium
+./tests/playwright-cli-smoke.sh
+```
+
 ## Neovim
 
 設定はchezmoiが`~/.config/nvim`へ配置し、Neovim本体はmiseだけで管理します。初回起動時にプラグインを取得します。

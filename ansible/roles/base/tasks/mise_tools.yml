@@ -41,3 +41,14 @@
       - install
   environment: "{{ base_mise_locked_env }}"
   changed_when: false
+
+- name: Install Chromium browser required by Playwright CLI
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/flock
+      - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
+      - playwright-cli
+      - install-browser
+      - chromium
+  environment: "{{ base_mise_locked_env }}"
+  changed_when: false

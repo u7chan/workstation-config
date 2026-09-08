@@ -17,6 +17,22 @@
 | [fzf](https://github.com/junegunn/fzf) | インタラクティブな曖昧検索 | `fzf` | `junegunn/fzf` |
 | [zoxide](https://github.com/ajeetdsouza/zoxide) | 頻繁に使うディレクトリへの高速ジャンプ（fzf連携） | `z <query>`, `zi` | `ajeetdsouza/zoxide` |
 
+## Playwright CLI
+
+Playwright CLI のブラウザは CLI が要求する revision と同梱 Chromium を provision 時に揃えます。導入後や CLI 更新後は、次の実ブラウザ smoke で動作を確認してください。
+
+```bash
+./tests/playwright-cli-smoke.sh
+```
+
+手動で `mise upgrade` を実行した場合は、次回の smoke でブラウザ revision のズレや不足を検知します。失敗した場合の復旧は次の1コマンドです。
+
+```bash
+playwright-cli install-browser chromium
+```
+
+復旧後は smoke を再実行して `about:blank` の headless open→close が成功することを確認してください。
+
 ## Gitと変更レビュー
 
 Git操作には`lazygit`、Agentが生成した変更のレビューには`hunk diff`を使います。Hunkは`--watch`で作業ツリーの更新を追従できます。
