@@ -31,4 +31,22 @@ playwright_cli_bin="$("$mise_bin" which playwright-cli)"
 
 "$playwright_cli_bin" --help >/dev/null
 
+# playwright-cli runs headless unless --headed is supplied. Use a unique
+# session so this smoke does not interfere with another CLI session, and do
+# not install a browser here: a missing or mismatched revision must fail.
+smoke_session="workstation-config-playwright-smoke-$$"
+smoke_opened=false
+cleanup() {
+  if [[ $smoke_opened == true ]]; then
+    "$playwright_cli_bin" "-s=$smoke_session" close >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT
+
+"$playwright_cli_bin" "-s=$smoke_session" open about:blank --browser=chromium >/dev/null
+smoke_opened=true
+"$playwright_cli_bin" "-s=$smoke_session" close >/dev/null
+smoke_opened=false
+trap - EXIT
+
 printf 'playwright-cli smoke checks passed: %s\n' "$("$playwright_cli_bin" --version)"

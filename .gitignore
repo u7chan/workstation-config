@@ -5,3 +5,5 @@
 # AI CLI project-local state (Codex CLI etc.) is machine-local and is not managed here.
 .agents/
 .codex/
+# Playwright CLI snapshots are machine-local and are not managed here.
+.playwright-cli/
