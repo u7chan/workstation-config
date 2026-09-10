@@ -16,6 +16,10 @@ case "${1:-}" in
     grep -Fq '[CLIツールガイド](cli-tools.md)' "$ROOT_DIR/docs/workstation.md"
     grep -Fq '[CLIツールガイド](docs/cli-tools.md)' "$ROOT_DIR/README.md"
     grep -Fq 'WSL sessionには反映されません' "$ROOT_DIR/docs/cli-tools.md"
+    # issue #191: context budgetポリシーdocが新設され、AGENTS.md / workstation.mdから参照される
+    test -f "$ROOT_DIR/docs/ai-model-context-budget.md"
+    grep -Fq '[docs/ai-model-context-budget.md](docs/ai-model-context-budget.md)' "$ROOT_DIR/AGENTS.md"
+    grep -Fq '[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)' "$ROOT_DIR/docs/workstation.md"
     ;;
   pi-packages)
     grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"

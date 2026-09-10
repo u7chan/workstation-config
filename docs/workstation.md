@@ -352,7 +352,7 @@ Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal
 
 `update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
-chezmoiがPiユーザー設定として管理する例外は3ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。openai-codexのGPT-5.6系（sol / terra / luna、組み込みcontext window 272K）は272K超過で入力費用が2倍になるため、`contextWindow`を256384へ上書きして自動コンパクションを約240K（`contextWindow - reserveTokens`、既定reserve 16Kで正確には240000）で発火させます。これはCodexの`model_auto_compact_token_limit=240000`と同等の対策です。なお対象は2026-08-29のUsage調査で超過を確認したGPT-5.6系のみで、gpt-5.5 / gpt-5.4も同種の272K超過コスト構造を持つため、必要になった場合は別途overrideを追加します。3つ目が`home/dot_pi/create_web-search.json`です。pi-web-access v0.10.4以降の`web_search`はcuratorブラウザが自動オープンしてサマリーのApprove待ちになるため、`create`属性で`workflow: "auto-summary"`だけを配布し、ブラウザを開かずモデル生成サマリーを返します。`create`属性のため既存ファイルを上書きせず、API key等の手動追加は次回bootstrapでも維持されます。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します（`~/.pi/web-search.json`も同様に削除します）。完全管理の2ファイルはローカルで直接編集した内容が次回bootstrap時にリポジトリの宣言状態へ戻りますが、`~/.pi/web-search.json`は`create`属性のため編集内容が維持されます。
+chezmoiがPiユーザー設定として管理する例外は3ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。`modelOverrides`はモデルの役割と利用コストに応じたcontext budgetをcontext windowへ反映するものです。GPT-6 Astra / GPT-5.6 Sol / Terraは`contextWindow`を256384へ上書きして自動コンパクションを240,000（`contextWindow - reserveTokens`、既定reserve 16K）で発火させ、GPT-5.6 Lunaは`contextWindow: 1050000`で最大context window付近まで使えるようにします。budgetの判断理由とCodex側（model catalog）の実装は[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)を正本とします。3つ目が`home/dot_pi/create_web-search.json`です。pi-web-access v0.10.4以降の`web_search`はcuratorブラウザが自動オープンしてサマリーのApprove待ちになるため、`create`属性で`workflow: "auto-summary"`だけを配布し、ブラウザを開かずモデル生成サマリーを返します。`create`属性のため既存ファイルを上書きせず、API key等の手動追加は次回bootstrapでも維持されます。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します（`~/.pi/web-search.json`も同様に削除します）。完全管理の2ファイルはローカルで直接編集した内容が次回bootstrap時にリポジトリの宣言状態へ戻りますが、`~/.pi/web-search.json`は`create`属性のため編集内容が維持されます。
 
 ```bash
 update-ai
@@ -450,6 +450,15 @@ apps = false
 `[apps.github] enabled = false`では集約MCP server `codex_apps`自体は無効化されず、`/mcp`にtool一覧が残ります。そのため、stable feature flagである`features.apps`を無効化します。
 
 この設定は`codex_apps`の読み込みを停止するだけで、ユーザーが明示的に追加する`mcp_servers`の利用可否を一律に制限しません。また、`global-agent-skills`の自作`gh`スキルや`gh` CLI、Codexのplugin機能全体には影響しません。
+
+#### モデル別context budget（model catalog）
+
+Codexの`model_context_window` / `model_auto_compact_token_limit`は全モデルへ一様に適用されるglobal overrideのため、モデル別のbudgetには使えません。このため`~/.codex/config.toml`には`model_catalog_json`だけを置き、`~/.codex/model-catalogs/workstation.json`（chezmoi管理は`home/dot_codex/model-catalogs/workstation.json`）でモデル別のbudgetを表現します。
+
+- GPT-6 Astra / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`（約240Kでauto-compact）
+- GPT-5.6 Luna（`worker-codex`）: `context_window: 872000` + `auto_compact_token_limit: 784800`（カタログの`max_context_window`範囲内で最大context windowを許可。1.05M根拠はポリシーdocを参照）
+
+カタログはcodexバンドルカタログのコピーにポリシー上書きを適用したもので、codexは`auto_compact_token_limit`を`context_window`の90%へクランプします。cagentのprofileはcodexへmodel / effortだけを渡すため、cagent設定の変更は不要で、カタログのモデル別値が`worker-codex`のLunaにもそのまま効きます。budgetの設計原則、判断理由、カタログ再生成手順は[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)を参照してください。
 
 ### 開発ツールの手動更新
 

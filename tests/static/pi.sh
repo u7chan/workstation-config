@@ -25,9 +25,10 @@ case "${1:-}" in
   config)
     # ~/.pi/config.json はpiが読まない。modelOverridesは~/.pi/agent/models.jsonが正規パス
     test -f "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fqx '        "gpt-6-astra": { "contextWindow": 256384 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
     grep -Fqx '        "gpt-5.6-sol": { "contextWindow": 256384 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
-    grep -Fqx '        "gpt-5.6-luna": { "contextWindow": 256384 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
-    grep -Fqx '        "gpt-5.6-terra": { "contextWindow": 256384 }' "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fqx '        "gpt-5.6-terra": { "contextWindow": 256384 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
+    grep -Fqx '        "gpt-5.6-luna": { "contextWindow": 1050000 }' "$ROOT_DIR/home/dot_pi/agent/models.json"
     grep -Fq 'rm -f -- "$HOME/.pi/agent/models.json"' "$ROOT_DIR/bootstrap"
     grep -Fq 'for ai_config_dir in .codex .claude .config/opencode .pi' "$ROOT_DIR/bootstrap"
     grep -Fqx '.pi/agent/models.json' "$ROOT_DIR/home/.chezmoiignore"
