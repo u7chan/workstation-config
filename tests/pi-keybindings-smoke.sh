@@ -30,15 +30,16 @@ expected_content='{
 '
 cmp <(printf '%s' "$expected_content") "$expected_file"
 
-# The managed models.json carries the openai-codex GPT-5.6 overrides that pi
-# reads for auto-compaction (pi does not read ~/.pi/config.json).
+# The managed models.json carries the openai-codex per-model context budget
+# overrides that pi reads for auto-compaction (pi does not read ~/.pi/config.json).
 models_file="$ROOT_DIR/home/dot_pi/agent/models.json"
 readonly models_file
 jq -e '
   .providers["openai-codex"].modelOverrides |
+  (."gpt-6-astra".contextWindow == 256384) and
   (."gpt-5.6-sol".contextWindow == 256384) and
-  (."gpt-5.6-luna".contextWindow == 256384) and
-  (."gpt-5.6-terra".contextWindow == 256384)
+  (."gpt-5.6-terra".contextWindow == 256384) and
+  (."gpt-5.6-luna".contextWindow == 1050000)
 ' "$models_file" >/dev/null
 
 # .chezmoiignore keeps the files managed only when bootstrap selects Pi.

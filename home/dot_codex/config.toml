@@ -2,10 +2,11 @@ approval_policy = "on-request"
 approvals_reviewer = "auto_review"
 sandbox_mode = "workspace-write"
 
-# gpt-5.6-sol は 272K 超えるとコスト2倍になるため制限
-# https://developers.openai.com/api/docs/models/gpt-5.6-sol
-model_context_window = 272000
-model_auto_compact_token_limit = 240000
+# モデル別のcontext window / auto-compactはmodel catalogで管理する。
+# model_context_window / model_auto_compact_token_limitは全モデルへ一様に適用される
+# global overrideのため、ここには置かない。設計原則とbudgetの判断理由は
+# docs/ai-model-context-budget.mdを参照。
+model_catalog_json = "~/.codex/model-catalogs/workstation.json"
 
 [sandbox_workspace_write]
 network_access = true

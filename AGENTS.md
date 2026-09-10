@@ -34,5 +34,6 @@ Ubuntu 26.04 WSL2 上の開発環境をコードで定義し、再現可能に�
 - [README.md](README.md): プロジェクト概要の確認時
 - [docs/bootstrap-prerequisites.md](docs/bootstrap-prerequisites.md): WSL作成、ユーザー作成、GitHub認証、clone前の手順が必要なとき
 - [docs/workstation.md](docs/workstation.md): profile、Ansible role、各種ツール、検証の詳細が必要なとき
+- [docs/ai-model-context-budget.md](docs/ai-model-context-budget.md): AIモデルのcontext上限・compact閾値・利用枠/コスト方針を変更するとき
 - [docs/roles-boundary.md](docs/roles-boundary.md): `base` / `personal` の責務分界を確認するとき
 - [home/README.md](home/README.md): chezmoi source ディレクトリを説明するとき
