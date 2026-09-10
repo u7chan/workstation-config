@@ -456,7 +456,7 @@ apps = false
 Codexの`model_context_window` / `model_auto_compact_token_limit`は全モデルへ一様に適用されるglobal overrideのため、モデル別のbudgetには使えません。このため`~/.codex/config.toml`には`model_catalog_json`だけを置き、`~/.codex/model-catalogs/workstation.json`（chezmoi管理は`home/dot_codex/model-catalogs/workstation.json`）でモデル別のbudgetを表現します。
 
 - GPT-6 Astra / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`（約240Kでauto-compact）
-- GPT-5.6 Luna（`worker-codex`）: `context_window: 1050000` + `auto_compact_token_limit: 945000`（最大context windowを許可）
+- GPT-5.6 Luna（`worker-codex`）: `context_window: 872000` + `auto_compact_token_limit: 784800`（カタログの`max_context_window`範囲内で最大context windowを許可。1.05M根拠はポリシーdocを参照）
 
 カタログはcodexバンドルカタログのコピーにポリシー上書きを適用したもので、codexは`auto_compact_token_limit`を`context_window`の90%へクランプします。cagentのprofileはcodexへmodel / effortだけを渡すため、cagent設定の変更は不要で、カタログのモデル別値が`worker-codex`のLunaにもそのまま効きます。budgetの設計原則、判断理由、カタログ再生成手順は[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)を参照してください。
 

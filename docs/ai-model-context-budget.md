@@ -45,8 +45,10 @@
 - `config.toml`に`model_context_window` / `model_auto_compact_token_limit`を置きません。これらは全モデルへ一様に適用されるglobal overrideであり、モデル別budgetと相容れないためです。
 - カタログの`context_window`（物理窓）と`auto_compact_token_limit`（budget）でモデル別値を表現します。codexは`auto_compact_token_limit`を`context_window`の90%へクランプします。
 - GPT-6 Astra / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`。
-- GPT-5.6 Luna: `context_window: 1050000` + `auto_compact_token_limit: 945000`（90%）。
+- GPT-5.6 Luna: `context_window: 872000` + `auto_compact_token_limit: 784800`（90%）。
+- Lunaの`context_window`はカタログ自身の`max_context_window`（872000）に合わせます。`max_context_window`はconfig override用のclamp値でカタログ値には作用しませんが、codex経路（ChatGPTバックエンド）が872K超の入力を受理するかは未検証のため、codex側は872Kに抑えます。OpenAI API公式docs上の最大1.05MはPi側（`contextWindow: 1050000`）で採用します。バックエンドの受理を実検証できたらcodex側のbudgetを再評価してください。
 - cagentのprofileはcodexへmodel / effortだけを渡すため、`worker-codex`のLunaにもカタログのモデル別値がそのまま効きます。cagent設定の変更は不要です。
+- `model_catalog_json`を廃止・削除するときは`config.toml`の`model_catalog_json`も同時に外してください。カタログが読めない場合codexは起動時にエラーになります。
 
 ### カタログの再生成手順
 
@@ -59,7 +61,7 @@ codex debug models --bundled \
             if .slug == "gpt-6-astra" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra" then
               .auto_compact_token_limit = 240000
             elif .slug == "gpt-5.6-luna" then
-              .context_window = 1050000 | .auto_compact_token_limit = 945000
+              .context_window = 872000 | .auto_compact_token_limit = 784800
             else .
             end)' \
   > home/dot_codex/model-catalogs/workstation.json
@@ -70,6 +72,7 @@ codex debug models --bundled \
 
 ## 再評価のトリガー
 
-- 新しいモデルを利用し始めたとき
+- 新しいモデルを利用し始めたとき。ポリシー対象外のモデルはcodex既定（90%既定compact）で動作し、AS-ISのglobal cap比でcompact点が変わるモデルがあります（例: hidden の`gpt-daybreak-red-latest`はnative 372Kのためcompact点が約334.8Kへ変化）。利用を始める場合はこの原則でbudgetを判断してください
 - providerの料金・利用枠・usage multiplierが変わったとき
 - Codex / Piのコンパクション仕様（reserve、クランプ率）が変わったとき
+- codex経路で872K超のcontext window受理を実検証したとき

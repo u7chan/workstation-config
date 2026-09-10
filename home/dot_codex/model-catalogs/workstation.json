@@ -404,7 +404,7 @@
         "limit": 10000
       },
       "supports_image_detail_original": true,
-      "context_window": 1050000,
+      "context_window": 872000,
       "max_context_window": 872000,
       "comp_hash": "3000",
       "effective_context_window_percent": 95,
@@ -420,7 +420,7 @@
       "node_repl_disabled": false,
       "tool_mode": "code_mode_only",
       "multi_agent_version": "v1",
-      "auto_compact_token_limit": 945000
+      "auto_compact_token_limit": 784800
     },
     {
       "slug": "gpt-daybreak-blue-latest",
