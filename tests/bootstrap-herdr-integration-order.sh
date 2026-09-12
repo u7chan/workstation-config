@@ -106,6 +106,14 @@ restrict_directories_line="$(awk -v apply_line="$chezmoi_apply_line" '
   printf 'bootstrap-herdr-integration-order: AI CLI config directories must be restricted after chezmoi apply.\n' >&2
   exit 1
 }
+# The legacy migration must run before chezmoi apply: otherwise the create
+# attribute writes a default-only ~/.pi/agent/web-search.json first, the ! -e
+# guard skips mv, and user-added keys in the legacy file are never read.
+migration_line="$(line_number 'mv -- "$HOME/.pi/web-search.json" "$HOME/.pi/agent/web-search.json"' "$ROOT_DIR/bootstrap")"
+[[ $migration_line -gt 0 && $migration_line -lt $chezmoi_apply_line ]] || {
+  printf 'bootstrap-herdr-integration-order: legacy web-search.json migration must run before chezmoi apply.\n' >&2
+  exit 1
+}
 grep -Fq 'for ai_config_dir in .codex .claude .config/opencode .pi' "$ROOT_DIR/bootstrap" || {
   printf 'bootstrap-herdr-integration-order: post-chezmoi directory restriction list is incomplete.\n' >&2
   exit 1
