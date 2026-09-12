@@ -141,6 +141,15 @@ trap restrict_ai_config_directories EXIT
 restrict_ai_config_directories
 
 printf '==> Applying chezmoi source\n'
+# pi-web-access 0.29.0 moved the default config path from ~/.pi/web-search.json to
+# ~/.pi/agent/web-search.json. Move an existing legacy file before chezmoi apply so
+# the create attribute preserves user-added keys instead of writing a default-only file.
+if [[ $PI_SELECTED == true && -f "$HOME/.pi/web-search.json" && ! -e "$HOME/.pi/agent/web-search.json" ]]; then
+  printf '==> Migrating legacy ~/.pi/web-search.json to ~/.pi/agent/web-search.json\n'
+  mkdir -p -- "$HOME/.pi/agent"
+  mv -- "$HOME/.pi/web-search.json" "$HOME/.pi/agent/web-search.json"
+fi
+
 WORKSTATION_PI_SELECTED="$PI_SELECTED" \
   "$HOME/.local/bin/chezmoi" apply --source "$ROOT_DIR/home" --no-tty --force
 
@@ -149,6 +158,7 @@ restrict_ai_config_directories
 if [[ $PI_SELECTED == false ]]; then
   rm -f -- "$HOME/.pi/agent/keybindings.json"
   rm -f -- "$HOME/.pi/agent/models.json"
+  rm -f -- "$HOME/.pi/agent/web-search.json"
   rm -f -- "$HOME/.pi/web-search.json"
 fi
 

@@ -16,7 +16,9 @@ fi
 # The managed default carries exactly the non-secret workflow preference.
 # API keys and other secrets are user runtime, added manually to the target
 # file, and must survive every later chezmoi apply (create attribute).
-managed_file="$ROOT_DIR/home/dot_pi/create_web-search.json"
+# pi-web-access 0.29.0+ reads ~/.pi/agent/web-search.json, so the managed target
+# is the agent directory rather than the legacy ~/.pi root.
+managed_file="$ROOT_DIR/home/dot_pi/agent/create_web-search.json"
 readonly managed_file
 jq -e '.workflow == "auto-summary" and (keys | length) == 1' "$managed_file" >/dev/null
 
@@ -52,9 +54,9 @@ assert_ignore_pattern() {
   fi
 }
 
-assert_ignore_pattern 'web-search unset' '.pi/web-search.json' present env -u WORKSTATION_PI_SELECTED
-assert_ignore_pattern 'web-search false' '.pi/web-search.json' present env WORKSTATION_PI_SELECTED=false
-assert_ignore_pattern 'web-search selected' '.pi/web-search.json' absent env WORKSTATION_PI_SELECTED=true
+assert_ignore_pattern 'web-search unset' '.pi/agent/web-search.json' present env -u WORKSTATION_PI_SELECTED
+assert_ignore_pattern 'web-search false' '.pi/agent/web-search.json' present env WORKSTATION_PI_SELECTED=false
+assert_ignore_pattern 'web-search selected' '.pi/agent/web-search.json' absent env WORKSTATION_PI_SELECTED=true
 
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
@@ -71,16 +73,16 @@ apply_source() {
 selected_home="$test_dir/selected"
 mkdir -p "$selected_home"
 apply_source true "$selected_home"
-cmp "$managed_file" "$selected_home/.pi/web-search.json"
+cmp "$managed_file" "$selected_home/.pi/agent/web-search.json"
 
 # Selected Pi with an existing user-owned file: the create attribute must not
 # overwrite manual additions such as API keys.
 existing_content='{"workflow":"none","exaApiKey":"sk-test-local-only"}'
 kept_home="$test_dir/kept"
-mkdir -p "$kept_home/.pi"
-printf '%s\n' "$existing_content" >"$kept_home/.pi/web-search.json"
+mkdir -p "$kept_home/.pi/agent"
+printf '%s\n' "$existing_content" >"$kept_home/.pi/agent/web-search.json"
 apply_source true "$kept_home"
-grep -Fxq "$existing_content" "$kept_home/.pi/web-search.json" || {
+grep -Fxq "$existing_content" "$kept_home/.pi/agent/web-search.json" || {
   printf 'Existing web-search.json must be kept as user runtime (create attribute).\n' >&2
   exit 1
 }
@@ -88,10 +90,10 @@ grep -Fxq "$existing_content" "$kept_home/.pi/web-search.json" || {
 # Unselected Pi: chezmoi leaves existing files untouched (unmanaged).
 # Removing them on downgrade is bootstrap's responsibility.
 unselected_home="$test_dir/unselected"
-mkdir -p "$unselected_home/.pi"
-printf '%s\n' "$existing_content" >"$unselected_home/.pi/web-search.json"
+mkdir -p "$unselected_home/.pi/agent"
+printf '%s\n' "$existing_content" >"$unselected_home/.pi/agent/web-search.json"
 apply_source false "$unselected_home"
-grep -Fxq "$existing_content" "$unselected_home/.pi/web-search.json" || {
+grep -Fxq "$existing_content" "$unselected_home/.pi/agent/web-search.json" || {
   printf 'Unselected Pi must keep the existing web-search.json unmanaged.\n' >&2
   exit 1
 }

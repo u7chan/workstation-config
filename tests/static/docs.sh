@@ -35,7 +35,7 @@ case "${1:-}" in
     grep -Fq 'fetch_content' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'get_search_content' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'source_check' "$ROOT_DIR/docs/pi-packages.md"
-    grep -Fq '~/.pi/web-search.json' "$ROOT_DIR/docs/pi-packages.md"
+    grep -Fq '~/.pi/agent/web-search.json' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'pi-codex-image-gen' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '@howaboua/pi-codex-conversion' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '@ogulcancelik/pi-session-recall' "$ROOT_DIR/docs/pi-packages.md"

@@ -115,7 +115,7 @@ grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
 grep -Fqx 'pi install npm:@ogulcancelik/pi-session-recall --no-approve' "$log"
 [[ -e "$HOME/.pi/agent/extensions/herdr-agent-state.ts" ]]
-[[ ! -e "$HOME/.pi/web-search.json" ]]
+[[ ! -e "$HOME/.pi/agent/web-search.json" ]]
 [[ ! -e "$HOME/.pi/agent/extensions/codex-image-gen.json" ]]
 [[ ! -e "$HOME/.pi/agent/generated-images" ]]
 jq -e '

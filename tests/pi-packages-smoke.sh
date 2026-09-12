@@ -219,7 +219,7 @@ jq -e '
   and .tools.imageGenerationOnly == false
 ' "$fixture_home/.pi/agent/pi-codex-conversion.json" >/dev/null
 [[ -e "$fixture_home/.pi/agent/extensions/herdr-agent-state.ts" ]]
-[[ ! -e "$fixture_home/.pi/web-search.json" ]]
+[[ ! -e "$fixture_home/.pi/agent/web-search.json" ]]
 [[ ! -e "$fixture_home/.pi/agent/extensions/codex-image-gen.json" ]]
 [[ ! -e "$fixture_home/.pi/agent/generated-images" ]]
 [[ ! -e "$fixture_home/.pi/agent/sessions" ]]
