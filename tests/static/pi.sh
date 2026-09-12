@@ -16,11 +16,13 @@ case "${1:-}" in
     ;;
   web-search)
     # issue #182: pi-web-accessのweb-search.jsonはcreate属性で非機密デフォルトのみ配布
-    test -f "$ROOT_DIR/home/dot_pi/create_web-search.json"
-    grep -Fqx '  "workflow": "auto-summary"' "$ROOT_DIR/home/dot_pi/create_web-search.json"
-    grep -Fq 'rm -f -- "$HOME/.pi/web-search.json"' "$ROOT_DIR/bootstrap"
+    # pi-web-access 0.29.0以降はagent dir（~/.pi/agent/web-search.json）が正規パス
+    test -f "$ROOT_DIR/home/dot_pi/agent/create_web-search.json"
+    grep -Fqx '  "workflow": "auto-summary"' "$ROOT_DIR/home/dot_pi/agent/create_web-search.json"
+    grep -Fq 'mv -- "$HOME/.pi/web-search.json" "$HOME/.pi/agent/web-search.json"' "$ROOT_DIR/bootstrap"
+    grep -Fq 'rm -f -- "$HOME/.pi/agent/web-search.json"' "$ROOT_DIR/bootstrap"
     grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
-    grep -Fqx '.pi/web-search.json' "$ROOT_DIR/home/.chezmoiignore"
+    grep -Fqx '.pi/agent/web-search.json' "$ROOT_DIR/home/.chezmoiignore"
     ;;
   config)
     # ~/.pi/config.json はpiが読まない。modelOverridesは~/.pi/agent/models.jsonが正規パス
@@ -42,10 +44,10 @@ case "${1:-}" in
     done
     ;;
   runtime-data)
-    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/create_web-search.json のみがPiのGit管理対象ユーザー設定。
+    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/agent/create_web-search.json のみがPiのGit管理対象ユーザー設定。
     if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
       | grep -Fvx 'home/dot_pi/agent/models.json' \
-      | grep -Fvx 'home/dot_pi/create_web-search.json' \
+      | grep -Fvx 'home/dot_pi/agent/create_web-search.json' \
       | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
       printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
       exit 1
