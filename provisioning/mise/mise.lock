@@ -59,13 +59,13 @@ url_api = "https://api.github.com/repos/cli/cli/releases/assets/540091442"
 provenance = "github-attestations"
 
 [[tools.herdr]]
-version = "0.9.1"
+version = "0.9.2"
 backend = "github:ogulcancelik/herdr"
 
 [tools.herdr."platforms.linux-x64"]
-checksum = "sha256:2a02fed16beb651ef006e1d43f048f652ca4dc58ad053cd2d44450563d5c54b7"
-url = "https://github.com/herdrdev/herdr/releases/download/v0.9.1/herdr-linux-x86_64"
-url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/568559679"
+checksum = "sha256:74de34746f96236f76d599f8f5d2439f884351eabe25b7495e0edab75414064a"
+url = "https://github.com/herdrdev/herdr/releases/download/v0.9.2/herdr-linux-x86_64"
+url_api = "https://api.github.com/repos/herdrdev/herdr/releases/assets/598275563"
 provenance = "github-attestations"
 
 [[tools.hunk]]
