@@ -20,6 +20,19 @@ case "${1:-}" in
     test -f "$ROOT_DIR/docs/ai-model-context-budget.md"
     grep -Fq '[docs/ai-model-context-budget.md](docs/ai-model-context-budget.md)' "$ROOT_DIR/AGENTS.md"
     grep -Fq '[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)' "$ROOT_DIR/docs/workstation.md"
+    # issue #197: distinguish the WSL package version from the distro execution mode.
+    grep -Fq '## WSL本体のバージョンと実行方式' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+    grep -Fxq 'wsl --version' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+    grep -Fxq 'wsl --list --verbose' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+    grep -Fq '`wsl --version`はWSL本体のバージョン' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+    grep -Fq '[WSL本体のバージョンと実行方式](docs/bootstrap-prerequisites.md#wsl本体のバージョンと実行方式)' "$ROOT_DIR/README.md"
+    grep -Fq '[WSL本体のバージョンと実行方式](bootstrap-prerequisites.md#wsl本体のバージョンと実行方式)' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '[Workstation構成ガイド](workstation.md#ubuntu-2604-wslのsystemd-user-session回避策)' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
+    grep -Fq 'https://github.com/u7chan/workstation-config/issues/197#issuecomment-5955950067' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '**回避策は維持します。**' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '### WSLのbinfmtエラーとWindows interop' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '[WSLのbinfmtエラーとWindows interop](#wslのbinfmtエラーとwindows-interop)' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '[wl-clipboard（WSLgクリップボード）](#wl-clipboardwslgクリップボード)' "$ROOT_DIR/docs/workstation.md"
     ;;
   pi-packages)
     grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"

@@ -2,6 +2,23 @@
 
 この手順は、Windowsホストから新しいUbuntu 26.04 WSL2を作成し、`workstation-config`をcloneするまでの人間操作を記録したものです。bootstrapはここに記載するユーザー作成や認証を自動化しません。
 
+## WSL本体のバージョンと実行方式
+
+Windows側のPowerShellで、WSL本体とディストリビューションの実行方式をそれぞれ確認します。
+
+```powershell
+wsl --version
+wsl --list --verbose
+```
+
+`wsl --version`はWSL本体のバージョンを表示します。`wsl --list --verbose`の
+`VERSION`列は、各ディストリビューションの実行方式（WSL1またはWSL2）です。
+WSL本体が`3.0.1.0`でも、ディストリビューションの`VERSION`が`2`なら実行方式はWSL2です。
+このリポジトリのWSL2前提は実行方式を指し、WSL本体3.xへの更新で変更する必要はありません。
+WSL本体3.xをbootstrapの必須条件にするものでもありません。
+
+WSL本体3.0.1での回避策の検証結果は、[Workstation構成ガイド](workstation.md#ubuntu-2604-wslのsystemd-user-session回避策)を参照してください。
+
 ## 1. Ubuntu 26.04 WSL2を作成する
 
 PowerShellで管理者権限を開き、利用可能なディストリビューションを確認します。

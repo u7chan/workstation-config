@@ -54,7 +54,7 @@ myupdate
 
 ## Docs
 
-- [Bootstrap前の初期セットアップ](docs/bootstrap-prerequisites.md): WSL作成、distro名指定、削除時の注意、GitHub認証、bootstrap前の確認。
+- [Bootstrap前の初期セットアップ](docs/bootstrap-prerequisites.md): WSL作成、distro名指定、削除時の注意、GitHub認証、bootstrap前の確認。[WSL本体のバージョンと実行方式](docs/bootstrap-prerequisites.md#wsl本体のバージョンと実行方式)の違いも説明。
 - [Workstation構成ガイド](docs/workstation.md): profile、Ansible role、mise、chezmoi、Docker、Neovim、Yazi、AI CLI、開発時の検証。
 - [Pi Packages一覧](docs/pi-packages.md): Pi公式Packageの用途、要件、global session scope、privacy boundary、設定所有権、Safe-chain経路、責務境界、検証手順。
 - [CLIツールガイド](docs/cli-tools.md): miseで管理するターミナルツールの用途、導入元、基本的な起動方法。
