@@ -47,7 +47,7 @@ bootstrapはchezmoi管理対象をリポジトリの宣言状態へ非対話で�
 bootstrapは次の条件を事前検査します。
 
 - Ubuntu 26.04
-- WSL2
+- WSL2（[WSL本体のバージョンと実行方式](bootstrap-prerequisites.md#wsl本体のバージョンと実行方式)は別）
 - root以外の一般ユーザー
 - sudoを利用可能
 - `base`または`personal`プロファイル
@@ -56,21 +56,147 @@ AnsibleはUbuntuのAPT版`ansible-core`を使用し、OS Pythonへpipで導入�
 
 ### Ubuntu 26.04 WSLのsystemd user session回避策
 
-検証・運用には、Ubuntu 24.04など既存環境と区別できる専用distro名
-`workstation-test-ubuntu26`を使用してください。
-
 Ubuntu 26.04 WSL2のsystemd 259では、一度終了した`user@1000.service`が
-WSLのcgroup再利用と衝突して再起動できない既知問題があります。base Roleは対象環境に限り
+再起動できない問題を[#25](https://github.com/u7chan/workstation-config/issues/25)で確認し、
+`DelegateSubgroup=init.scope`を解除する回避策を導入しました。base Roleは対象環境に限り
 `/etc/systemd/system/user@.service.d/wsl-cgroup-workaround.conf`を配置し、
 `DelegateSubgroup`を解除します。Ubuntu 24.04および非WSL環境には適用しません。
 
-これは一時的な回避策です。Ubuntuまたはsystemd upstreamで問題が解消した後は、
-systemdのバージョン条件とdrop-inの撤去を判断してください。適用後はWindows側で
-`wsl.exe --terminate workstation-test-ubuntu26`を実行して再接続し、次を確認します。
+上流の[WSL Issue #40593](https://github.com/microsoft/WSL/issues/40593)では、
+複数distroのsystemdが同じcgroup namespaceを共有することで衝突する事例も報告されています。
+[PR #41512](https://github.com/microsoft/WSL/pull/41512)はnamespace分離を導入し、
+2.9.13に収録されました。3.0.1にはその後続修正が含まれます。
+分離は`.wslconfig`の`[wsl2] isolateDistroCgroup`に依存し、
+[3.0.1の既定値はtrue](https://github.com/microsoft/WSL/blob/3.0.1/src/windows/common/WslCoreConfig.h)です。
+ただし、この修正が#25の原因まで解消したとは断定していません。
+
+**回避策は維持します。** 一時的な設定ですが、WSL本体3.xという版番号だけでは撤去しません。
+不要と判断できた場合も、対象バージョン・isolation設定などの条件を明記した後続Issueで、
+Ansibleの配置条件・既存drop-inの削除・テストの変更を設計します。
+
+#### WSL本体3.0.1での検証結果（2026-10-03）
+
+[#197の検証コメント](https://github.com/u7chan/workstation-config/issues/197#issuecomment-5955950067)を
+もとに記録しています。Windowsホスト側のCodexAppがPowerShellから専用distroを操作し、
+日常利用中のdistroの設定変更・停止、ホストのisolation設定変更は行っていません。
+
+| 項目 | 検証条件 |
+|---|---|
+| WSL本体／実行方式 | `3.0.1.0` ／ WSL2（`wsl --list --verbose`のVERSION=2） |
+| カーネル | `wsl --version`: `6.18.40.1-1`、`uname -r`: `6.18.40.1-microsoft-standard-WSL2` |
+| Ubuntu／systemdパッケージ | `26.04.1 LTS` ／ `259.5-0ubuntu3.4` |
+| ユーザー／boot設定 | 両専用distroともUID/GID=1000、`Linger=no`、`systemd=true`、`initTimeout`の明示値なし |
+| isolation | ホストに明示値なし。上記バージョンの既定値true。共存10組すべてでPID1のcgroup namespace IDが異なることを確認 |
+| 対象ソース | `c181ce68bb25e9f7e0094e930e8e58908001b3fd`の`ansible/roles/base/tasks/systemd_workaround.yml` |
+
+同じAnsibleタスクを両専用distroへ適用し、対象drop-inだけを退避・復元して比較しました。
+回避策ありの実効設定は`DelegateSubgroup=`（空）、なしは`DelegateSubgroup=init.scope`です。
+次の「成功」は、一般ユーザーでuser managerが`active`かつ`running`になったことを指します。
+
+| 条件 | 回避策あり | 回避策なし |
+|---|---|---|
+| 作成直後の初回一般ユーザー起動 | 未適用 | 両方成功 |
+| 専用peer停止中のprimary起動、primaryのterminate・再起動 | 成功 | 成功 |
+| primary→peer、peer→primaryの順次起動 | 両方成功 | 両方成功 |
+| 両ランチャーをほぼ同時に開始（各3回） | すべて成功 | すべて成功 |
+| `loginctl terminate-user tester`後の単純なWSL再接続 | inactive、user busなし | inactive、user busなし |
+| 停止確認後、`/bin/login -f tester`で新しいPAMセッションを生成（各3回） | すべて成功 | すべて成功 |
+
+強制終了後の単純なWSL再接続では、両条件でuser managerが`inactive/dead`でした。
+この試行のunitログにcgroupの`Device or resource busy`はなく、
+新しいPAMセッションを作ると起動しました。セッションが再作成されないことが原因候補ですが、
+観測とコードからの推論であり、WSL側の修正を検証した結果ではありません。
+**単純なWSL再接続と新しいPAMログインは区別して記録します。**
+
+日常distroは常時稼働していたため、専用peer停止中でもホスト全体の単一distro条件ではありません。
+同時起動もランチャーを続けて開始したもので、内部初期化の厳密な同期は保証しません。
+namespaceの比較は同時に稼働しているPID1のIDで行い、停止をまたいだIDや、
+両方で`0::/init.scope`となった`/proc/1/cgroup`の文字列だけでは分離を判定していません。
+
+旧WSL版、isolation無効、ホストVMの完全停止からの起動、異なるUID・Linger・systemdパッチ版、
+Dockerコンテナ起動・画像貼り付け・AI CLI等の全体smokeは未検証です。
+専用distroでは既存の`wsl-workaround`・`links`静的検査が成功しましたが、
+`./tests/static.sh`と`./tests/wsl-restart-smoke.sh`の全体は未実行です。
+`./bootstrap base`は初回に完了メッセージへ到達したものの、補助スクリプトの終了記録でエラーがあり、
+再実行も`Resolve installed Herdr binary`で失敗したため、全体の正常終了・冪等性は成功扱いにしません。
+この導入上の別件とWSL本体3.x・回避策との因果関係も未確定です。
+根拠が不足しているため、現行Ansibleの適用条件と運用環境の回避策を維持します。
+
+#### 再検証の進め方
+
+Windowsホスト側のCodexAppなどから対象名を指定して操作します。
+検証対象を停止しても担当エージェント自身が終了しない構成にしてください。
+
+1. 人間が既存distro名を確認し、[初期セットアップ手順](bootstrap-prerequisites.md)に従って
+   `wsl --install Ubuntu-26.04 --name workstation-test-ubuntu26`で専用distroを作成します。
+   複数distroの比較には別名の専用peerも用意し、初回ユーザー作成・リポジトリ取得を行います。
+   日常環境と同じUIDを使う条件や`Linger`値を記録します。
+2. user managerの比較には`./bootstrap base`、または同じsystemd回避タスクの最小適用で足ります。
+   personalのAI CLI・Herdr integrationは必須ではありません。導入失敗とuser managerの結果は区別します。
+3. 専用distroの対象drop-inだけを退避・復元し、`sudo systemctl daemon-reload`後に実効設定を確認します。
+   回避策なしの比較中にbootstrapを再実行するとdrop-inが再配置されるため、実行しません。
+4. 初回起動・ユーザーセッション終了後・対象distro再起動後・複数distroの順次／同時起動を比較します。
+   再起動は`wsl --terminate <検証用distro名>`の後、`wsl --list --verbose`でStoppedを確認してから行います。
+   終了に問題がある場合は専用distroの`[boot] initTimeout`とログも記録し、cgroup問題と混同しません
+   （[上流Issue #41596](https://github.com/microsoft/WSL/issues/41596)）。
+5. セッション終了は専用distroの全ユーザーシェル・GUIを閉じ、必要ならそのrootセッションから
+   `loginctl terminate-user <検証ユーザー>`を実行します。user managerの停止を確認した後、
+   単純なWSL再接続と、rootからの`/bin/login -f <検証ユーザー>`による新しいPAMログインを別々に確認します。
+6. 各一般ユーザーセッションで次を確認します。失敗時はunitログの必要な行だけを記録します。
+
+   ```bash
+   systemctl is-active "user@$(id -u).service"
+   systemctl --user is-system-running
+   systemctl show "user@$(id -u).service" -p DropInPaths -p DelegateSubgroup
+   loginctl show-user "$USER" -p Linger
+   readlink /proc/1/ns/cgroup
+   cat /proc/1/cgroup
+   journalctl -b -u "user@$(id -u).service"
+   ```
+
+7. 比較後はdrop-inと一時sudo設定を元に戻します。成果物を退避し、人間が対象名とデータの有無を
+   確認してから`wsl --unregister <検証用distro名>`で専用distroだけを削除します。
+
+日常利用中のdistroへの強制ログアウト・設定変更・停止、`wsl --shutdown`、
+WSL本体のダウングレード、ホストのisolation設定変更は行いません。
+実施できない再現経路は未検証として記録し、回避策を維持します。
+
+`personal`相当のCLI・PATH・integrationを準備した環境では、対象distro再起動後に次の全体smokeも実行します。
+`base`のみの場合は上記user manager検査と区別し、全体smoke未実行を成功と扱いません。
 
 ```bash
 ./tests/wsl-restart-smoke.sh
 ```
+
+### WSLのbinfmtエラーとWindows interop
+
+WSLの[PR #40621](https://github.com/microsoft/WSL/pull/40621)は、
+別distro終了時のbinfmt登録の一括消去を防ぐため、`/proc/sys/fs/binfmt_misc/status`を
+read-onlyで保護します。これは個別の登録・解除を妨げるものではありません。
+systemd-binfmtのflushはこの保護により失敗することがあり、
+[上流Issue #41226](https://github.com/microsoft/WSL/issues/41226)でも、
+機能に影響がなければ無視してよいと説明されています。
+
+上記の専用distroでは`systemd-binfmt.service`がfailed、システム全体がdegradedでも、
+`WSLInterop`と既存の`python3.14`登録はenabledでした。statusは`tmpfs ro,mode=755`で、
+通常比較26観測とPAM追加6観測すべてで`cmd.exe /d /c ver`が成功しました。
+全てのbinfmt用途の正常性を確認したわけではありません。
+
+状態を切り分けるときは、登録やクリップボードを変更しない次の確認を行います。
+
+```bash
+systemctl status systemd-binfmt.service --no-pager
+journalctl -b -u systemd-binfmt.service
+findmnt -T /proc/sys/fs/binfmt_misc/status
+cat /proc/sys/fs/binfmt_misc/WSLInterop
+cmd.exe /d /c ver
+```
+
+必要に応じて`/usr/lib/binfmt.d/*.conf`と対応する既存登録も照合します。
+`degraded`だけでWindows interopの喪失と判断せず、機能が動いている場合は
+serviceのmask・無効化、失敗状態のreset、binfmt登録の追加・削除を対処として行いません。
+登録消失による`Exec format error`は別の症状です。
+クリップボードへの影響と代替経路は[wl-clipboard（WSLgクリップボード）](#wl-clipboardwslgクリップボード)を参照してください。
 
 ## 構成
 
@@ -148,6 +274,10 @@ wl-paste --list-types
 `Win+Shift+S`でスクリーンショットを撮った直後に`wl-paste --list-types`へ
 `image/bmp`（または`image/png`）が含まれていれば、Piの`Alt+V`で画像を貼り付けられます。
 WSLInterop停止状態（`powershell.exe`が`Exec format error`になる状態）でも同じく有効です。
+
+`systemd-binfmt.service`のfailedやシステム全体のdegradedは、必ずしも登録消失を意味しません。
+[WSLのbinfmtエラーとWindows interop](#wslのbinfmtエラーとwindows-interop)の手順で、
+Windows実行ファイルの実行可否と登録状態を切り分けてください。
 
 ## 開発時の確認
 
