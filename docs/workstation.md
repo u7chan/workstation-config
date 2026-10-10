@@ -567,7 +567,7 @@ type -a gh herdr cagent claude opencode pi
 
 各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。標準出力・標準エラーへ結果を直接表示し、いずれかの処理が2回とも失敗した場合は終了コード1を返します。多重起動はロックで抑止し、競合時は終了コード3で終了します。再provisioningのmise、AI CLI更新も同じロックへ参加します。Herdrの更新主体はmiseであり、`herdr update`は使用しません。
 
-SafeChainのブロック（minimum package age / malware検知）は同じ入力で必ず再発するため、再試行せずに理由を表示して後続処理へ進みます。ageの場合はブロックされたパッケージ名と、時間を置くか`update-ai`と同じ`npm_config_before`で解決する旨を表示します。各ステップの出力は`tee`でコンソールへ流しつつ`~/.local/state/workstation-update/step-<label>.log`へ複製し、失敗時はそのパスを案内します。この複製によりinstallerのstdoutがパイプになるため、TTY検出に依存するツールは表示が簡素になる場合があります。SafeChain以外の失敗は従来どおり5秒待って1回だけ再試行します。なお`pi update --extensions`を直接実行した場合はmyupdateの外なので、この分類は働きません。
+SafeChainのブロック（minimum package age / malware検知）は同じ入力で必ず再発するため、再試行せずに理由を表示して後続処理へ進みます。ageの場合はブロックされたパッケージ名と、時間を置くか`update-ai`と同じ`npm_config_before`で解決する旨を表示します。各ステップの出力は`tee`でコンソールへ流しつつ`~/.local/state/workstation-update/step-<label>.log`（labelの空白は`-`へ置換。例: `step-mise-upgrade-herdr.log`）へ複製し、失敗時はそのパスを案内します。この複製によりinstallerのstdoutがパイプになるため、TTY検出に依存するツールは表示が簡素になる場合があります。SafeChain以外の失敗は従来どおり5秒待って1回だけ再試行します。なお`pi update --extensions`を直接実行した場合はmyupdateの外なので、この分類は働きません。
 
 ```bash
 myupdate

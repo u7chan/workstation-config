@@ -29,6 +29,9 @@ if [[ -n ${TEST_BLOCK_FILE:-} ]]; then
     sleep 0.02
   done
 fi
+if [[ -n ${TEST_SAFE_CHAIN_INFO:-} ]]; then
+  printf 'Safe-chain: Some package versions were suppressed during package metadata resolution due to minimum package age.\n' >&2
+fi
 if [[ -n ${TEST_SAFE_CHAIN_BLOCK:-} ]]; then
   cat >&2 <<'SAFE_CHAIN'
 npm error code E403
@@ -95,6 +98,7 @@ run_update() {
   TEST_AI_FAILURES="${TEST_AI_FAILURES:-0}" \
   TEST_MISE_FAILURES="${TEST_MISE_FAILURES:-0}" \
   TEST_SAFE_CHAIN_BLOCK="${TEST_SAFE_CHAIN_BLOCK:-}" \
+  TEST_SAFE_CHAIN_INFO="${TEST_SAFE_CHAIN_INFO:-}" \
   TEST_SAFE_CHAIN_MALWARE="${TEST_SAFE_CHAIN_MALWARE:-}" \
   TEST_STARTED_FILE="${TEST_STARTED_FILE:-}" \
   TEST_BLOCK_FILE="${TEST_BLOCK_FILE:-}" \
@@ -168,6 +172,33 @@ set -e
 grep -Fq 'SafeChain blocked a malicious package download' "$test_dir/safe-chain-malware.out"
 grep -Fq 'retry skipped' "$test_dir/safe-chain-malware.out"
 grep -Fq 'update failed: update-ai (SafeChain malware block)' "$test_dir/safe-chain-malware.out"
+
+# SafeChain prints the metadata-suppression notice on successful installs, so a
+# later transient failure in the same step must still spend the retry.
+prepare_run safe-chain-info-then-failure
+set +e
+TEST_SAFE_CHAIN_INFO=1 TEST_AI_FAILURES=2 run_update >"$test_dir/safe-chain-info.out" 2>&1
+exit_code=$?
+set -e
+[[ $exit_code -eq 1 ]]
+[[ $(grep -c '^update-ai:' "$RUN_COMMAND_LOG") -eq 2 ]]
+grep -Fq 'retrying in' "$test_dir/safe-chain-info.out"
+grep -Fq 'update failed: update-ai' "$test_dir/safe-chain-info.out"
+if grep -Fq 'retry skipped' "$test_dir/safe-chain-info.out"; then
+  printf 'the metadata age notice must not suppress the retry.\n' >&2
+  exit 1
+fi
+
+# The same notice must not hide a real malware block in that step either.
+prepare_run safe-chain-info-then-malware
+set +e
+TEST_SAFE_CHAIN_INFO=1 TEST_SAFE_CHAIN_MALWARE=1 run_update >"$test_dir/safe-chain-info-malware.out" 2>&1
+exit_code=$?
+set -e
+[[ $exit_code -eq 1 ]]
+[[ $(grep -c '^update-ai:' "$RUN_COMMAND_LOG") -eq 1 ]]
+grep -Fq 'SafeChain blocked a malicious package download' "$test_dir/safe-chain-info-malware.out"
+grep -Fq 'update failed: update-ai (SafeChain malware block)' "$test_dir/safe-chain-info-malware.out"
 # The environment selects only the requested AI tools; an empty value skips AI updates.
 prepare_run selected-ai
 WORKSTATION_UPDATE_AI_TOOLS=pi,opencode run_update >/dev/null

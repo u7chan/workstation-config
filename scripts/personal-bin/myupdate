@@ -91,13 +91,17 @@ run_attempt() {
 
 # Classify a captured step log. SafeChain blocks are deterministic: the same
 # install hits the same block until a package ages out or upstream removes a
-# malicious release, so they must not consume the retry.
+# malicious release, so they must not consume the retry. Match only the block
+# messages: a successful install still prints "Some package versions were
+# suppressed during package metadata resolution due to minimum package age.",
+# so a substring match on "minimum package age" would misread a later
+# transient failure of the same step.
 classify_failure() {
   local log_file=$1
 
-  if grep -qF 'minimum package age' "$log_file"; then
+  if grep -qE 'direct download minimum package age|direct package download request\(s\) due to minimum package age' "$log_file"; then
     printf 'safe-chain-minimum-package-age'
-  elif grep -qF 'Exiting without installing malicious packages' "$log_file"; then
+  elif grep -qE 'Exiting without installing malicious packages|Malicious changes detected' "$log_file"; then
     printf 'safe-chain-malware'
   elif grep -qF 'blocked by safe-chain' "$log_file"; then
     printf 'safe-chain-block'
@@ -123,23 +127,24 @@ step_log_path() {
 
 report_blocked_packages() {
   local log_file=$1
-  local blocked_packages package
+  local package
+  local -a stopped_packages=() listed_packages=()
+  local -A reported=()
 
-  # The 403 line names the package npm stopped on; the SafeChain summary lists
-  # every blocked download, so merge both forms and keep the order stable.
-  blocked_packages="$(
-    {
-      grep -oE 'blocked by safe-chain[^(]*\(([^)]+)\)' "$log_file" | sed -E 's/.*\(([^)]+)\)/\1/'
-      grep -oE '^ - [^ ()]+@[^ ()]+' "$log_file" | sed -E 's/^ - //'
-    } | sort -u | head -5
-  )" || true
-  if [[ -z $blocked_packages ]]; then
-    return 0
-  fi
+  # The 403 line names the package npm stopped on, so print those first; the
+  # SafeChain summary then adds every other blocked download without silently
+  # truncating the list.
+  mapfile -t stopped_packages < <(grep -oE 'blocked by safe-chain[^(]*\(([^)]+)\)' "$log_file" \
+    | sed -E 's/.*\(([^)]+)\)/\1/' | sort -u)
+  mapfile -t listed_packages < <(grep -oE '^ - [^ ()]+@[^ ()]+' "$log_file" \
+    | sed -E 's/^ - //' | sort -u)
 
-  while IFS= read -r package; do
+  for package in "${stopped_packages[@]}" "${listed_packages[@]}"; do
+    [[ -n $package ]] || continue
+    [[ -z ${reported[$package]:-} ]] || continue
+    reported["$package"]=1
     printf '%s:   - %s\n' "$PROGRAM_NAME" "$package" >&2
-  done <<<"$blocked_packages"
+  done
 }
 
 report_failure_reason() {
