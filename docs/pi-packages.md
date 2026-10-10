@@ -8,7 +8,7 @@
 ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ```
 
-現在の共通要件は、Node.js `22.19.0`以上、Pi `0.84.2`以上です。Piの最低バージョンは、`@howaboua/pi-codex-conversion`のpeer dependency要件に合わせています。`pi-session-recall` upstream自体の要件はNode.js `>=18.0.0` / Pi `v0.40+`ですが、workstationでは共通要件を適用します。Packageのバージョンは固定せず、Package managerの`install` / `update`で最新版を取得します。
+現在の共通要件は、Node.js `22.19.0`以上、Pi `0.84.2`以上です。Piの最低バージョンは、`@howaboua/pi-codex-conversion`のpeer dependency要件に合わせています。`pi-session-recall` upstream自体の要件はNode.js `>=18.0.0` / Pi `v0.40+`ですが、workstationでは共通要件を適用します。Packageのバージョンは固定せず、Package managerの`install` / `update`で取得します。`update-ai`は`npm_config_before`で解決対象をSafe-chainのminimum package age（既定48時間）経過済みのバージョンに限定するため、公開直後の版は次の更新で入ります。
 
 | Source | 目的 / 提供するtool | Upstream / 所有者 | 適用範囲 / 更新入口 | 要件 | 設定・runtime path | Safe-chain / 責務境界 | 更新時の検証 |
 |---|---|---|---|---|---|---|---|

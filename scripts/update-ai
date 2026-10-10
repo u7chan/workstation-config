@@ -31,6 +31,16 @@ readonly NODE_MINIMUM_VERSION_MAJOR=22
 readonly NODE_MINIMUM_VERSION_MINOR=19
 readonly NODE_MINIMUM_VERSION_PATCH=0
 
+# Safe-chain blocks downloads of packages newer than its minimum package age
+# (48 hours by default). Resolve npm versions against the same cutoff so the Pi
+# installs never request a package that the gate would block. One hour of
+# margin keeps the registry cutoff ahead of the gate.
+compute_npm_before() {
+  local age_hours=${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48}
+  [[ $age_hours =~ ^[0-9]+$ ]] || die "SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours: $age_hours"
+  date -u -d "@$(( $(date +%s) - (age_hours + 1) * 3600 ))" +%Y-%m-%dT%H:%M:%SZ
+}
+
 version_ge() {
   local version=$1
   local min_major=$2
@@ -180,21 +190,21 @@ pi_package_is_installed() {
 }
 
 ensure_pi_packages() {
-  local source npm_package
+  local npm_before=${1:?npm before timestamp is required}
+  local source
 
   require_supported_pi
   configure_pi_npm_command
 
   for source in "${PI_PACKAGE_SOURCES[@]}"; do
     [[ $source == npm:* ]] || die "Unsupported Pi package source: $source"
-    npm_package=${source#npm:}
 
     printf '==> Ensuring Pi package %s through Pi\n' "$source"
     if pi_package_is_installed "$source"; then
-      SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package" NO_COLOR=1 \
+      NO_COLOR=1 npm_config_before="$npm_before" \
         pi update "$source" --no-approve
     else
-      SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package" NO_COLOR=1 \
+      NO_COLOR=1 npm_config_before="$npm_before" \
         pi install "$source" --no-approve
     fi
 
@@ -224,9 +234,8 @@ else
   done
 fi
 
-# Load Safe-chain's npm wrapper. Only the Pi package scope bypasses the
-# package-age gate; malware inspection remains active because Safe-chain itself
-# is not bypassed.
+# Load Safe-chain's npm wrapper. Malware inspection stays active because
+# Safe-chain itself is not bypassed.
 # shellcheck disable=SC1091
 source "$HOME/.safe-chain/scripts/init-posix.sh"
 export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
@@ -234,9 +243,10 @@ export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
 if [[ $install_pi == true ]]; then
   require_supported_node
   printf '==> Updating Pi coding agent through Safe-chain\n'
-  SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/*" \
+  pi_npm_before="$(compute_npm_before)"
+  npm_config_before="$pi_npm_before" \
     npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
-  ensure_pi_packages
+  ensure_pi_packages "$pi_npm_before"
 fi
 
 if [[ $install_claude == true ]]; then

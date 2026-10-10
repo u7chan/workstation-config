@@ -23,8 +23,15 @@ case "${1:-}" in
       exit 1
     fi
 
-    grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/\*"' "$ROOT_DIR/scripts/update-ai"
-    grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package"' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'compute_npm_before()' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'npm_config_before="$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'ensure_pi_packages "$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'npm_config_before="$npm_before"' "$ROOT_DIR/scripts/update-ai"
+    if grep -qF 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS' "$ROOT_DIR/scripts/update-ai"; then
+      printf 'update-ai must align npm resolution instead of excluding packages from the age gate.\n' >&2
+      exit 1
+    fi
     if grep -qF '@openai/codex' "$ROOT_DIR/scripts/update-ai"; then
       printf 'update-ai must not install the retired Codex CLI.\n' >&2
       exit 1

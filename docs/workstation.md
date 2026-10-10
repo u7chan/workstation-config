@@ -302,7 +302,7 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
-Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`、`npm:@ogulcancelik/pi-session-recall`をglobal packageとして導入・更新します。
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します（解決版は[Safe-chainの節](#aikido-safe-chain)の`npm_config_before`でage経過済みに限定）。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`、`npm:@ogulcancelik/pi-session-recall`をglobal packageとして導入・更新します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
@@ -667,7 +667,7 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-Piの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+Piの更新は`update-ai`がnpmの`npm_config_before`へ「現在時刻 - minimum package age - 1時間」を設定し、解決対象をageゲートを通過済みのバージョンだけに限定します。Piの依存には`@types/node`（`protobufjs`経由）や`@aws-sdk/*`・`@smithy/*`（Bedrock経由）のような公開頻度の高い推移的依存があり、除外リスト方式ではゲートに引っかかるたびに例外を追加する必要があるためです。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`を設定している環境ではその値を基準にし、動的値は`pi`経由のPackage manager内部npmにも伝播します。`npmCommand`はmiseとSafe-chainを通り、malware検査は全パッケージで有効なままです。トレードオフとして、Pi本体とPi Packageは公開からage（既定48時間）経過後の最新版が入るため、更新反映が最大age分遅れます。Pi本体のnpm更新には`--ignore-scripts`を付けます。
 
 Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 

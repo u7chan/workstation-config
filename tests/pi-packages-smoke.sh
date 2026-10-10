@@ -38,8 +38,8 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 [[ ${1:-} == npm ]]
-printf 'safe-chain %s exclusion=%s\n' "$*" \
-  "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
+printf 'safe-chain %s exclusion=%s before=%s\n' "$*" \
+  "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "${npm_config_before:-}" >>"$TEST_INSTALL_LOG"
 EOF
   chmod +x "$fixture_bin/npm" "$fixture_bin/node" "$fixture_bin/curl" \
     "$fixture_bin/mise" "$fixture_bin/safe-chain"
@@ -182,7 +182,7 @@ run_pi_update 0.84.2 v24.18.0
 for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion @ogulcancelik/pi-session-recall; do
   [[ $(grep -c "^pi install npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
   [[ $(grep -c "^pi update npm:${package} --no-approve$" "$fixture_log") -eq 1 ]]
-  [[ $(grep -c "^safe-chain npm install ${package} exclusion=${package}$" "$fixture_log") -eq 2 ]]
+  [[ $(grep -cE "^safe-chain npm install ${package} exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" "$fixture_log") -eq 2 ]]
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
 # Rejection runs passing require_supported_node (pi-prerelease, old-pi,
