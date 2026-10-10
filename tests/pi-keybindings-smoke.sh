@@ -37,9 +37,11 @@ readonly models_file
 jq -e '
   .providers["openai-codex"].modelOverrides |
   (."gpt-6-astra".contextWindow == 256384) and
+  (."gpt-6.1-sol".contextWindow == 256384) and
   (."gpt-5.6-sol".contextWindow == 256384) and
   (."gpt-5.6-terra".contextWindow == 256384) and
-  (."gpt-5.6-luna".contextWindow == 1050000)
+  (."gpt-5.6-luna".contextWindow == 1050000) and
+  (."gpt-6-luna".contextWindow == 1050000)
 ' "$models_file" >/dev/null
 
 # .chezmoiignore keeps the files managed only when bootstrap selects Pi.

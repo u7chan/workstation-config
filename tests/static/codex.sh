@@ -23,10 +23,10 @@ case "${1:-}" in
     # カタログは全モデル分のメタデータを含み、budget値はdocs/ai-model-context-budget.mdと一致する
     jq -e '
       (.models | length >= 10) and
-      ([.models[] | select(.slug == "gpt-6-astra" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra")] | length == 3) and
-      ([.models[] | select(.slug == "gpt-5.6-luna")] | length == 1) and
-      ([.models[] | select(.slug == "gpt-6-astra" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra") | .context_window == 272000 and .auto_compact_token_limit == 240000] | all) and
-      ([.models[] | select(.slug == "gpt-5.6-luna") | .context_window == 872000 and .auto_compact_token_limit == 784800] | all) and
+      ([.models[] | select(.slug == "gpt-6-astra" or .slug == "gpt-6.1-sol" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra")] | length == 4) and
+      ([.models[] | select(.slug == "gpt-5.6-luna" or .slug == "gpt-6-luna")] | length == 2) and
+      ([.models[] | select(.slug == "gpt-6-astra" or .slug == "gpt-6.1-sol" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra") | .context_window == 272000 and .auto_compact_token_limit == 240000] | all) and
+      ([.models[] | select(.slug == "gpt-5.6-luna" or .slug == "gpt-6-luna") | .context_window == 872000 and .auto_compact_token_limit == 784800] | all) and
       ([.models[] | .model_messages.instructions_template != null and .model_messages.instructions_template != ""] | all)
     ' "$codex_catalog" >/dev/null
     ;;
