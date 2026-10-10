@@ -34,7 +34,7 @@ case "${1:-}" in
     grep -Fqx '        "gpt-5.6-luna": { "contextWindow": 1050000 },' "$ROOT_DIR/home/dot_pi/agent/models.json"
     grep -Fqx '        "gpt-6-luna": { "contextWindow": 1050000 }' "$ROOT_DIR/home/dot_pi/agent/models.json"
     grep -Fq 'rm -f -- "$HOME/.pi/agent/models.json"' "$ROOT_DIR/bootstrap"
-    grep -Fq 'for ai_config_dir in .codex .claude .config/opencode .pi' "$ROOT_DIR/bootstrap"
+    grep -Fq 'for ai_config_dir in .claude .config/opencode .pi' "$ROOT_DIR/bootstrap"
     grep -Fqx '.pi/agent/models.json' "$ROOT_DIR/home/.chezmoiignore"
     ;;
   base-role-guard)

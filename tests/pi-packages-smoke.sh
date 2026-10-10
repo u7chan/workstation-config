@@ -241,19 +241,24 @@ cat >"$no_pi_home/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
   printf 'core npm exclusion=%s args=%s\n' \
     "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "$*" >>"$TEST_INSTALL_LOG"
-  cat >"$HOME/.local/bin/codex" <<'SCRIPT'
-#!/usr/bin/env bash
-printf '0.1.0\n'
-SCRIPT
-  chmod +x "$HOME/.local/bin/codex"
 }
 EOF
+cat >"$no_pi_bin/curl" <<'EOF'
+#!/usr/bin/env bash
+printf 'curl %s\n' "$*" >>"$TEST_INSTALL_LOG"
+cat <<'SCRIPT'
+mkdir -p "$HOME/.local/bin"
+printf '#!/usr/bin/env bash\nprintf "opencode test\\n"\n' >"$HOME/.local/bin/opencode"
+chmod +x "$HOME/.local/bin/opencode"
+SCRIPT
+EOF
+chmod +x "$no_pi_bin/curl"
 
 HOME="$no_pi_home" \
 PATH="$no_pi_bin:$no_pi_home/.local/bin:$PATH" \
 TEST_INSTALL_LOG="$no_pi_log" \
 UPDATE_AI_MISE_ACTIVE=1 \
-  "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
+  "$ROOT_DIR/scripts/update-ai" --opencode >/dev/null
 
 [[ ! -e "$no_pi_home/.pi" ]]
 if grep -Eq 'pi-web-access|pi-codex-image-gen|pi-codex-conversion|pi-session-recall' "$no_pi_log"; then

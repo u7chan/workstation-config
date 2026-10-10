@@ -17,7 +17,6 @@ case "${1:-}" in
     grep -q 'command -v gh' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     grep -q 'expected_tools' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     grep -q 'herdr integration status' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-    grep -q 'codex features list' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     ;;
   config)
     herdr_config="$ROOT_DIR/home/dot_config/herdr/config.toml"

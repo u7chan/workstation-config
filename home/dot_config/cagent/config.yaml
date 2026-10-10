@@ -1,33 +1,17 @@
-default_agent: codex
-default_profile: reasoner
+default_agent: opencode-go
+default_profile: orchestrator
 
 agents:
-  codex:
-    bin: codex
-    provider: codex
-    model_id_prefix: false
   opencode-go:
     bin: opencode
     provider: opencode-go
     model_id_prefix: true
 
 profiles:
-  worker-codex:
-    agent: codex
-    model: gpt-5.6-luna
-    effort: max
   worker-opencode:
     agent: opencode-go
     model: deepseek-v4-flash
     # TODO: effort max の有効化は OpenCode Go が Start 対応後に設定する
-  reasoner:
-    agent: codex
-    model: gpt-5.6-sol
-    effort: high
-  reviewer:
-    agent: codex
-    model: gpt-5.6-sol
-    effort: xhigh
   orchestrator:
     agent: opencode-go
     model: deepseek-v4-pro

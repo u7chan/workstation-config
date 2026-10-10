@@ -26,10 +26,10 @@
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
 | mise 管理ツール（Node.js LTS, Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Hunk, Lazygit, Lazydocker, Yazi, Starship, Herdr, cagent, Playwright CLI） | 担当 | 担当 | mise は `base` で導入。`cagent`はlockedなGitHub Release assetで両プロファイルに導入 |
-| AI CLI（Codex / Claude Code / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
+| AI CLI（Claude Code / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
-| Herdr integration（Codex / Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
-| AI CLI 設定（Codex / Claude Code / OpenCode / cagent） | — | 担当 | Codex / OpenCode / cagent は chezmoi source として配置。`~/.claude/statusline.py` は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理。`cagent`の使用主体はCodexとOpenCodeを導入する`personal` |
+| Herdr integration（Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
+| AI CLI 設定（Claude Code / OpenCode / cagent） | — | 担当 | OpenCode / cagent は chezmoi source として配置。`~/.claude/statusline.py` は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理。`cagent`の使用主体はOpenCodeを導入する`personal` |
 | Pi ユーザー設定（`~/.pi/agent/keybindings.json` / `~/.pi/agent/models.json` / `~/.pi/agent/web-search.json`） | — | 担当 | WSL2/Windows Terminal向けPiキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）、openai-codexのモデル別context budget（`modelOverrides`）、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルト。chezmoiが`home/dot_pi/agent/`配下を管理し（web-search.jsonは`create`属性）、bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ配置し、未選択・`base`では削除する。web-search.jsonは`create`属性のため、既存ファイル（API key等の手動追加）は上書きしない。その他のPiユーザー設定は管理しない |
 | 個人 CLI スクリプト（myclaude, gac, gpc, http, http-lan, myupdate） | — | 担当 | `personal` role の `scripts/personal-bin/` |
 | 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
@@ -41,7 +41,7 @@ Pi本体とPi Packagesは`personal`の`update-ai`がmise管理のNode.js/npmとS
 
 Pi Packageのsource、要件、設定所有権、Safe-chain経路、責務境界、検証手順は[Pi Packages一覧](pi-packages.md)に集約します。ここでは`base` / `personal`の導入条件とHerdrとの大まかな境界だけを扱います。
 
-Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。Codexの`config.toml`やOpenCodeの`opencode.json`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Piでは`herdr-agent-state.ts`とPi Packagesを別管理し、互いのファイル・登録を上書きしません。Pi Packagesが所有する登録、conversionのmanaged fragment、`pi-codex-image-gen`の生成画像と任意設定もユーザーruntimeとして扱います。`@ogulcancelik/pi-session-recall`の`~/.pi/agent/sessions/**`と`session-recall.json`もユーザーruntimeであり、global sessionの本文をchezmoiやGitへ取り込みません。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成画像、生成stateはどちらの管理対象にも含めません。Piユーザー設定でchezmoiが管理する例外は3ファイルです。`~/.pi/agent/keybindings.json`（WSL2/Windows Terminal向けキーバインド、画像貼り付け`Alt+V`・メッセージキュー復元`Alt+Up`）、`~/.pi/agent/models.json`（openai-codexのモデル別context budget。Astra / Sol / Terraは約240Kでcompact、Lunaは最大windowを許可。設計原則は[ai-model-context-budget.md](ai-model-context-budget.md)）、`~/.pi/agent/web-search.json`（pi-web-accessのcurator/workflow設定。0.29.0以降の正規パス。非機密デフォルト`workflow: "auto-summary"`を`create`属性で配布し、既存ファイルは上書きしないため、API key等の手動追加はユーザーruntimeとして維持される）で、Pi選択時だけ配置し、未選択時にはbootstrapが削除します。
+Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、chezmoi sourceには追加しません。OpenCodeの`opencode.json`やcagentの`config.yaml`など既存の非機密設定はchezmoiが管理しますが、Herdrが追加するhook/plugin部分はHerdrが所有します。Piでは`herdr-agent-state.ts`とPi Packagesを別管理し、互いのファイル・登録を上書きしません。Pi Packagesが所有する登録、conversionのmanaged fragment、`pi-codex-image-gen`の生成画像と任意設定もユーザーruntimeとして扱います。`@ogulcancelik/pi-session-recall`の`~/.pi/agent/sessions/**`と`session-recall.json`もユーザーruntimeであり、global sessionの本文をchezmoiやGitへ取り込みません。Claude Codeでは、Herdrが生成する`~/.claude/settings.json`のhook entriesと`~/.claude/hooks/herdr-agent-state.sh`をHerdrが所有し、bootstrapがfragmentからmergeする`theme` / `statusLine`とは管理境界を分けます。認証情報、session、履歴、cache、ログ、生成画像、生成stateはどちらの管理対象にも含めません。Piユーザー設定でchezmoiが管理する例外は3ファイルです。`~/.pi/agent/keybindings.json`（WSL2/Windows Terminal向けキーバインド、画像貼り付け`Alt+V`・メッセージキュー復元`Alt+Up`）、`~/.pi/agent/models.json`（openai-codexのモデル別context budget。Astra / Sol / Terraは約240Kでcompact、Lunaは最大windowを許可。設計原則は[ai-model-context-budget.md](ai-model-context-budget.md)）、`~/.pi/agent/web-search.json`（pi-web-accessのcurator/workflow設定。0.29.0以降の正規パス。非機密デフォルト`workflow: "auto-summary"`を`create`属性で配布し、既存ファイルは上書きしないため、API key等の手動追加はユーザーruntimeとして維持される）で、Pi選択時だけ配置し、未選択時にはbootstrapが削除します。
 
 ## 補足
 
@@ -59,7 +59,7 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
   `personal_mise_path` / `personal_herdr_env`）。
 - `base` に含まれない責務は `personal` にも含まれません。`personal` は `base` を包含するため、
   `personal` プロファイルでは上表の `base` 列が「担当」の項目もすべて適用されます。
-- `personal_ai_tools` の許可リスト（`codex` / `claude` / `opencode` / `pi`）の正本は
+- `personal_ai_tools` の許可リスト（`claude` / `opencode` / `pi`）の正本は
   `ansible/roles/personal/defaults/main.yml` です。この集合はshell側でも検証・展開されるため、
   `bootstrap` の `WORKSTATION_PERSONAL_AI_TOOLS` 検証、`ansible/roles/personal/tasks/update_ai.yml`
   のassert、`scripts/update-ai` のCLIフラグ、`scripts/personal-bin/myupdate` の設定検証と同期して

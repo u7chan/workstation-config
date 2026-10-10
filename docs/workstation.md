@@ -35,10 +35,10 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
 `base`ではDocker repository、package、service、groupのいずれも変更しません。
 
-AI CLIをsubset化する場合は、`WORKSTATION_PERSONAL_AI_TOOLS`へカンマ区切りで指定します。未指定時は4種類すべてを対象にし、空文字を指定するとpersonal AI CLIの更新・integration導入を無効化します。
+AI CLIをsubset化する場合は、`WORKSTATION_PERSONAL_AI_TOOLS`へカンマ区切りで指定します。未指定時は3種類すべてを対象にし、空文字を指定するとpersonal AI CLIの更新・integration導入を無効化します。
 
 ```bash
-WORKSTATION_PERSONAL_AI_TOOLS=codex,opencode ./bootstrap personal
+WORKSTATION_PERSONAL_AI_TOOLS=opencode,pi ./bootstrap personal
 WORKSTATION_PERSONAL_AI_TOOLS= ./bootstrap personal
 ```
 
@@ -463,13 +463,12 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 <!-- TODO: u7chan.file-viewer の安定版リリース後に導入管理を見直す。 -->
 
-Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Codex、Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。`base`プロファイルではAI CLI本体・integrationとも導入しません。CodexとPiはnpmをSafe-chain経由で導入し、Piは`--ignore-scripts`を付けます。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません（廃止したCodexだけはbootstrapが旧設定とともに削除します。詳細は後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|
-| Codex | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | `~/.codex/config.toml`。Herdrが要求する`[features] hooks = true`を含む |
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
 | Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは3ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`、openai-codexのモデル別context budget（`modelOverrides`、コンパクション費用対策）の`~/.pi/agent/models.json`、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルトを`create`属性で配布する`~/.pi/agent/web-search.json`（既存ファイルは上書きしないため、API key等の手動追加はユーザーruntime）。Pi Packageのsession recallもglobal user runtimeとして扱う |
@@ -482,7 +481,7 @@ Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal
 
 `update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
-chezmoiがPiユーザー設定として管理する例外は3ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。`modelOverrides`はモデルの役割と利用コストに応じたcontext budgetをcontext windowへ反映するものです。GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terraは`contextWindow`を256384へ上書きして自動コンパクションを240,000（`contextWindow - reserveTokens`、既定reserve 16K）で発火させ、GPT-5.6 Luna / GPT-6 Lunaは`contextWindow: 1050000`で最大context window付近まで使えるようにします。budgetの判断理由とCodex側（model catalog）の実装は[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)を正本とします。3つ目が`home/dot_pi/agent/create_web-search.json`です。pi-web-access v0.10.4以降の`web_search`はcuratorブラウザが自動オープンしてサマリーのApprove待ちになるため、`create`属性で`workflow: "auto-summary"`だけを配布し、ブラウザを開かずモデル生成サマリーを返します。pi-web-access 0.29.0で設定パスが`~/.pi/web-search.json`からpiのagent dir（`~/.pi/agent/web-search.json`）へ変更されたため、配布先もagent dirとし、旧ファイルが残っていて新パスにファイルが無い場合だけbootstrapがchezmoi apply前に新パスへ移動してから配置します（新旧両方がある場合は移行せず、旧ファイルは残りますが0.29.0以降は読まれません）。`create`属性のため既存ファイルを上書きせず、API key等の手動追加は次回bootstrapでも維持されます。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します（`~/.pi/agent/web-search.json`と旧`~/.pi/web-search.json`も同様に削除します）。完全管理の2ファイルはローカルで直接編集した内容が次回bootstrap時にリポジトリの宣言状態へ戻りますが、`~/.pi/agent/web-search.json`は`create`属性のため編集内容が維持されます。
+chezmoiがPiユーザー設定として管理する例外は3ファイルです。1つ目がWSL2/Windows Terminal向けのPiキーバインドです。Windows Terminalは`Ctrl+V`を自身で処理するため、Piの`app.clipboard.pasteImage`を`Alt+V`へ、`app.message.dequeue`を`Alt+Up`へ割り当てた`home/dot_pi/agent/keybindings.json`をchezmoiが管理します。2つ目が`home/dot_pi/agent/models.json`の`modelOverrides`です。`modelOverrides`は他の設定ファイルに依存せず、piは`~/.pi/agent/models.json`のみを読込み元にします（`~/.pi/config.json`はpiの設定ファイルとして存在しない）。`modelOverrides`はモデルの役割と利用コストに応じたcontext budgetをcontext windowへ反映するものです。GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terraは`contextWindow`を256384へ上書きして自動コンパクションを240,000（`contextWindow - reserveTokens`、既定reserve 16K）で発火させ、GPT-5.6 Luna / GPT-6 Lunaは`contextWindow: 1050000`で最大context window付近まで使えるようにします。budgetの判断理由は[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)を正本とします。3つ目が`home/dot_pi/agent/create_web-search.json`です。pi-web-access v0.10.4以降の`web_search`はcuratorブラウザが自動オープンしてサマリーのApprove待ちになるため、`create`属性で`workflow: "auto-summary"`だけを配布し、ブラウザを開かずモデル生成サマリーを返します。pi-web-access 0.29.0で設定パスが`~/.pi/web-search.json`からpiのagent dir（`~/.pi/agent/web-search.json`）へ変更されたため、配布先もagent dirとし、旧ファイルが残っていて新パスにファイルが無い場合だけbootstrapがchezmoi apply前に新パスへ移動してから配置します（新旧両方がある場合は移行せず、旧ファイルは残りますが0.29.0以降は読まれません）。`create`属性のため既存ファイルを上書きせず、API key等の手動追加は次回bootstrapでも維持されます。bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ`WORKSTATION_PI_SELECTED=true`をchezmoiへ渡して配置し、未選択・baseプロファイルでは`~/.pi/agent/keybindings.json`と`~/.pi/agent/models.json`を削除します（`~/.pi/agent/web-search.json`と旧`~/.pi/web-search.json`も同様に削除します）。完全管理の2ファイルはローカルで直接編集した内容が次回bootstrap時にリポジトリの宣言状態へ戻りますが、`~/.pi/agent/web-search.json`は`create`属性のため編集内容が維持されます。
 
 ```bash
 update-ai
@@ -490,7 +489,9 @@ update-ai
 ./tests/pi-packages-smoke.sh
 ```
 
-chezmoiが管理するのは`~/.codex/config.toml`、`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はCodexを既定agent、`reasoner`を既定profileとし、CodexとOpenCode GoのLaunch ProfileおよびHerdrのstart/run templateを定義します。既定profileは設定の`default_profile`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+chezmoiが管理するのは`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agentかつ既定profileの`orchestrator`とし、OpenCode GoのLaunch ProfileおよびHerdrのstart/run templateを定義します。既定profileは設定の`default_profile`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+
+Codex CLIはPiへ移行したため、リポジトリと導入対象から削除しました。`home/dot_codex/`（`config.toml`と`model-catalogs/workstation.json`）は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します。Herdrが所有する`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`、Codex CLI本体、`~/.codex`配下のauth・session・履歴はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します。
 
 `base`ではmise解決とversionだけ、`personal`では設定・doctor・profile別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
 
@@ -524,14 +525,11 @@ Launch Profileへ手動で移行する必要があります。移行の概要は
 [cagent READMEのv0.3.x→v1.0.0移行ガイド](https://github.com/u7chan/code-agent-launcher?tab=readme-ov-file#v03x%E3%81%8B%E3%82%89v100%E3%81%B8%E3%81%AE%E6%89%8B%E5%8B%95%E7%A7%BB%E8%A1%8C)
 を参照してください。
 
-現行の設定で定義するLaunch Profileは次の5つです。
+現行の設定で定義するLaunch Profileは次の2つです。
 
 | Profile | Agent | Model | Effort |
 |---|---|---|---|
-| `worker-codex` | Codex | `gpt-5.6-luna` | `max` |
 | `worker-opencode` | OpenCode Go | `deepseek-v4-flash` | — (TODO) |
-| `reasoner` | Codex | `gpt-5.6-sol` | `high` |
-| `reviewer` | Codex | `gpt-5.6-sol` | `xhigh` |
 | `orchestrator` | OpenCode Go | `deepseek-v4-pro` | — (TODO) |
 
 Herdr templateは`{level}`から`{profile}`に変更され、Herdr Startで任意のLaunch Profileを
@@ -542,12 +540,12 @@ Herdr templateは`{level}`から`{profile}`に変更され、Herdr Startで任�
 ./tests/cagent-smoke.sh personal
 ```
 
-WSL再起動後は次を実行し、Herdr、cagent、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の4種類（Codex / Claude Code / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
+WSL再起動後は次を実行し、Herdr、cagent、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の3種類（Claude Code / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
 
 ```bash
 ./tests/wsl-restart-smoke.sh
-WORKSTATION_PERSONAL_AI_TOOLS=codex,opencode ./bootstrap personal
-./tests/wsl-restart-smoke.sh codex opencode
+WORKSTATION_PERSONAL_AI_TOOLS=opencode,pi ./bootstrap personal
+./tests/wsl-restart-smoke.sh opencode pi
 ```
 
 native session restoreの実機確認では、選択済みCLIをHerdrのpane内で起動してsessionを作成した後、WSLを再起動し、Herdrへ再接続します。各paneが通常のshellではなく、対応するCLIのnative sessionとして復元されることを確認してください。認証や実モデルへのリクエストは自動テストの対象にしません。
@@ -557,38 +555,8 @@ native session restoreの実機確認では、選択済みCLIをHerdrのpane内�
 ```bash
 eval "$(~/.local/bin/mise activate bash --shims)"
 hash -r
-type -a gh herdr cagent codex claude opencode pi
+type -a gh herdr cagent claude opencode pi
 ```
-
-Codexは通常の`HOME`にある`~/.codex/config.toml`を読みます。restart smokeの`codex features list`は、この設定がCodex起動時に正常に解析されることも検証します。
-
-#### Codex Apps integrationの無効化
-
-Codexは既定でApps integrationが有効であり、起動時に集約MCP server `codex_apps`が読み込まれ、GitHubを含む多数のtoolが利用候補として公開されます。GitHub操作には`global-agent-skills`の自作`gh`スキルとdispatcherを使用する方針であり、Codex組み込みのGitHub app/connectorは使用しません。実際、組み込みGitHub toolにはGitHub Appの権限不足により403エラーが発生します。
-
-```text
-GitHub API error 403: {"message":"Resource not accessible by integration", ...}
-```
-
-不要なMCP toolの誤選択、権限確認、失敗後のフォールバックを避けるため、`~/.codex/config.toml`の`[features]`セクションで`apps = false`を設定し、集約MCP serverの公開を無効化します。
-
-```toml
-[features]
-apps = false
-```
-
-`[apps.github] enabled = false`では集約MCP server `codex_apps`自体は無効化されず、`/mcp`にtool一覧が残ります。そのため、stable feature flagである`features.apps`を無効化します。
-
-この設定は`codex_apps`の読み込みを停止するだけで、ユーザーが明示的に追加する`mcp_servers`の利用可否を一律に制限しません。また、`global-agent-skills`の自作`gh`スキルや`gh` CLI、Codexのplugin機能全体には影響しません。
-
-#### モデル別context budget（model catalog）
-
-Codexの`model_context_window` / `model_auto_compact_token_limit`は全モデルへ一様に適用されるglobal overrideのため、モデル別のbudgetには使えません。このため`~/.codex/config.toml`には`model_catalog_json`だけを置き、`~/.codex/model-catalogs/workstation.json`（chezmoi管理は`home/dot_codex/model-catalogs/workstation.json`）でモデル別のbudgetを表現します。
-
-- GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`（約240Kでauto-compact）
-- GPT-5.6 Luna（`worker-codex`）/ GPT-6 Luna: `context_window: 872000` + `auto_compact_token_limit: 784800`（カタログの`max_context_window`範囲内で最大context windowを許可。1.05M根拠はポリシーdocを参照）
-
-カタログはcodexバンドルカタログのコピーにポリシー上書きを適用したもので、codexは`auto_compact_token_limit`を`context_window`の90%へクランプします。cagentのprofileはcodexへmodel / effortだけを渡すため、cagent設定の変更は不要で、カタログのモデル別値が`worker-codex`のLunaにもそのまま効きます。budgetの設計原則、判断理由、カタログ再生成手順は[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)を参照してください。
 
 ### 開発ツールの手動更新
 
@@ -603,7 +571,7 @@ Codexの`model_context_window` / `model_auto_compact_token_limit`は全モデル
 myupdate
 ```
 
-更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=codex,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
+更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=opencode,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
 Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
 
@@ -699,7 +667,7 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-CodexとPiの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+Piの更新は`update-ai`がminimum-package-age例外を一時指定します。Pi本体には`@earendil-works/*`、Package manager内部npmには処理中の`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`だけを対象外にします。`npmCommand`はmiseとSafe-chainを通るため、これらの例外はmalware検査を無効化しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
 
 Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 

@@ -12,7 +12,7 @@ Ubuntu 26.04 WSL2 上の開発環境をコードで定義し、再現可能に�
 - コンテナ: Docker CE
 - エディタ: Neovim
 - ファイルマネージャ: Yazi
-- AI CLI: Codex / Claude Code / OpenCode / Pi / Herdr
+- AI CLI: Claude Code / OpenCode / Pi / Herdr
 - CI: GitHub Actions + gitleaks
 
 ## Rules

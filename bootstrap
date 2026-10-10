@@ -24,7 +24,7 @@ die() {
 
 restrict_ai_config_directories() {
   local ai_config_dir
-  for ai_config_dir in .codex .claude .config/opencode .pi; do
+  for ai_config_dir in .claude .config/opencode .pi; do
     if [[ -d "$HOME/$ai_config_dir" ]]; then
       chmod 0700 -- "$HOME/$ai_config_dir"
     fi
@@ -60,7 +60,7 @@ if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
     personal_ai_tools_json="["
     for ai_tool in "${requested_ai_tools[@]}"; do
       case "$ai_tool" in
-        codex|claude|opencode|pi) ;;
+        claude|opencode|pi) ;;
         *) die "unsupported WORKSTATION_PERSONAL_AI_TOOLS value: $ai_tool" ;;
       esac
       if [[ $ai_tool == "claude" ]]; then
@@ -161,6 +161,12 @@ if [[ $PI_SELECTED == false ]]; then
   rm -f -- "$HOME/.pi/agent/web-search.json"
   rm -f -- "$HOME/.pi/web-search.json"
 fi
+
+# Codex CLI support was removed in favor of Pi. chezmoi does not delete targets
+# whose source entry is gone, so remove the retired files explicitly.
+rm -f -- "$HOME/.codex/config.toml"
+rm -f -- "$HOME/.codex/model-catalogs/workstation.json"
+rmdir -- "$HOME/.codex/model-catalogs" 2>/dev/null || true
 
 if [[ $CLAUDE_SELECTED == true ]]; then
   printf '==> Merging Claude Code settings\n'

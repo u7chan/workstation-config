@@ -46,9 +46,9 @@ trap 'rm -rf "$test_dir"' EXIT
 test_bin="$test_dir/bin"
 mkdir -p "$test_bin"
 
-# doctor checks command resolution for both Codex and OpenCode agents and Herdr.
+# doctor checks command resolution for the OpenCode agent and Herdr.
 # Keep these commands as inert shims so this smoke never starts an agent/model.
-for bin in codex opencode herdr; do
+for bin in opencode herdr; do
   cat >"$test_bin/$bin" <<'EOF'
 #!/usr/bin/env bash
 exit 0
@@ -59,29 +59,19 @@ done
 config="$ROOT_DIR/home/dot_config/cagent/config.yaml"
 doctor_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" doctor)"
 grep -Fq '[OK] config YAML parsed successfully' <<<"$doctor_output"
-grep -Fq '[OK] codex binary found:' <<<"$doctor_output"
+grep -Fq '[OK] opencode-go binary found:' <<<"$doctor_output"
 grep -Fq '[OK] profile "worker-opencode" agent "opencode-go" is defined' <<<"$doctor_output"
 grep -Fq '[OK] multiplexer adapter "herdr" has start/run command templates' <<<"$doctor_output"
 
-default_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run)"
-grep -Fq '# Resolved profile: reasoner' <<<"$default_output"
-grep -Fq '# Resolved agent: codex' <<<"$default_output"
-grep -Fq '# Resolved model: gpt-5.6-sol' <<<"$default_output"
-grep -Fq '# Resolved effort: high' <<<"$default_output"
-grep -Fq -- '--model gpt-5.6-sol' <<<"$default_output"
-grep -Fq 'model_reasoning_effort=\"high\"' <<<"$default_output"
-
-worker_codex_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run worker-codex)"
-grep -Fq '# Resolved profile: worker-codex' <<<"$worker_codex_output"
-grep -Fq '# Resolved effort: max' <<<"$worker_codex_output"
-grep -Fq -- '--model gpt-5.6-luna' <<<"$worker_codex_output"
-grep -Fq 'model_reasoning_effort=\"max\"' <<<"$worker_codex_output"
-
-reviewer_output="$(CAGENT_CONFIG="$config" "$cagent_bin" --dry-run reviewer)"
-grep -Fq '# Resolved profile: reviewer' <<<"$reviewer_output"
-grep -Fq '# Resolved effort: xhigh' <<<"$reviewer_output"
-grep -Fq -- '--model gpt-5.6-sol' <<<"$reviewer_output"
-grep -Fq 'model_reasoning_effort=\"xhigh\"' <<<"$reviewer_output"
+default_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run)"
+grep -Fq '# Resolved profile: orchestrator' <<<"$default_output"
+grep -Fq '# Resolved agent: opencode-go' <<<"$default_output"
+grep -Fq '# Resolved model: deepseek-v4-pro' <<<"$default_output"
+if grep -Fq '# Resolved effort:' <<<"$default_output"; then
+  printf 'cagent-smoke: the default profile must not pass an effort flag.\n' >&2
+  exit 1
+fi
+grep -Fq 'opencode --model opencode-go/deepseek-v4-pro' <<<"$default_output"
 
 worker_opencode_output="$(PATH="$test_bin:$PATH" CAGENT_CONFIG="$config" "$cagent_bin" --dry-run worker-opencode)"
 grep -Fq '# Resolved profile: worker-opencode' <<<"$worker_opencode_output"

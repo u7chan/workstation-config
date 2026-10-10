@@ -23,10 +23,12 @@ case "${1:-}" in
       exit 1
     fi
 
-    grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@openai/codex"' "$ROOT_DIR/scripts/update-ai"
     grep -q 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="@earendil-works/\*"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS="$npm_package"' "$ROOT_DIR/scripts/update-ai"
-    grep -q 'npm install --global @openai/codex@latest' "$ROOT_DIR/scripts/update-ai"
+    if grep -qF '@openai/codex' "$ROOT_DIR/scripts/update-ai"; then
+      printf 'update-ai must not install the retired Codex CLI.\n' >&2
+      exit 1
+    fi
     grep -Fq '"npm:pi-web-access"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq '"npm:pi-codex-image-gen"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq '"npm:@howaboua/pi-codex-conversion"' "$ROOT_DIR/scripts/update-ai"
