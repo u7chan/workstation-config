@@ -463,7 +463,7 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 <!-- TODO: u7chan.file-viewer の安定版リリース後に導入管理を見直す。 -->
 
-Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません（廃止したCodexだけはbootstrapが旧設定とともに削除します。詳細は後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止したCodexも例外ではなく、bootstrapが削除するのはrepo管理の`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`だけです。Herdrが所有するintegration（`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`）とCodex CLI本体は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
@@ -491,7 +491,7 @@ update-ai
 
 chezmoiが管理するのは`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agentかつ既定profileの`orchestrator`とし、OpenCode GoのLaunch ProfileおよびHerdrのstart/run templateを定義します。既定profileは設定の`default_profile`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
 
-Codex CLIはPiへ移行したため、リポジトリと導入対象から削除しました。`home/dot_codex/`（`config.toml`と`model-catalogs/workstation.json`）は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します。Herdrが所有する`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`、Codex CLI本体、`~/.codex`配下のauth・session・履歴はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します。
+Codex CLIはPiへ移行したため、リポジトリと導入対象から削除しました。`home/dot_codex/`（`config.toml`と`model-catalogs/workstation.json`）は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します。Herdrが所有する`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`、Codex CLI本体、`~/.codex`配下のauth・session・履歴はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します（`herdr integration uninstall codex`、`npm uninstall -g @openai/codex`、必要なら`rm -rf ~/.codex`）。
 
 `base`ではmise解決とversionだけ、`personal`では設定・doctor・profile別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
 
@@ -517,7 +517,7 @@ cp ~/.config/cagent/config.yaml ~/.config/cagent/config.yaml.v0.3.bak
 cagent --version
 cagent doctor
 cagent profiles
-cagent --dry-run reasoner
+cagent --dry-run orchestrator
 ```
 
 v0.3.xの`default_agent`/`default_level`とagent別の`levels`/`models`設定は、v1.0.0の
