@@ -5,8 +5,6 @@
     state: directory
     mode: "0700"
   loop:
-    - name: codex
-      path: .codex
     - name: claude
       path: .claude
     - name: opencode

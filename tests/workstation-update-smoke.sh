@@ -125,8 +125,8 @@ set -e
 
 # The environment selects only the requested AI tools; an empty value skips AI updates.
 prepare_run selected-ai
-WORKSTATION_UPDATE_AI_TOOLS=codex,pi,opencode run_update >/dev/null
-grep -Fqx 'update-ai:1:--codex --pi --opencode' "$RUN_COMMAND_LOG"
+WORKSTATION_UPDATE_AI_TOOLS=pi,opencode run_update >/dev/null
+grep -Fqx 'update-ai:1:--pi --opencode' "$RUN_COMMAND_LOG"
 
 prepare_run empty-ai
 WORKSTATION_UPDATE_AI_TOOLS='' run_update >/dev/null
@@ -142,8 +142,8 @@ prepare_run config-selection
 run_update >/dev/null
 grep -Fqx 'update-ai:1:--claude' "$RUN_COMMAND_LOG"
 prepare_run config-override
-WORKSTATION_UPDATE_AI_TOOLS=codex run_update >/dev/null
-grep -Fqx 'update-ai:1:--codex' "$RUN_COMMAND_LOG"
+WORKSTATION_UPDATE_AI_TOOLS=opencode run_update >/dev/null
+grep -Fqx 'update-ai:1:--opencode' "$RUN_COMMAND_LOG"
 
 # Invalid selections fail immediately with the documented usage exit code.
 prepare_run invalid-ai

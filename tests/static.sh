@@ -50,7 +50,6 @@ run shell-init.sh autoupdate             # 旧L202-203
 run docs.sh pi-packages                  # 旧L204-240
 run herdr.sh wsl-restart-greps           # 旧L241-245
 run herdr.sh config                      # 旧L246-259
-run codex.sh config                      # 旧L260-262
 run cagent.sh config                     # 旧L263-280
 run herdr.sh runtime-data                # 旧L281-292
 run pi.sh runtime-data                   # 旧L293-298

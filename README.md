@@ -23,7 +23,7 @@ Ubuntu 26.04 WSL2 上の開発環境を、コードで定義し再現可能に�
 | コンテナ | Docker CE |
 | エディタ | Neovim |
 | ファイルマネージャ | Yazi |
-| AI CLI | Codex / Claude Code / OpenCode / Pi / Herdr |
+| AI CLI | Claude Code / OpenCode / Pi / Herdr |
 | CI | GitHub Actions + gitleaks |
 
 ## Quick start
@@ -44,7 +44,7 @@ cd workstation-config
 
 ## Tools update
 
-`personal` プロファイルでは、AI CLI（Codex/Claude Code/OpenCode/Pi）とHerdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
+`personal` プロファイルでは、AI CLI（Claude Code/OpenCode/Pi）とHerdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
 
 ```bash
 myupdate
@@ -73,4 +73,4 @@ myupdate
 ## Secret Management
 
 > [!IMPORTANT]
-> secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。AI CLI が生成する project-local state（`.agents/` / `.codex/`）も保存しません。
+> secret、認証state、履歴、ログ、cache、マシン固有設定はリポジトリへ保存しません。AI CLI が生成する project-local state（`.agents/` など）も保存しません。

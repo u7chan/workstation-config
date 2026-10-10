@@ -41,40 +41,13 @@
 - GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terra: `contextWindow: 256384` → 240,000でcompact。
 - GPT-5.6 Luna / GPT-6 Luna: `contextWindow: 1050000` → 約1,033,616でcompact。
 
-### Codex（`home/dot_codex/`）
+### 適用範囲
 
-- `config.toml`の`model_catalog_json`で`~/.codex/model-catalogs/workstation.json`を読み込みます。カタログはバンドル / リモートカタログを置き換えるため、全モデル分のメタデータを含みます。
-- `config.toml`に`model_context_window` / `model_auto_compact_token_limit`を置きません。これらは全モデルへ一様に適用されるglobal overrideであり、モデル別budgetと相容れないためです。
-- カタログの`context_window`（物理窓）と`auto_compact_token_limit`（budget）でモデル別値を表現します。codexは`auto_compact_token_limit`を`context_window`の90%へクランプします。
-- GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`。
-- GPT-5.6 Luna / GPT-6 Luna: `context_window: 872000` + `auto_compact_token_limit: 784800`（90%）。
-- Luna系の`context_window`はカタログ自身の`max_context_window`（872000）に合わせます。`max_context_window`はconfig override用のclamp値でカタログ値には作用しませんが、codex経路（ChatGPTバックエンド）が872K超の入力を受理するかは未検証のため、codex側は872Kに抑えます。OpenAI API公式docs上の最大1.05MはPi側（`contextWindow: 1050000`）で採用します。バックエンドの受理を実検証できたらcodex側のbudgetを再評価してください。
-- cagentのprofileはcodexへmodel / effortだけを渡すため、`worker-codex`のLunaにもカタログのモデル別値がそのまま効きます。cagent設定の変更は不要です。
-- `model_catalog_json`を廃止・削除するときは`config.toml`の`model_catalog_json`も同時に外してください。カタログが読めない場合codexは起動時にエラーになります。
-
-### カタログの再生成手順
-
-`model-catalogs/workstation.json`はcodexバンドルカタログのコピーにポリシー上書きを適用したものです。codexを更新してモデルメタデータが変わったら、次のコマンドで再生成します。
-
-```bash
-codex debug models --bundled \
-  | jq 'del(.models[].base_instructions)
-        | .models |= map(
-            if .slug == "gpt-6-astra" or .slug == "gpt-6.1-sol" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra" then
-              .auto_compact_token_limit = 240000
-            elif .slug == "gpt-5.6-luna" or .slug == "gpt-6-luna" then
-              .context_window = 872000 | .auto_compact_token_limit = 784800
-            else .
-            end)' \
-  > home/dot_codex/model-catalogs/workstation.json
-```
-
-- `base_instructions`は`model_messages.instructions_template`との重複のため削除します（カタログ読み込みには不要です）。
-- 検証は`codex debug models`でモデル数とbudget値を確認し、`tests/static/codex.sh`がファイル構造を検証します。実モデルへのリクエストは自動テストの必須条件にしません。
+- 対象はPiの`openai-codex` providerです。Codex CLIはPiへ移行したため`home/dot_codex/`と`model-catalogs/workstation.json`を削除し、budgetはPiの`modelOverrides`だけで表現します。
+- Codex CLIのmodel catalogはプロンプト本文を各モデルへ埋め込む全置換カタログで、per-model budgetのためだけに数百KiBの生成物を持ち続ける必要がありました。この管理コストも削除の理由です。
 
 ## 再評価のトリガー
 
-- 新しいモデルを利用し始めたとき。ポリシー対象外のモデルはcodex既定（90%既定compact）で動作し、AS-ISのglobal cap比でcompact点が変わるモデルがあります（例: hidden の`gpt-daybreak-red-latest`はnative 372Kのためcompact点が約334.8Kへ変化）。利用を始める場合はこの原則でbudgetを判断してください
+- 新しいモデルを利用し始めたとき。`modelOverrides`の対象外モデルはprovider既定のcontext windowで動作します。利用を始める場合はこの原則でbudgetを判断してください
 - providerの料金・利用枠・usage multiplierが変わったとき
-- Codex / Piのコンパクション仕様（reserve、クランプ率）が変わったとき
-- codex経路で872K超のcontext window受理を実検証したとき
+- Piのコンパクション仕様（reserve、クランプ率）が変わったとき

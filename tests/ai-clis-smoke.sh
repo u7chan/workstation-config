@@ -17,11 +17,6 @@ export UPDATE_AI_MISE_ACTIVE=1
 cat >"$HOME/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
   printf 'npm exclusion=%s args=%s\n' "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "$*" >>"$TEST_INSTALL_LOG"
-  cat >"$HOME/.local/bin/codex" <<'SCRIPT'
-#!/usr/bin/env bash
-printf 'codex test\n'
-SCRIPT
-  chmod +x "$HOME/.local/bin/codex"
   cat >"$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -108,7 +103,6 @@ printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state
 
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 
-grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$log"
 grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
@@ -137,7 +131,7 @@ grep -Fqx 'export DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/
 grep -Fqx 'export PATH="$HOME/.opencode/bin:$PATH"' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 
 # Selective flag behavior: only the requested tool(s) are invoked.
-for flag in codex claude opencode pi; do
+for flag in claude opencode pi; do
   flag_test_dir="$(mktemp -d)"
   flag_home="$flag_test_dir/home"
   flag_bin="$flag_test_dir/bin"
@@ -148,11 +142,6 @@ for flag in codex claude opencode pi; do
   cat >"$flag_home/.safe-chain/scripts/init-posix.sh" <<EOF
 npm() {
   printf 'npm exclusion=%s args=%s\n' "\${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "\$*" >>"\$TEST_INSTALL_LOG"
-  cat >"\$HOME/.local/bin/codex" <<'SCRIPT'
-#!/usr/bin/env bash
-printf 'codex test\n'
-SCRIPT
-  chmod +x "\$HOME/.local/bin/codex"
   cat >"\$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -225,13 +214,6 @@ EOF
   "$ROOT_DIR/scripts/update-ai" "--$flag" >/dev/null
 
   case "$flag" in
-    codex)
-      grep -Fqx 'npm exclusion=@openai/codex args=install --global @openai/codex@latest' "$flag_log"
-      if grep -Eq '^curl ' "$flag_log"; then
-        printf 'codex flag should not invoke curl.\n' >&2
-        exit 1
-      fi
-      ;;
     pi)
       grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
       grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"

@@ -159,11 +159,6 @@ if [[ ${1:-} == --version ]]; then
 fi
 EOF
 
-cat >"$linux_bin/codex" <<'EOF'
-#!/usr/bin/env bash
-printf 'linux codex %s\n' "$*" >>"$TEST_INSTALL_LOG"
-EOF
-
 cat >"$linux_bin/pi" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -231,29 +226,22 @@ printf 'windows npm must not run\n' >&2
 exit 127
 EOF
 
-cat >"$windows_bin/codex" <<'EOF'
-#!/usr/bin/env bash
-printf 'node: not found\n' >&2
-exit 127
-EOF
-
 cat >"$windows_bin/pi" <<'EOF'
 #!/usr/bin/env bash
 printf 'windows pi must not run\n' >&2
 exit 127
 EOF
-chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/codex" "$linux_bin/pi" \
+chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/pi" \
   "$linux_bin/safe-chain" \
-  "$windows_bin/npm" "$windows_bin/codex" "$windows_bin/pi"
+  "$windows_bin/npm" "$windows_bin/pi"
 
 HOME="$test_home" \
 PATH="$windows_bin:$PATH" \
 TEST_INSTALL_LOG="$log" \
 TEST_LINUX_BIN="$linux_bin" \
-  "$ROOT_DIR/scripts/update-ai" --codex --pi >/dev/null
+  "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
 
 grep -Fqx 'mise exec node' "$log"
-grep -Fqx 'linux npm install --global @openai/codex@latest' "$log"
 grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
 grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'linux pi install npm:pi-codex-image-gen --no-approve' "$log"
@@ -263,10 +251,9 @@ grep -Fqx 'linux safe-chain npm install pi-web-access exclusion=pi-web-access' "
 grep -Fqx 'linux safe-chain npm install pi-codex-image-gen exclusion=pi-codex-image-gen' "$log"
 grep -Fqx 'linux safe-chain npm install @howaboua/pi-codex-conversion exclusion=@howaboua/pi-codex-conversion' "$log"
 grep -Fqx 'linux safe-chain npm install @ogulcancelik/pi-session-recall exclusion=@ogulcancelik/pi-session-recall' "$log"
-grep -Fqx 'linux codex --version' "$log"
 grep -Fqx 'linux pi --version' "$log"
-if grep -Fq 'windows npm' "$log" || grep -Fq 'windows codex' "$log" || grep -Fq 'windows pi' "$log"; then
-  printf 'bootstrap-ai-mise-order: Windows npm, Codex, or Pi shim was used.\n' >&2
+if grep -Fq 'windows npm' "$log" || grep -Fq 'windows pi' "$log"; then
+  printf 'bootstrap-ai-mise-order: Windows npm or Pi shim was used.\n' >&2
   exit 1
 fi
 

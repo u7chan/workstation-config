@@ -134,7 +134,7 @@ wsl -l
 | `defaultInputScope: alphanumericHalfWidth` | 日本語IMEが全角入力から始まらないようにする。 |
 | `copyFormatting: none` | コピー時の書式を除き、プレーンテキストとして貼り付け先へ渡す。 |
 | `copyOnSelect: false` | 範囲選択だけで自動コピーしないようにする。 |
-| `shift+enter` → `\n` | Claude Code、Codex、OpenCodeなどのAI CLIで、送信せず入力中に改行する。 |
+| `shift+enter` → `\n` | Claude Code、OpenCodeなどのAI CLIで、送信せず入力中に改行する。 |
 | `ctrl+enter` → `ESC[27;5;13~` | herdr-file-viewer のツリーで `Ctrl+Enter`（既定アクション実行）をアプリへ送信する（WT はデフォルトで送信しない）。 |
 | `ctrl+w` → `null` | ターミナルタブの誤終了を防ぎ、Herdrのパネル操作との競合を避ける。 |
 | `colorScheme: One Half Dark` | Windows Terminal標準の配色へ統一し、未定義の`Dimidium`には依存しない。 |

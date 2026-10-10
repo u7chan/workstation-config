@@ -42,7 +42,7 @@ assert_line="$(line_number '- name: Verify selected Herdr integrations are curre
 }
 
 directories_task="$(task_block 'Ensure Herdr integration config directories exist for selected AI CLI tools' "$herdr_tasks")"
-for config_path in .codex .claude .config/opencode .pi/agent; do
+for config_path in .claude .config/opencode .pi/agent; do
   grep -Fqx "      path: $config_path" <<<"$directories_task" || {
     printf 'bootstrap-herdr-integration-order: missing Herdr config directory %s.\n' "$config_path" >&2
     exit 1
@@ -114,7 +114,7 @@ migration_line="$(line_number 'mv -- "$HOME/.pi/web-search.json" "$HOME/.pi/agen
   printf 'bootstrap-herdr-integration-order: legacy web-search.json migration must run before chezmoi apply.\n' >&2
   exit 1
 }
-grep -Fq 'for ai_config_dir in .codex .claude .config/opencode .pi' "$ROOT_DIR/bootstrap" || {
+grep -Fq 'for ai_config_dir in .claude .config/opencode .pi' "$ROOT_DIR/bootstrap" || {
   printf 'bootstrap-herdr-integration-order: post-chezmoi directory restriction list is incomplete.\n' >&2
   exit 1
 }
