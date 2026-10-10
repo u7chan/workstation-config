@@ -16,7 +16,7 @@ export UPDATE_AI_MISE_ACTIVE=1
 
 cat >"$HOME/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
-  printf 'npm exclusion=%s args=%s\n' "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "$*" >>"$TEST_INSTALL_LOG"
+  printf 'npm exclusion=%s before=%s args=%s\n' "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "${npm_config_before:-}" "$*" >>"$TEST_INSTALL_LOG"
   cat >"$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -103,7 +103,7 @@ printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state
 
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 
-grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
+grep -Eq '^npm exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest$' "$log"
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
@@ -141,7 +141,7 @@ for flag in claude opencode pi; do
 
   cat >"$flag_home/.safe-chain/scripts/init-posix.sh" <<EOF
 npm() {
-  printf 'npm exclusion=%s args=%s\n' "\${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "\$*" >>"\$TEST_INSTALL_LOG"
+  printf 'npm exclusion=%s before=%s args=%s\n' "\${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "\${npm_config_before:-}" "\$*" >>"\$TEST_INSTALL_LOG"
   cat >"\$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -215,7 +215,7 @@ EOF
 
   case "$flag" in
     pi)
-      grep -Fqx 'npm exclusion=@earendil-works/* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$flag_log"
+      grep -Eq '^npm exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest$' "$flag_log"
       grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$flag_log"

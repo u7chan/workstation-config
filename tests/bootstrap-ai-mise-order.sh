@@ -148,7 +148,7 @@ EOF
 
 cat >"$linux_bin/npm" <<'EOF'
 #!/usr/bin/env bash
-printf 'linux npm %s\n' "$*" >>"$TEST_INSTALL_LOG"
+printf 'linux npm %s before=%s\n' "$*" "${npm_config_before:-}" >>"$TEST_INSTALL_LOG"
 EOF
 
 cat >"$linux_bin/node" <<'EOF'
@@ -214,8 +214,8 @@ cat >"$linux_bin/safe-chain" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 [[ ${1:-} == npm ]]
-printf 'linux safe-chain %s exclusion=%s\n' "$*" \
-  "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
+printf 'linux safe-chain %s exclusion=%s before=%s\n' "$*" \
+  "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "${npm_config_before:-}" >>"$TEST_INSTALL_LOG"
 shift
 "$TEST_LINUX_BIN/npm" "$@"
 EOF
@@ -242,15 +242,15 @@ TEST_LINUX_BIN="$linux_bin" \
   "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
 
 grep -Fqx 'mise exec node' "$log"
-grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$log"
+grep -Eq '^linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
 grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'linux pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'linux pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
 grep -Fqx 'linux pi install npm:@ogulcancelik/pi-session-recall --no-approve' "$log"
-grep -Fqx 'linux safe-chain npm install pi-web-access exclusion=pi-web-access' "$log"
-grep -Fqx 'linux safe-chain npm install pi-codex-image-gen exclusion=pi-codex-image-gen' "$log"
-grep -Fqx 'linux safe-chain npm install @howaboua/pi-codex-conversion exclusion=@howaboua/pi-codex-conversion' "$log"
-grep -Fqx 'linux safe-chain npm install @ogulcancelik/pi-session-recall exclusion=@ogulcancelik/pi-session-recall' "$log"
+grep -Eq '^linux safe-chain npm install pi-web-access exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
+grep -Eq '^linux safe-chain npm install pi-codex-image-gen exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
+grep -Eq '^linux safe-chain npm install @howaboua/pi-codex-conversion exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
+grep -Eq '^linux safe-chain npm install @ogulcancelik/pi-session-recall exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
 grep -Fqx 'linux pi --version' "$log"
 if grep -Fq 'windows npm' "$log" || grep -Fq 'windows pi' "$log"; then
   printf 'bootstrap-ai-mise-order: Windows npm or Pi shim was used.\n' >&2
