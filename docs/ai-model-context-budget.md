@@ -22,31 +22,33 @@
 | Model | Role | Context budget |
 |---|---|---|
 | GPT-6 Astra | reasoning / high-cost | 約240Kでcompact |
+| GPT-6.1 Sol | reasoning / reviewer | 約240Kでcompact |
 | GPT-5.6 Sol | reasoning / reviewer | 約240Kでcompact |
 | GPT-5.6 Terra | reasoning / mid-cost | 約240Kでcompact |
 | GPT-5.6 Luna | worker / sub-agent | 最大context windowを許可 |
+| GPT-6 Luna | worker / sub-agent | 最大context windowを許可 |
 
 判断理由（現在時点の概要。価格表は持たない）:
 
-- Astra / Sol / Terraは高コスト側のため、ChatGPT PlusのWork / Codex利用枠の保護を優先し、約240Kでauto-compactさせる。
-- Lunaは低コスト・高スループットのworker向けモデルのため、最大context windowを使えるようにし、長い作業をコンパクションなしで進められるようにする。
+- Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terraは高コスト側のため、ChatGPT PlusのWork / Codex利用枠の保護を優先し、約240Kでauto-compactさせる。
+- GPT-5.6 Luna / GPT-6 Lunaは低コスト・高スループットのworker向けモデルのため、最大context windowを使えるようにし、長い作業をコンパクションなしで進められるようにする。
 
 ## 実装マッピング
 
 ### Pi（`home/dot_pi/agent/models.json`）
 
 - `modelOverrides`の`contextWindow`でcontext windowを上書きします。piの自動コンパクションは`contextWindow - reserveTokens`（既定reserve 16,384）で発火します。
-- GPT-6 Astra / GPT-5.6 Sol / Terra: `contextWindow: 256384` → 240,000でcompact。
-- GPT-5.6 Luna: `contextWindow: 1050000` → 約1,033,616でcompact。
+- GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terra: `contextWindow: 256384` → 240,000でcompact。
+- GPT-5.6 Luna / GPT-6 Luna: `contextWindow: 1050000` → 約1,033,616でcompact。
 
 ### Codex（`home/dot_codex/`）
 
 - `config.toml`の`model_catalog_json`で`~/.codex/model-catalogs/workstation.json`を読み込みます。カタログはバンドル / リモートカタログを置き換えるため、全モデル分のメタデータを含みます。
 - `config.toml`に`model_context_window` / `model_auto_compact_token_limit`を置きません。これらは全モデルへ一様に適用されるglobal overrideであり、モデル別budgetと相容れないためです。
 - カタログの`context_window`（物理窓）と`auto_compact_token_limit`（budget）でモデル別値を表現します。codexは`auto_compact_token_limit`を`context_window`の90%へクランプします。
-- GPT-6 Astra / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`。
-- GPT-5.6 Luna: `context_window: 872000` + `auto_compact_token_limit: 784800`（90%）。
-- Lunaの`context_window`はカタログ自身の`max_context_window`（872000）に合わせます。`max_context_window`はconfig override用のclamp値でカタログ値には作用しませんが、codex経路（ChatGPTバックエンド）が872K超の入力を受理するかは未検証のため、codex側は872Kに抑えます。OpenAI API公式docs上の最大1.05MはPi側（`contextWindow: 1050000`）で採用します。バックエンドの受理を実検証できたらcodex側のbudgetを再評価してください。
+- GPT-6 Astra / GPT-6.1 Sol / GPT-5.6 Sol / Terra: `context_window: 272000` + `auto_compact_token_limit: 240000`。
+- GPT-5.6 Luna / GPT-6 Luna: `context_window: 872000` + `auto_compact_token_limit: 784800`（90%）。
+- Luna系の`context_window`はカタログ自身の`max_context_window`（872000）に合わせます。`max_context_window`はconfig override用のclamp値でカタログ値には作用しませんが、codex経路（ChatGPTバックエンド）が872K超の入力を受理するかは未検証のため、codex側は872Kに抑えます。OpenAI API公式docs上の最大1.05MはPi側（`contextWindow: 1050000`）で採用します。バックエンドの受理を実検証できたらcodex側のbudgetを再評価してください。
 - cagentのprofileはcodexへmodel / effortだけを渡すため、`worker-codex`のLunaにもカタログのモデル別値がそのまま効きます。cagent設定の変更は不要です。
 - `model_catalog_json`を廃止・削除するときは`config.toml`の`model_catalog_json`も同時に外してください。カタログが読めない場合codexは起動時にエラーになります。
 
@@ -58,9 +60,9 @@
 codex debug models --bundled \
   | jq 'del(.models[].base_instructions)
         | .models |= map(
-            if .slug == "gpt-6-astra" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra" then
+            if .slug == "gpt-6-astra" or .slug == "gpt-6.1-sol" or .slug == "gpt-5.6-sol" or .slug == "gpt-5.6-terra" then
               .auto_compact_token_limit = 240000
-            elif .slug == "gpt-5.6-luna" then
+            elif .slug == "gpt-5.6-luna" or .slug == "gpt-6-luna" then
               .context_window = 872000 | .auto_compact_token_limit = 784800
             else .
             end)' \
