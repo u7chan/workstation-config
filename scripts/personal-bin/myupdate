@@ -80,27 +80,131 @@ run_herdr_update() {
     env -u MISE_LOCKED "$mise_bin" upgrade herdr || return $?
 }
 
+# Stream a step to the console while keeping a copy for failure classification.
+# pipefail (set above) preserves the step's exit code through the pipe. The copy
+# makes the step's stdout a pipe, so installers that detect a TTY may print less.
+run_attempt() {
+  local log_file=$1
+  shift
+  "$@" 2>&1 | tee -a "$log_file"
+}
+
+# Classify a captured step log. SafeChain blocks are deterministic: the same
+# install hits the same block until a package ages out or upstream removes a
+# malicious release, so they must not consume the retry. Match only the block
+# messages: a successful install still prints "Some package versions were
+# suppressed during package metadata resolution due to minimum package age.",
+# so a substring match on "minimum package age" would misread a later
+# transient failure of the same step.
+classify_failure() {
+  local log_file=$1
+
+  if grep -qE 'direct download minimum package age|direct package download request\(s\) due to minimum package age' "$log_file"; then
+    printf 'safe-chain-minimum-package-age'
+  elif grep -qE 'Exiting without installing malicious packages|Malicious changes detected' "$log_file"; then
+    printf 'safe-chain-malware'
+  elif grep -qF 'blocked by safe-chain' "$log_file"; then
+    printf 'safe-chain-block'
+  else
+    printf 'unknown'
+  fi
+}
+
+failure_reason_label() {
+  case $1 in
+    safe-chain-minimum-package-age) printf 'SafeChain minimum package age' ;;
+    safe-chain-malware) printf 'SafeChain malware block' ;;
+    safe-chain-block) printf 'SafeChain block' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# Keep one captured log per step so a later failing step cannot overwrite the
+# SafeChain output that explains an earlier one.
+step_log_path() {
+  printf '%s/step-%s.log\n' "$STATE_DIR" "${1//[^[:alnum:]._-]/-}"
+}
+
+report_blocked_packages() {
+  local log_file=$1
+  local package
+  local -a stopped_packages=() listed_packages=()
+  local -A reported=()
+
+  # The 403 line names the package npm stopped on, so print those first; the
+  # SafeChain summary then adds every other blocked download without silently
+  # truncating the list.
+  mapfile -t stopped_packages < <(grep -oE 'blocked by safe-chain[^(]*\(([^)]+)\)' "$log_file" \
+    | sed -E 's/.*\(([^)]+)\)/\1/' | sort -u)
+  mapfile -t listed_packages < <(grep -oE '^ - [^ ()]+@[^ ()]+' "$log_file" \
+    | sed -E 's/^ - //' | sort -u)
+
+  for package in "${stopped_packages[@]}" "${listed_packages[@]}"; do
+    [[ -n $package ]] || continue
+    [[ -z ${reported[$package]:-} ]] || continue
+    reported["$package"]=1
+    printf '%s:   - %s\n' "$PROGRAM_NAME" "$package" >&2
+  done
+}
+
+report_failure_reason() {
+  local category=$1 label=$2 exit_code=$3 log_file=$4
+
+  case $category in
+    safe-chain-minimum-package-age)
+      printf '%s: %s failed (exit %s): SafeChain blocked downloads under its minimum package age (48h by default)\n' \
+        "$PROGRAM_NAME" "$label" "$exit_code" >&2
+      report_blocked_packages "$log_file"
+      printf '%s: retry skipped; wait for the packages to age out, or resolve with npm_config_before like update-ai\n' \
+        "$PROGRAM_NAME" >&2
+      ;;
+    safe-chain-malware)
+      printf '%s: %s failed (exit %s): SafeChain blocked a malicious package download\n' \
+        "$PROGRAM_NAME" "$label" "$exit_code" >&2
+      printf '%s: retry skipped; inspect the captured output before installing anything\n' \
+        "$PROGRAM_NAME" >&2
+      ;;
+    safe-chain-block)
+      printf '%s: %s failed (exit %s): SafeChain blocked a download\n' \
+        "$PROGRAM_NAME" "$label" "$exit_code" >&2
+      printf '%s: retry skipped because the block is deterministic\n' "$PROGRAM_NAME" >&2
+      ;;
+  esac
+  printf '%s: captured output: %s\n' "$PROGRAM_NAME" "$log_file" >&2
+}
+
 run_step() {
   local label=$1
   shift
-  local exit_code=0
+  local attempt exit_code=0 category=unknown
+  local log_file
+  log_file="$(step_log_path "$label")"
 
-  printf '==> %s\n' "$label"
-  if "$@"; then
-    return 0
-  else
-    exit_code=$?
-  fi
+  for attempt in 1 2; do
+    : >"$log_file"
+    if ((attempt == 1)); then
+      printf '==> %s\n' "$label"
+    fi
 
-  printf '%s: %s failed (exit %s); retrying in %s seconds\n' \
-    "$PROGRAM_NAME" "$label" "$exit_code" "$RETRY_DELAY_SECONDS" >&2
-  sleep "$RETRY_DELAY_SECONDS"
+    exit_code=0
+    run_attempt "$log_file" "$@" || exit_code=$?
+    if ((exit_code == 0)); then
+      return 0
+    fi
+    category="$(classify_failure "$log_file")"
 
-  if "$@"; then
-    return 0
-  else
-    exit_code=$?
-  fi
+    if [[ $category != unknown ]]; then
+      report_failure_reason "$category" "$label" "$exit_code" "$log_file"
+      FAILURE_REASONS["$label"]="$category"
+      return 1
+    fi
+
+    if ((attempt == 1)); then
+      printf '%s: %s failed (exit %s); retrying in %s seconds\n' \
+        "$PROGRAM_NAME" "$label" "$exit_code" "$RETRY_DELAY_SECONDS" >&2
+      sleep "$RETRY_DELAY_SECONDS"
+    fi
+  done
 
   printf '%s: %s failed after 2 attempts (exit %s)\n' \
     "$PROGRAM_NAME" "$label" "$exit_code" >&2
@@ -108,11 +212,23 @@ run_step() {
 }
 
 declare -a FAILED_STEPS=()
+declare -A FAILURE_REASONS=()
 run_step update-ai run_update_ai || FAILED_STEPS+=(update-ai)
 run_step 'mise upgrade herdr' run_herdr_update || FAILED_STEPS+=('mise upgrade herdr')
 
 if ((${#FAILED_STEPS[@]} > 0)); then
-  printf '%s: update failed: %s\n' "$PROGRAM_NAME" "$(IFS=', '; printf '%s' "${FAILED_STEPS[*]}")" >&2
+  failed_summary=''
+  for failed_step in "${FAILED_STEPS[@]}"; do
+    reason="${FAILURE_REASONS[$failed_step]:-}"
+    [[ -z $failed_summary ]] || failed_summary+=', '
+    if [[ -n $reason ]]; then
+      failed_summary+="$failed_step ($(failure_reason_label "$reason"))"
+    else
+      failed_summary+="$failed_step"
+    fi
+  done
+  printf '%s: update failed: %s\n' "$PROGRAM_NAME" "$failed_summary" >&2
+  printf '%s: captured step output: %s/\n' "$PROGRAM_NAME" "$STATE_DIR" >&2
   exit 1
 fi
 
