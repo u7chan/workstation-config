@@ -36,15 +36,24 @@ if [[ -n ${TEST_SAFE_CHAIN_BLOCK:-} ]]; then
   cat >&2 <<'SAFE_CHAIN'
 npm error code E403
 npm error 403 403 Forbidden - blocked by safe-chain direct download minimum package age (@aws-sdk/signature-v4-multi-region@3.996.48) - GET https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.996.48.tgz
-Safe-chain: blocked 2 direct package download request(s) due to minimum package age:
+Safe-chain: blocked 7 direct package download request(s) due to minimum package age:
  - @aws-sdk/signature-v4-multi-region@3.996.48 (https://registry.npmjs.org/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.996.48.tgz)
  - @aws-sdk/core@3.978.2 (https://registry.npmjs.org/@aws-sdk/core/-/core-3.978.2.tgz)
+ - @aws-sdk/nested-clients@3.997.47 (https://registry.npmjs.org/@aws-sdk/nested-clients/-/nested-clients-3.997.47.tgz)
+ - @aws-sdk/token-providers@3.1149.0 (https://registry.npmjs.org/@aws-sdk/token-providers/-/token-providers-3.1149.0.tgz)
+ - @aws-sdk/middleware-websocket@3.972.55 (https://registry.npmjs.org/@aws-sdk/middleware-websocket/-/middleware-websocket-3.972.55.tgz)
+ - @aws-sdk/credential-provider-node@3.972.85 (https://registry.npmjs.org/@aws-sdk/credential-provider-node/-/credential-provider-node-3.972.85.tgz)
+ - @aws-sdk/credential-provider-sso@3.973.17 (https://registry.npmjs.org/@aws-sdk/credential-provider-sso/-/credential-provider-sso-3.973.17.tgz)
 SAFE_CHAIN
   exit 43
 fi
 if [[ -n ${TEST_SAFE_CHAIN_MALWARE:-} ]]; then
   printf 'Safe-chain: Exiting without installing malicious packages.\n' >&2
   exit 44
+fi
+if [[ -n ${TEST_SAFE_CHAIN_GENERIC_BLOCK:-} ]]; then
+  printf 'npm error 403 403 Forbidden - blocked by safe-chain: package is not allowed by policy\n' >&2
+  exit 45
 fi
 if ((count <= ${TEST_AI_FAILURES:-0})); then
   printf 'injected update-ai failure\n' >&2
@@ -98,6 +107,7 @@ run_update() {
   TEST_AI_FAILURES="${TEST_AI_FAILURES:-0}" \
   TEST_MISE_FAILURES="${TEST_MISE_FAILURES:-0}" \
   TEST_SAFE_CHAIN_BLOCK="${TEST_SAFE_CHAIN_BLOCK:-}" \
+  TEST_SAFE_CHAIN_GENERIC_BLOCK="${TEST_SAFE_CHAIN_GENERIC_BLOCK:-}" \
   TEST_SAFE_CHAIN_INFO="${TEST_SAFE_CHAIN_INFO:-}" \
   TEST_SAFE_CHAIN_MALWARE="${TEST_SAFE_CHAIN_MALWARE:-}" \
   TEST_STARTED_FILE="${TEST_STARTED_FILE:-}" \
@@ -155,8 +165,10 @@ set -e
 [[ $(grep -c '^mise:' "$RUN_COMMAND_LOG") -eq 2 ]]
 grep -Fq 'update-ai failed (exit 43): SafeChain blocked downloads under its minimum package age' \
   "$test_dir/safe-chain-age.out"
+[[ $(grep -c '^myupdate:   - ' "$test_dir/safe-chain-age.out") -eq 7 ]]
 grep -Fq '  - @aws-sdk/signature-v4-multi-region@3.996.48' "$test_dir/safe-chain-age.out"
 grep -Fq '  - @aws-sdk/core@3.978.2' "$test_dir/safe-chain-age.out"
+grep -Fq '  - @aws-sdk/token-providers@3.1149.0' "$test_dir/safe-chain-age.out"
 grep -Fq 'retry skipped' "$test_dir/safe-chain-age.out"
 grep -Fq 'update failed: update-ai (SafeChain minimum package age), mise upgrade herdr' \
   "$test_dir/safe-chain-age.out"
@@ -172,6 +184,19 @@ set -e
 grep -Fq 'SafeChain blocked a malicious package download' "$test_dir/safe-chain-malware.out"
 grep -Fq 'retry skipped' "$test_dir/safe-chain-malware.out"
 grep -Fq 'update failed: update-ai (SafeChain malware block)' "$test_dir/safe-chain-malware.out"
+
+# A SafeChain block without a specific reason still stops after one attempt and
+# is reported with its own label.
+prepare_run safe-chain-generic-block
+set +e
+TEST_SAFE_CHAIN_GENERIC_BLOCK=1 run_update >"$test_dir/safe-chain-generic.out" 2>&1
+exit_code=$?
+set -e
+[[ $exit_code -eq 1 ]]
+[[ $(grep -c '^update-ai:' "$RUN_COMMAND_LOG") -eq 1 ]]
+grep -Fq 'update-ai failed (exit 45): SafeChain blocked a download' "$test_dir/safe-chain-generic.out"
+grep -Fq 'retry skipped because the block is deterministic' "$test_dir/safe-chain-generic.out"
+grep -Fq 'update failed: update-ai (SafeChain block)' "$test_dir/safe-chain-generic.out"
 
 # SafeChain prints the metadata-suppression notice on successful installs, so a
 # later transient failure in the same step must still spend the retry.
