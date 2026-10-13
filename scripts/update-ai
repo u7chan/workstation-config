@@ -24,6 +24,7 @@ readonly -a PI_PACKAGE_SOURCES=(
   "npm:@howaboua/pi-codex-conversion"
   "npm:@ogulcancelik/pi-session-recall"
 )
+readonly PI_PACKAGE_NAME="@earendil-works/pi-coding-agent"
 readonly PI_MINIMUM_VERSION_MAJOR=0
 readonly PI_MINIMUM_VERSION_MINOR=84
 readonly PI_MINIMUM_VERSION_PATCH=2
@@ -35,9 +36,15 @@ readonly NODE_MINIMUM_VERSION_PATCH=0
 # (48 hours by default). Resolve npm versions against the same cutoff so the Pi
 # installs never request a package that the gate would block. One hour of
 # margin keeps the registry cutoff ahead of the gate.
-compute_npm_before() {
+safe_chain_minimum_package_age_hours() {
   local age_hours=${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48}
   [[ $age_hours =~ ^[0-9]+$ ]] || die "SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours: $age_hours"
+  printf '%s' "$age_hours"
+}
+
+compute_npm_before() {
+  local age_hours
+  age_hours="$(safe_chain_minimum_package_age_hours)"
   date -u -d "@$(( $(date +%s) - (age_hours + 1) * 3600 ))" +%Y-%m-%dT%H:%M:%SZ
 }
 
@@ -59,6 +66,18 @@ version_ge() {
   ((major > min_major)) || \
     ((major == min_major && minor > min_minor)) || \
     ((major == min_major && minor == min_minor && patch >= min_patch))
+}
+
+# Report whether the first version precedes the second. Every caller compares
+# plain release versions from npm dist-tags or Pi, so a version sort is enough.
+version_lt() {
+  local first=$1
+  local second=$2
+  local sorted
+
+  [[ $first != "$second" ]] || return 1
+  sorted="$(printf '%s\n%s\n' "$first" "$second" | sort -V)"
+  [[ ${sorted%%$'\n'*} == "$first" ]]
 }
 
 # write_json_file <target_path> <temp_prefix> <kind> <update_subject> <jq_program> [jq_option...]
@@ -189,6 +208,85 @@ pi_package_is_installed() {
   ' <<<"$package_list"
 }
 
+pi_package_installed_version() {
+  local package_name=$1
+  local package_json="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/npm/node_modules/$package_name/package.json"
+  local installed
+
+  [[ -r $package_json ]] || return 1
+  installed="$(jq -r '.version // empty' "$package_json" 2>/dev/null)" || return 1
+  [[ -n $installed ]] || return 1
+  printf '%s' "$installed"
+}
+
+# Read the newest published version and its publish time from the registry.
+# This is a metadata-only query, so Safe-chain's package download gate does not
+# apply to it and the result shows what the age gate still holds back.
+registry_package_release() {
+  local package_name=$1
+  local response latest published published_epoch
+
+  response="$(NO_COLOR=1 npm view "$package_name" dist-tags time --json 2>/dev/null)" || return 1
+  [[ -n $response ]] || return 1
+  latest="$(jq -r '(if type == "array" then .[0] else . end)."dist-tags".latest // empty' <<<"$response" 2>/dev/null)" || return 1
+  [[ -n $latest ]] || return 1
+  published="$(jq -r --arg version "$latest" '(if type == "array" then .[0] else . end).time[$version] // empty' <<<"$response" 2>/dev/null)" || return 1
+  published_epoch="$(date -u -d "$published" +%s 2>/dev/null)" || return 1
+  printf '%s\t%s\n' "$latest" "$published_epoch"
+}
+
+# Print one age-gate status line for a target that update-ai just installed.
+# The installers print no version, so without this line a version held back by
+# the age gate is indistinguishable from a target that is already current.
+# A lookup failure stays advisory: metadata queries must not fail an update
+# whose installs succeeded.
+pi_version_line() {
+  local label=$1
+  local package_name=$2
+  local installed=$3
+  local age_hours=$4
+  local latest published_epoch release_epoch
+
+  if [[ -z $installed ]]; then
+    printf '%s (installed version unknown)\n' "$label"
+    return 0
+  fi
+
+  if ! IFS=$'\t' read -r latest published_epoch < <(registry_package_release "$package_name"); then
+    printf '%s %s (registry lookup failed; age gate status unknown)\n' "$label" "$installed"
+    return 0
+  fi
+
+  release_epoch=$((published_epoch + (age_hours + 1) * 3600))
+  if ! version_lt "$installed" "$latest"; then
+    printf '%s %s (newest allowed version)\n' "$label" "$installed"
+  elif ((release_epoch > $(date +%s))); then
+    printf '%s %s -> %s deferred until %s (published %s)\n' \
+      "$label" "$installed" "$latest" \
+      "$(date -u -d "@$release_epoch" +%Y-%m-%dT%H:%M:%SZ)" \
+      "$(date -u -d "@$published_epoch" +%Y-%m-%dT%H:%M:%SZ)"
+  else
+    printf '%s %s -> %s\n' "$label" "$installed" "$latest"
+    printf 'update-ai: %s %s is behind %s, which is already past the age gate; the update did not take effect\n' \
+      "$label" "$installed" "$latest" >&2
+  fi
+}
+
+report_pi_versions() {
+  local age_hours package_name source installed
+
+  age_hours="$(safe_chain_minimum_package_age_hours)"
+  printf '==> Pi versions (Safe-chain minimum package age: %sh)\n' "$age_hours"
+
+  pi_version_line pi "$PI_PACKAGE_NAME" "$(NO_COLOR=1 pi --version 2>/dev/null || true)" "$age_hours"
+
+  for source in "${PI_PACKAGE_SOURCES[@]}"; do
+    package_name=${source#npm:}
+    installed="$(pi_package_installed_version "$package_name" || true)"
+    pi_version_line "$source" "$package_name" "$installed" "$age_hours"
+  done
+}
+
 ensure_pi_packages() {
   local npm_before=${1:?npm before timestamp is required}
   local source
@@ -245,8 +343,9 @@ if [[ $install_pi == true ]]; then
   printf '==> Updating Pi coding agent through Safe-chain\n'
   pi_npm_before="$(compute_npm_before)"
   npm_config_before="$pi_npm_before" \
-    npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest
+    npm install --global --ignore-scripts "$PI_PACKAGE_NAME@latest"
   ensure_pi_packages "$pi_npm_before"
+  report_pi_versions
 fi
 
 if [[ $install_claude == true ]]; then

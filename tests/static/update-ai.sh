@@ -24,7 +24,12 @@ case "${1:-}" in
     fi
 
     grep -Fq 'compute_npm_before()' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'safe_chain_minimum_package_age_hours()' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'report_pi_versions' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'deferred until %s (published %s)' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'newest allowed version' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'registry lookup failed; age gate status unknown' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'npm_config_before="$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'ensure_pi_packages "$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'npm_config_before="$npm_before"' "$ROOT_DIR/scripts/update-ai"

@@ -61,6 +61,8 @@ case "${1:-}" in
     grep -Fq 'tools.webRun' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'session_search' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'session_query' "$ROOT_DIR/docs/pi-packages.md"
+    grep -Fq 'deferred until' "$ROOT_DIR/docs/pi-packages.md"
+    grep -Fq 'update-ai-age-gate-status.sh' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '~/.pi/agent/sessions' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '~/.pi/agent/session-recall.json' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'background indexing' "$ROOT_DIR/docs/pi-packages.md"
