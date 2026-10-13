@@ -575,7 +575,7 @@ myupdate
 
 更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=opencode,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
 
-Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`の導入・更新と登録確認まで行います。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
+Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`の導入・更新と登録確認まで行います。最後に`==> Pi versions`ブロックが出るため、ageゲートで見送った版と実際に入った版を更新ログだけで判別できます。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
 
 ## Bashのローカル設定
 
@@ -670,6 +670,8 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ```
 
 Piの更新は`update-ai`がnpmの`npm_config_before`へ「現在時刻 - minimum package age - 1時間」を設定し、解決対象をageゲートを通過済みのバージョンだけに限定します。Piの依存には`@types/node`（`protobufjs`経由）や`@aws-sdk/*`・`@smithy/*`（Bedrock経由）のような公開頻度の高い推移的依存があり、除外リスト方式ではゲートに引っかかるたびに例外を追加する必要があるためです。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`を設定している環境ではその値を基準にし、動的値は`pi`経由のPackage manager内部npmにも伝播します。`npmCommand`はmiseとSafe-chainを通り、malware検査は全パッケージで有効なままです。トレードオフとして、Pi本体とPi Packageは公開からage（既定48時間）経過後の最新版が入るため、更新反映が最大age分遅れます。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+
+`update-ai --pi`はインストール後に`==> Pi versions`ブロックを出力し、Pi本体と4つのPi Packageについて、実際に入った版とageゲートが見送った版を区別します。見送りは`<installed> -> <latest> deferred until <時刻> (published <時刻>)`（UTC。`deferred until`はageと1時間のマージンを通過する時刻）、ゲート通過済みの最新版が入っていれば`(newest allowed version)`です。見送りかどうかは、その実行でinstallに使ったcutoff（`npm_config_before`の値）に対して判定するため、更新中にゲート期限を跨いでも正常な据え置きを未適用と誤判定しません。`published`はregistryの値をそのまま表示し、`deferred until`は秒未満を切り上げた「実際に入る秒」を示します。ゲート通過済みなのに古い版が入っている場合は更新が効いていないため、`update-ai:`警告をstderrへ出します。registry照会は読み取り専用のmetadata queryで、失敗しても更新自体は成功として扱い`(registry lookup failed; age gate status unknown)`と表示します。
 
 Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 

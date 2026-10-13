@@ -186,10 +186,11 @@ for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion @o
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
 # Rejection runs passing require_supported_node (pi-prerelease, old-pi,
-# pi-v-prefix, invalid-json) contribute 4 "core npm" calls; the two successful
-# runs each add their global Pi npm install, for 6 in total before the
-# chmod regression run below.
-[[ $(grep -c '^core npm ' "$fixture_log") -eq 6 ]]
+# pi-v-prefix, invalid-json) contribute 4 "core npm" calls. Each successful
+# run adds its global Pi npm install plus one age gate status lookup for the Pi
+# CLI itself; the fixture has no Pi package install tree, so the package status
+# lines report an unknown installed version without querying npm.
+[[ $(grep -c '^core npm ' "$fixture_log") -eq 8 ]]
 cmp "$test_dir/settings.after-first" "$fixture_home/.pi/agent/settings.json"
 cmp "$test_dir/codex-conversion.after-first" \
   "$fixture_home/.pi/agent/pi-codex-conversion.json"

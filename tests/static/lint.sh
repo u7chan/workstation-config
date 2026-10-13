@@ -15,6 +15,7 @@ case "${1:-}" in
         "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-resources.sh" \
         "$ROOT_DIR/scripts/update-ai" \
         "$ROOT_DIR/tests/ai-clis-smoke.sh" \
+        "$ROOT_DIR/tests/update-ai-age-gate-status.sh" \
         "$ROOT_DIR/tests/pi-packages-smoke.sh" \
         "$ROOT_DIR/tests/pi-web-search-smoke.sh" \
         "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh" \
