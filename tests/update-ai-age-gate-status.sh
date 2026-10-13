@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Verify that `update-ai --pi` reports the versions the Safe-chain minimum
 # package age holds back, so a deferred update is not mistaken for a current
-# installation. The test stubs node, npm, curl, and Pi, and serves a fixture
-# registry, so it needs no network and no managed runtime.
+# installation. The test stubs node, npm, curl, Pi, and the clock, and serves a
+# fixture registry, so it needs no network and no managed runtime.
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,6 +24,35 @@ export UPDATE_AI_MISE_ACTIVE=1
 # update-ai sources the Safe-chain integration. The npm stub below stands in
 # for the wrapper that the integration installs.
 : >"$HOME/.safe-chain/scripts/init-posix.sh"
+
+# Freeze the clock that update-ai reads for the resolution cutoff. The second
+# value stands in for a report that re-reads the clock after the gate deadline
+# has passed: the deferral must still be decided against the cutoff the installs
+# used, not against the report time.
+real_date="$(type -P date)"
+export TEST_DATE_STATE="$test_dir/date.state"
+export TEST_CURRENT_EPOCH=1791849600 # 2026-10-13T00:00:00Z
+export TEST_LATE_EPOCH=$((TEST_CURRENT_EPOCH + 2))
+cat >"$test_bin/date" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ \$# -eq 1 && \$1 == +%s ]]; then
+  if [[ -e \$TEST_DATE_STATE ]]; then
+    printf '%s\n' "\$TEST_LATE_EPOCH"
+  else
+    : >"\$TEST_DATE_STATE"
+    printf '%s\n' "\$TEST_CURRENT_EPOCH"
+  fi
+  exit 0
+fi
+exec "$real_date" "\$@"
+EOF
+
+# Each run starts at the frozen second and would see the later value if it read
+# the clock a second time.
+reset_clock() {
+  rm -f "$TEST_DATE_STATE"
+}
 
 cat >"$test_bin/npm" <<'EOF'
 #!/usr/bin/env bash
@@ -83,7 +112,7 @@ case "${1:-}" in
     ;;
 esac
 EOF
-chmod +x "$test_bin/npm" "$test_bin/node" "$test_bin/curl" "$test_bin/pi"
+chmod +x "$test_bin/date" "$test_bin/npm" "$test_bin/node" "$test_bin/curl" "$test_bin/pi"
 
 install_pi_package() {
   local package_name=$1
@@ -99,77 +128,120 @@ install_pi_package pi-codex-image-gen 0.2.0
 install_pi_package @howaboua/pi-codex-conversion 3.0.49
 install_pi_package @ogulcancelik/pi-session-recall 1.0.7
 
-# Relative publish times keep the gate decisions deterministic: a version two
-# hours old is always inside the 48h gate, and one 100 hours old never is.
-now_epoch="$(date +%s)"
-recent_published="$(date -u -d "@$((now_epoch - 2 * 3600))" +%Y-%m-%dT%H:%M:%S.000Z)"
-aged_published="$(date -u -d "@$((now_epoch - 100 * 3600))" +%Y-%m-%dT%H:%M:%S.000Z)"
-
-jq -n --arg recent "$recent_published" --arg aged "$aged_published" '{
-  "@earendil-works/pi-coding-agent": [
-    { "dist-tags": { "latest": "1.2.0" }, "time": { "created": $aged, "1.2.0": $recent } }
-  ],
-  "pi-web-access": [
-    { "dist-tags": { "latest": "0.39.0" }, "time": { "0.39.0": $recent } }
-  ],
-  "pi-codex-image-gen": [
-    { "dist-tags": { "latest": "0.2.0" }, "time": { "0.2.0": $aged } }
-  ],
-  "@howaboua/pi-codex-conversion": [
-    { "dist-tags": { "latest": "3.0.52" }, "time": { "3.0.52": $aged } }
-  ],
-  "@ogulcancelik/pi-session-recall": [
-    { "dist-tags": { "latest": "1.0.7" }, "time": { "1.0.7": $aged } }
-  ]
-}' >"$registry"
-
 fail() {
   printf 'update-ai-age-gate-status: %s\n' "$*" >&2
   exit 1
 }
 
+iso_seconds() {
+  date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ
+}
+
+# The stub clock fixes the install start, so these are exactly the cutoffs that
+# compute_npm_before passes to npm as npm_config_before.
+start_epoch=$TEST_CURRENT_EPOCH
+readonly start_epoch
+cutoff_48=$((start_epoch - 49 * 3600))
+cutoff_10=$((start_epoch - 11 * 3600))
+
+# write_registry_fixture <path> <cutoff epoch>
+#
+# The Pi CLI and pi-web-access publish one second after the cutoff, so npm can
+# only resolve the older version and the status must report a deferral. The Pi
+# CLI timestamp carries milliseconds, which moves its installable second one
+# second later than the truncated timestamp. The conversion publishes exactly
+# at the cutoff, which npm-pick-manifest accepts (Date.parse(published) <=
+# cutoff), so its newer version should have been installed and the status must
+# warn instead of reporting a deferral.
+write_registry_fixture() {
+  local path=$1
+  local cutoff_epoch=$2
+
+  jq -n \
+    --arg pi_milliseconds "$(printf '%s.459Z' "$(date -u -d "@$((cutoff_epoch + 1))" +%Y-%m-%dT%H:%M:%S)")" \
+    --arg deferred "$(iso_seconds "$((cutoff_epoch + 1))")" \
+    --arg at_cutoff "$(iso_seconds "$cutoff_epoch")" \
+    --arg past_gate "$(iso_seconds "$((cutoff_epoch - 3600))")" \
+    '{
+      "@earendil-works/pi-coding-agent": [
+        { "dist-tags": { "latest": "1.2.0" }, "time": { "created": $past_gate, "1.2.0": $pi_milliseconds } }
+      ],
+      "pi-web-access": [
+        { "dist-tags": { "latest": "0.39.0" }, "time": { "0.39.0": $deferred } }
+      ],
+      "pi-codex-image-gen": [
+        { "dist-tags": { "latest": "0.2.0" }, "time": { "0.2.0": $past_gate } }
+      ],
+      "@howaboua/pi-codex-conversion": [
+        { "dist-tags": { "latest": "3.0.52" }, "time": { "3.0.52": $at_cutoff } }
+      ],
+      "@ogulcancelik/pi-session-recall": [
+        { "dist-tags": { "latest": "1.0.7" }, "time": { "1.0.7": $past_gate } }
+      ]
+    }' >"$path"
+}
+
+# <label> <installed> <latest> <published> <installable epoch>
+expected_deferred_line() {
+  printf '%s %s -> %s deferred until %s (published %s)\n' \
+    "$1" "$2" "$3" "$(iso_seconds "$5")" "$4"
+}
+
 # The installs keep resolving through npm_config_before and Pi, and the status
 # block distinguishes current targets from deferred ones.
+write_registry_fixture "$registry" "$cutoff_48"
+reset_clock
 "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout.log" 2>"$test_dir/stderr.log"
 
 grep -Fxq '==> Pi versions (Safe-chain minimum package age: 48h)' "$test_dir/stdout.log"
-grep -Eq '^npm before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest$' "$install_log"
+grep -Fxq "npm before=$(iso_seconds "$cutoff_48") args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest" "$install_log"
 grep -Fqx 'pi update npm:pi-web-access --no-approve' "$install_log"
-grep -Eq '^pi 1\.1\.0 -> 1\.2\.0 deferred until [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z \(published [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\)$' "$test_dir/stdout.log"
-grep -Eq '^npm:pi-web-access 0\.38\.0 -> 0\.39\.0 deferred until ' "$test_dir/stdout.log"
+grep -Fxq "$(expected_deferred_line \
+  pi 1.1.0 1.2.0 \
+  "$(printf '%s.459Z' "$(date -u -d "@$((cutoff_48 + 1))" +%Y-%m-%dT%H:%M:%S)")" \
+  "$((start_epoch + 2))")" "$test_dir/stdout.log"
+grep -Fxq "$(expected_deferred_line \
+  npm:pi-web-access 0.38.0 0.39.0 \
+  "$(iso_seconds "$((cutoff_48 + 1))")" \
+  "$((start_epoch + 1))")" "$test_dir/stdout.log"
 grep -Fxq 'npm:pi-codex-image-gen 0.2.0 (newest allowed version)' "$test_dir/stdout.log"
 grep -Fxq 'npm:@ogulcancelik/pi-session-recall 1.0.7 (newest allowed version)' "$test_dir/stdout.log"
 if grep -Fq 'registry lookup failed' "$test_dir/stdout.log"; then
   fail 'a served registry fixture must not report a lookup failure.'
 fi
 
-# A version that is already past the gate but still not installed means the
-# update did not take effect, which must be visible on stderr.
+# A version published exactly at the cutoff is already resolvable, so a target
+# that is still on the older version did not take effect and must be visible.
 grep -Fxq 'npm:@howaboua/pi-codex-conversion 3.0.49 -> 3.0.52' "$test_dir/stdout.log"
 grep -Fxq 'update-ai: npm:@howaboua/pi-codex-conversion 3.0.49 is behind 3.0.52, which is already past the age gate; the update did not take effect' "$test_dir/stderr.log"
+# Only the target past the gate may warn: the deferred targets are legitimate
+# results of the cutoff that the installs used.
+[[ $(grep -c '^update-ai: ' "$test_dir/stderr.log" || true) -eq 1 ]] || \
+  fail "expected exactly one update-ai warning, got: $(cat "$test_dir/stderr.log")"
 
-# The reported install time is the publish time plus the age gate and the one
-# hour of margin that compute_npm_before reserves.
-deferred_line="$(grep -m1 -E '^pi 1\.1\.0 -> 1\.2\.0 deferred until ' "$test_dir/stdout.log")"
-release_time="$(sed -E 's/^.* deferred until ([^ ]+) \(published .*$/\1/' <<<"$deferred_line")"
-published_time="$(sed -E 's/^.* \(published ([^)]+)\)$/\1/' <<<"$deferred_line")"
-expected_release_time="$(date -u -d "@$(( $(date -u -d "$published_time" +%s) + 49 * 3600 ))" +%Y-%m-%dT%H:%M:%SZ)"
-[[ $release_time == "$expected_release_time" ]] || \
-  fail "expected the deferred time $expected_release_time for $published_time, got $release_time"
-
-# SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS moves both the header and the gate.
+# SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS moves the header, the cutoff that npm
+# receives, and the deferral arithmetic together.
+write_registry_fixture "$registry" "$cutoff_10"
+: >"$install_log"
+reset_clock
 SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=10 \
   "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout-age.log" 2>"$test_dir/stderr-age.log"
 grep -Fxq '==> Pi versions (Safe-chain minimum package age: 10h)' "$test_dir/stdout-age.log"
-deferred_line="$(grep -m1 -E '^pi 1\.1\.0 -> 1\.2\.0 deferred until ' "$test_dir/stdout-age.log")"
-release_time="$(sed -E 's/^.* deferred until ([^ ]+) \(published .*$/\1/' <<<"$deferred_line")"
-published_time="$(sed -E 's/^.* \(published ([^)]+)\)$/\1/' <<<"$deferred_line")"
-expected_release_time="$(date -u -d "@$(( $(date -u -d "$published_time" +%s) + 11 * 3600 ))" +%Y-%m-%dT%H:%M:%SZ)"
-[[ $release_time == "$expected_release_time" ]] || \
-  fail "expected the 10h gate to defer until $expected_release_time, got $release_time"
+grep -Fxq "npm before=$(iso_seconds "$cutoff_10") args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest" "$install_log"
+grep -Fxq "$(expected_deferred_line \
+  pi 1.1.0 1.2.0 \
+  "$(printf '%s.459Z' "$(date -u -d "@$((cutoff_10 + 1))" +%Y-%m-%dT%H:%M:%S)")" \
+  "$((start_epoch + 2))")" "$test_dir/stdout-age.log"
+grep -Fxq "$(expected_deferred_line \
+  npm:pi-web-access 0.38.0 0.39.0 \
+  "$(iso_seconds "$((cutoff_10 + 1))")" \
+  "$((start_epoch + 1))")" "$test_dir/stdout-age.log"
+[[ $(grep -c '^update-ai: ' "$test_dir/stderr-age.log" || true) -eq 1 ]] || \
+  fail "expected exactly one age 10h warning, got: $(cat "$test_dir/stderr-age.log")"
 
 # A registry that cannot answer is advisory only: the run still succeeds and
 # the status line says why the deferral is unknown.
+reset_clock
 TEST_REGISTRY="$test_dir/missing-registry.json" \
   "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout-missing.log" 2>"$test_dir/stderr-missing.log"
 grep -Fxq 'pi 1.1.0 (registry lookup failed; age gate status unknown)' "$test_dir/stdout-missing.log"
@@ -179,6 +251,7 @@ grep -Fxq 'npm:@ogulcancelik/pi-session-recall 1.0.7 (registry lookup failed; ag
 # Without Pi's npm install tree the installed version is unknown, and the line
 # must not pretend either outcome.
 rm -rf "$HOME/.pi/agent/npm/node_modules/pi-codex-image-gen"
+reset_clock
 "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout-unknown.log" 2>"$test_dir/stderr-unknown.log"
 grep -Fxq 'npm:pi-codex-image-gen (installed version unknown)' "$test_dir/stdout-unknown.log"
 

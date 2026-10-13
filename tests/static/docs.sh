@@ -62,6 +62,7 @@ case "${1:-}" in
     grep -Fq 'session_search' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'session_query' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq 'deferred until' "$ROOT_DIR/docs/pi-packages.md"
+    grep -Fq 'その実行でinstallに使ったcutoff' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'update-ai-age-gate-status.sh' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '~/.pi/agent/sessions' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '~/.pi/agent/session-recall.json' "$ROOT_DIR/docs/pi-packages.md"
