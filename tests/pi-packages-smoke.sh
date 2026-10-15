@@ -53,8 +53,8 @@ make_common_commands "$fixture_bin"
 
 cat >"$fixture_home/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
-  printf 'core npm exclusion=%s args=%s\n' \
-    "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "$*" >>"$TEST_INSTALL_LOG"
+  printf 'core npm exclusion=%s before=%s args=%s\n' \
+    "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "${npm_config_before:-}" "$*" >>"$TEST_INSTALL_LOG"
 }
 EOF
 
@@ -185,6 +185,12 @@ for package in pi-web-access pi-codex-image-gen @howaboua/pi-codex-conversion @o
   [[ $(grep -cE "^safe-chain npm install ${package} exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" "$fixture_log") -eq 2 ]]
 done
 [[ $(grep -c '^direct npm ' "$fixture_log") -eq 0 ]]
+# The Pi core install skips the Safe-chain age gate with the documented flag and
+# no cutoff. The Pi packages keep the gate: their installer receives the
+# npm_config_before cutoff that this test asserts on the safe-chain lines below.
+core_installs="$(grep -c '^core npm .* args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest' "$fixture_log")"
+[[ $core_installs -eq 6 ]]
+[[ $(grep -c '^core npm exclusion= before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age$' "$fixture_log") -eq "$core_installs" ]]
 # Rejection runs passing require_supported_node (pi-prerelease, old-pi,
 # pi-v-prefix, invalid-json) contribute 4 "core npm" calls. Each successful
 # run adds its global Pi npm install plus one age gate status lookup for the Pi
@@ -240,8 +246,8 @@ mkdir -p "$no_pi_home/.safe-chain/scripts" "$no_pi_home/.local/bin" "$no_pi_bin"
 make_common_commands "$no_pi_bin"
 cat >"$no_pi_home/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
-  printf 'core npm exclusion=%s args=%s\n' \
-    "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "$*" >>"$TEST_INSTALL_LOG"
+  printf 'core npm exclusion=%s before=%s args=%s\n' \
+    "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "${npm_config_before:-}" "$*" >>"$TEST_INSTALL_LOG"
 }
 EOF
 cat >"$no_pi_bin/curl" <<'EOF'

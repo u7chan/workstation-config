@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Verify that `update-ai --pi` reports the versions the Safe-chain minimum
-# package age holds back, so a deferred update is not mistaken for a current
-# installation. The test stubs node, npm, curl, Pi, and the clock, and serves a
-# fixture registry, so it needs no network and no managed runtime.
+# Verify that `update-ai --pi` reports the Safe-chain minimum package age
+# outcome per target: the Pi core install skips the gate, so it must compare
+# against the newest published version, while the Pi packages keep the gate, so
+# a version the gate holds back must not be mistaken for a current installation.
+# The test stubs node, npm, curl, Pi, and the clock, and serves a fixture
+# registry, so it needs no network and no managed runtime.
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -93,7 +95,7 @@ cat >"$test_bin/pi" <<'EOF'
 set -euo pipefail
 case "${1:-}" in
   --version)
-    printf '1.1.0\n'
+    printf '%s\n' "${FIXTURE_PI_VERSION:-1.2.0}"
     ;;
   list)
     printf 'User packages:\n'
@@ -104,7 +106,7 @@ case "${1:-}" in
       npm:@ogulcancelik/pi-session-recall
     ;;
   install|update)
-    printf 'pi %s\n' "$*" >>"$TEST_INSTALL_LOG"
+    printf 'pi before=%s %s\n' "${npm_config_before:-}" "$*" >>"$TEST_INSTALL_LOG"
     ;;
   *)
     printf 'unexpected pi command: %s\n' "$*" >&2
@@ -187,19 +189,17 @@ expected_deferred_line() {
     "$1" "$2" "$3" "$(iso_seconds "$5")" "$4"
 }
 
-# The installs keep resolving through npm_config_before and Pi, and the status
-# block distinguishes current targets from deferred ones.
+# The Pi packages keep resolving through npm_config_before and Pi, and the
+# status block distinguishes the skipped core, current targets, and deferred
+# targets.
 write_registry_fixture "$registry" "$cutoff_48"
 reset_clock
 "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout.log" 2>"$test_dir/stderr.log"
 
 grep -Fxq '==> Pi versions (Safe-chain minimum package age: 48h)' "$test_dir/stdout.log"
-grep -Fxq "npm before=$(iso_seconds "$cutoff_48") args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest" "$install_log"
-grep -Fqx 'pi update npm:pi-web-access --no-approve' "$install_log"
-grep -Fxq "$(expected_deferred_line \
-  pi 1.1.0 1.2.0 \
-  "$(printf '%s.459Z' "$(date -u -d "@$((cutoff_48 + 1))" +%Y-%m-%dT%H:%M:%S)")" \
-  "$((start_epoch + 2))")" "$test_dir/stdout.log"
+grep -Fxq 'npm before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age' "$install_log"
+grep -Fxq "pi before=$(iso_seconds "$cutoff_48") update npm:pi-web-access --no-approve" "$install_log"
+grep -Fxq 'pi 1.2.0 (age gate skipped)' "$test_dir/stdout.log"
 grep -Fxq "$(expected_deferred_line \
   npm:pi-web-access 0.38.0 0.39.0 \
   "$(iso_seconds "$((cutoff_48 + 1))")" \
@@ -219,6 +219,15 @@ grep -Fxq 'update-ai: npm:@howaboua/pi-codex-conversion 3.0.49 is behind 3.0.52,
 [[ $(grep -c '^update-ai: ' "$test_dir/stderr.log" || true) -eq 1 ]] || \
   fail "expected exactly one update-ai warning, got: $(cat "$test_dir/stderr.log")"
 
+# The skipped core is compared against the newest published version, so a core
+# that stays behind must warn: nothing on this install path holds it back.
+reset_clock
+FIXTURE_PI_VERSION=1.1.0 "$ROOT_DIR/scripts/update-ai" --pi \
+  >"$test_dir/stdout-core-behind.log" 2>"$test_dir/stderr-core-behind.log"
+grep -Fxq 'pi 1.1.0 -> 1.2.0' "$test_dir/stdout-core-behind.log"
+grep -Fxq 'update-ai: pi 1.1.0 is behind 1.2.0 while the age gate is skipped; the update did not take effect' \
+  "$test_dir/stderr-core-behind.log"
+
 # SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS moves the header, the cutoff that npm
 # receives, and the deferral arithmetic together.
 write_registry_fixture "$registry" "$cutoff_10"
@@ -227,11 +236,9 @@ reset_clock
 SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=10 \
   "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout-age.log" 2>"$test_dir/stderr-age.log"
 grep -Fxq '==> Pi versions (Safe-chain minimum package age: 10h)' "$test_dir/stdout-age.log"
-grep -Fxq "npm before=$(iso_seconds "$cutoff_10") args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest" "$install_log"
-grep -Fxq "$(expected_deferred_line \
-  pi 1.1.0 1.2.0 \
-  "$(printf '%s.459Z' "$(date -u -d "@$((cutoff_10 + 1))" +%Y-%m-%dT%H:%M:%S)")" \
-  "$((start_epoch + 2))")" "$test_dir/stdout-age.log"
+grep -Fxq 'npm before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age' "$install_log"
+grep -Fxq "pi before=$(iso_seconds "$cutoff_10") update npm:pi-web-access --no-approve" "$install_log"
+grep -Fxq 'pi 1.2.0 (age gate skipped)' "$test_dir/stdout-age.log"
 grep -Fxq "$(expected_deferred_line \
   npm:pi-web-access 0.38.0 0.39.0 \
   "$(iso_seconds "$((cutoff_10 + 1))")" \
@@ -244,7 +251,7 @@ grep -Fxq "$(expected_deferred_line \
 reset_clock
 TEST_REGISTRY="$test_dir/missing-registry.json" \
   "$ROOT_DIR/scripts/update-ai" --pi >"$test_dir/stdout-missing.log" 2>"$test_dir/stderr-missing.log"
-grep -Fxq 'pi 1.1.0 (registry lookup failed; age gate status unknown)' "$test_dir/stdout-missing.log"
+grep -Fxq 'pi 1.2.0 (registry lookup failed; update status unknown)' "$test_dir/stdout-missing.log"
 grep -Fxq 'npm:pi-web-access 0.38.0 (registry lookup failed; age gate status unknown)' "$test_dir/stdout-missing.log"
 grep -Fxq 'npm:@ogulcancelik/pi-session-recall 1.0.7 (registry lookup failed; age gate status unknown)' "$test_dir/stdout-missing.log"
 

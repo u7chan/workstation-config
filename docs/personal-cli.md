@@ -110,7 +110,7 @@ chmod 600 ~/.config/envs/<provider>/.env
 
 ### `myupdate`
 
-`personal_ai_tools`で選択したAI CLIを`update-ai`で更新し、続いてmise管理のHerdrを`mise upgrade herdr`で更新します。引数・オプションは受け付けず、`WORKSTATION_UPDATE_AI_TOOLS`環境変数でのみ挙動を変更します。各処理は失敗時に5秒待って1回だけ再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、競合時は終了コード3で終了します。
+`personal_ai_tools`で選択したAI CLIを`update-ai`で更新し、続いてmise管理のHerdrを`mise upgrade herdr`で更新します。引数・オプションは受け付けず、`WORKSTATION_UPDATE_AI_TOOLS`環境変数でのみ挙動を変更します。開始時に`==> Safe-chain coverage`表を出し、更新経路ごとのSafe-chain適用範囲（`pi core`はageゲートを`skipped`）を表示します。各処理は失敗時に5秒待って1回だけ再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、競合時は終了コード3で終了します。
 
 ```bash
 myupdate

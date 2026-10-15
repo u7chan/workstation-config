@@ -8,7 +8,7 @@
 ["mise", "exec", "node", "--", "safe-chain", "npm"]
 ```
 
-現在の共通要件は、Node.js `22.19.0`以上、Pi `0.84.2`以上です。Piの最低バージョンは、`@howaboua/pi-codex-conversion`のpeer dependency要件に合わせています。`pi-session-recall` upstream自体の要件はNode.js `>=18.0.0` / Pi `v0.40+`ですが、workstationでは共通要件を適用します。Packageのバージョンは固定せず、Package managerの`install` / `update`で取得します。`update-ai`は`npm_config_before`で解決対象をSafe-chainのminimum package age（既定48時間）経過済みのバージョンに限定するため、公開直後の版は次の更新で入ります。更新後は`==> Pi versions`ブロックが対象ごとの実際の版を表示し、見送った版は`<installed> -> <latest> deferred until <時刻>`（ageと1時間のマージンを通過して実際に入る時刻。`published`はregistryの値をそのまま表示し、`deferred until`は秒未満を切り上げる）、ゲート通過済みの最新版が入っていれば`(newest allowed version)`と表示します。`pi list`とinstallerの`Updated`は版を示さないため、このブロックが「見送り」と「最新」を区別する表示です。
+現在の共通要件は、Node.js `22.19.0`以上、Pi `0.84.2`以上です。Piの最低バージョンは、`@howaboua/pi-codex-conversion`のpeer dependency要件に合わせています。`pi-session-recall` upstream自体の要件はNode.js `>=18.0.0` / Pi `v0.40+`ですが、workstationでは共通要件を適用します。Packageのバージョンは固定せず、Package managerの`install` / `update`で取得します。`update-ai`は`npm_config_before`で解決対象をSafe-chainのminimum package age（既定48時間）経過済みのバージョンに限定するため、公開直後の版は次の更新で入ります。Pi本体のinstallだけはageゲートを外すため本体の最新版は即時に入り、malware検査は本体とPackageの両方で有効なままです。更新後は`==> Pi versions`ブロックが対象ごとの実際の版を表示し、見送った版は`<installed> -> <latest> deferred until <時刻>`（ageと1時間のマージンを通過して実際に入る時刻。`published`はregistryの値をそのまま表示し、`deferred until`は秒未満を切り上げる）、ゲート通過済みの最新版が入っていれば`(newest allowed version)`と表示します。`pi list`とinstallerの`Updated`は版を示さないため、このブロックが「見送り」と「最新」を区別する表示です。
 
 | Source | 目的 / 提供するtool | Upstream / 所有者 | 適用範囲 / 更新入口 | 要件 | 設定・runtime path | Safe-chain / 責務境界 | 更新時の検証 |
 |---|---|---|---|---|---|---|---|

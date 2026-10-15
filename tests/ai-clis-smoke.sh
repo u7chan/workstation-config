@@ -103,7 +103,9 @@ printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state
 
 "$ROOT_DIR/scripts/update-ai" >/dev/null
 
-grep -Eq '^npm exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest$' "$log"
+# The Pi core install skips the Safe-chain minimum package age gate and keeps
+# the malware scan, so it must not resolve against npm_config_before.
+grep -Fqx 'npm exclusion= before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age' "$log"
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
@@ -215,7 +217,7 @@ EOF
 
   case "$flag" in
     pi)
-      grep -Eq '^npm exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest$' "$flag_log"
+      grep -Fqx 'npm exclusion= before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age' "$flag_log"
       grep -Fqx 'pi install npm:pi-web-access --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$flag_log"
       grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$flag_log"

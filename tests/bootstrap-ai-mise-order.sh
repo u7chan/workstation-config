@@ -242,7 +242,9 @@ TEST_LINUX_BIN="$linux_bin" \
   "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
 
 grep -Fqx 'mise exec node' "$log"
-grep -Eq '^linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
+# The Pi core install skips the Safe-chain age gate and carries no cutoff; the
+# Pi packages keep the gate through their npmCommand path below.
+grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age before=' "$log"
 grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'linux pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'linux pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"

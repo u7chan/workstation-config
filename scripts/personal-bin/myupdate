@@ -5,6 +5,9 @@ readonly PROGRAM_NAME="myupdate"
 readonly STATE_DIR="$HOME/.local/state/workstation-update"
 readonly LOCK_FILE="$STATE_DIR/update.lock"
 readonly RETRY_DELAY_SECONDS="${WORKSTATION_UPDATE_RETRY_DELAY_SECONDS:-5}"
+# Mirrors PI_PACKAGE_SOURCES in update-ai. tests/static/update-ai.sh keeps the
+# two in sync because the coverage table prints the count.
+readonly PI_PACKAGE_COUNT=4
 
 die() {
   local exit_code=$1
@@ -25,6 +28,7 @@ command -v git >/dev/null 2>&1 || die 1 "git is required"
 
 AI_UPDATE_ENABLED=true
 declare -a UPDATE_AI_ARGS=()
+declare -a SELECTED_AI_TOOLS=()
 if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
   if [[ -z $WORKSTATION_UPDATE_AI_TOOLS ]]; then
     AI_UPDATE_ENABLED=false
@@ -32,11 +36,18 @@ if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
     IFS=',' read -r -a configured_ai_tools <<<"$WORKSTATION_UPDATE_AI_TOOLS"
     for configured_ai_tool in "${configured_ai_tools[@]}"; do
       case $configured_ai_tool in
-        claude|opencode|pi) UPDATE_AI_ARGS+=("--$configured_ai_tool") ;;
+        claude|opencode|pi)
+          UPDATE_AI_ARGS+=("--$configured_ai_tool")
+          [[ " ${SELECTED_AI_TOOLS[*]-} " == *" $configured_ai_tool "* ]] || \
+            SELECTED_AI_TOOLS+=("$configured_ai_tool")
+          ;;
         *) die 2 "invalid AI tool in WORKSTATION_UPDATE_AI_TOOLS: $configured_ai_tool" ;;
       esac
     done
   fi
+else
+  # update-ai installs every tool when no flag selects a subset.
+  SELECTED_AI_TOOLS=(pi claude opencode)
 fi
 
 umask 077
@@ -64,6 +75,40 @@ run_update_ai() {
   MISE_LOCKED=1 \
   MISE_YES=1 \
     "$update_ai_bin" "${UPDATE_AI_ARGS[@]}"
+}
+
+selected_ai_tool() {
+  local tool
+  for tool in "${SELECTED_AI_TOOLS[@]}"; do
+    [[ $tool == "$1" ]] && return 0
+  done
+  return 1
+}
+
+# Show which update paths pass through Safe-chain. The minimum package age gate
+# is the only Safe-chain feature with a per-install switch, and the Pi core is
+# the only target that turns it off, so the table keeps that decision visible on
+# every run.
+print_safe_chain_coverage() {
+  local age_hours=${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48}
+  local tool
+
+  [[ $age_hours =~ ^[0-9]+$ ]] || \
+    die 2 "SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours: $age_hours"
+
+  printf '==> Safe-chain coverage\n'
+  printf '%-18s %-10s %s\n' 'target' 'npm path' 'age gate'
+  for tool in pi claude opencode; do
+    selected_ai_tool "$tool" || continue
+    case $tool in
+      pi)
+        printf '%-18s %-10s %s\n' 'pi core' 'yes' 'skipped'
+        printf '%-18s %-10s %s\n' "pi packages ($PI_PACKAGE_COUNT)" 'yes' "${age_hours}h"
+        ;;
+      *) printf '%-18s %-10s %s\n' "$tool" 'no' '-' ;;
+    esac
+  done
+  printf '%-18s %-10s %s\n' 'herdr' 'no' '-'
 }
 
 run_herdr_update() {
@@ -213,6 +258,8 @@ run_step() {
 
 declare -a FAILED_STEPS=()
 declare -A FAILURE_REASONS=()
+print_safe_chain_coverage
+
 run_step update-ai run_update_ai || FAILED_STEPS+=(update-ai)
 run_step 'mise upgrade herdr' run_herdr_update || FAILED_STEPS+=('mise upgrade herdr')
 
