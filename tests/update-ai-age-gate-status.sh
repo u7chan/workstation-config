@@ -62,7 +62,16 @@ set -euo pipefail
 printf 'npm before=%s args=%s\n' "${npm_config_before:-}" "$*" >>"$TEST_INSTALL_LOG"
 case "${1:-}" in
   view)
-    jq -c --arg package "${2:?package name is required}" '.[$package]' "$TEST_REGISTRY"
+    response="$(jq -c --arg package "${2:?package name is required}" '.[$package]' "$TEST_REGISTRY")"
+    printf '%s\n' "$response"
+    # Safe-chain suppresses too-young versions in the metadata and appends this
+    # notice to stdout unless the age gate is skipped. update-ai must pass the
+    # skip flag, or the notice breaks the JSON parse and the status block
+    # degrades every deferral into a lookup failure.
+    case " $* " in
+      *" --safe-chain-skip-minimum-package-age "*) ;;
+      *) printf 'Safe-chain: Some package versions were suppressed during package metadata resolution due to minimum package age.\n' ;;
+    esac
     ;;
   install)
     ;;
@@ -199,6 +208,11 @@ reset_clock
 grep -Fxq '==> Pi versions (Safe-chain minimum package age: 48h)' "$test_dir/stdout.log"
 grep -Fxq 'npm before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age' "$install_log"
 grep -Fxq "pi before=$(iso_seconds "$cutoff_48") update npm:pi-web-access --no-approve" "$install_log"
+# Every registry lookup skips the age gate and carries no cutoff: the gate
+# would suppress the newest version and append its notice to stdout, so the
+# status block would lose the version it reports.
+[[ $(grep -c '^npm before= args=view ' "$install_log") -eq 5 ]]
+[[ $(grep -c '^npm before= args=view .* --safe-chain-skip-minimum-package-age$' "$install_log") -eq 5 ]]
 grep -Fxq 'pi 1.2.0 (age gate skipped)' "$test_dir/stdout.log"
 grep -Fxq "$(expected_deferred_line \
   npm:pi-web-access 0.38.0 0.39.0 \
