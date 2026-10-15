@@ -33,9 +33,10 @@ readonly NODE_MINIMUM_VERSION_MINOR=19
 readonly NODE_MINIMUM_VERSION_PATCH=0
 
 # Safe-chain blocks downloads of packages newer than its minimum package age
-# (48 hours by default). Resolve npm versions against the same cutoff so the Pi
-# installs never request a package that the gate would block. One hour of
-# margin keeps the registry cutoff ahead of the gate.
+# (48 hours by default). The Pi core install skips that gate, but the Pi
+# packages keep it, so resolve their npm versions against the same cutoff and
+# never request a package the gate would block. One hour of margin keeps the
+# registry cutoff ahead of the gate.
 safe_chain_minimum_package_age_hours() {
   local age_hours=${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48}
   [[ $age_hours =~ ^[0-9]+$ ]] || die "SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours: $age_hours"
@@ -242,20 +243,22 @@ registry_package_release() {
   printf '%s\t%s\t%s\n' "$latest" "$published_epoch" "$published"
 }
 
-# Print one age-gate status line for a target that update-ai just installed.
+# Print one version status line for a target that update-ai just installed.
 # The installers print no version, so without this line a version held back by
 # the age gate is indistinguishable from a target that is already current. The
 # deferral is decided against the cutoff the installs actually used instead of
 # the report time, because a run that crosses the gate deadline must not report
 # a legitimate deferral as an update that did not take effect. A lookup failure
 # stays advisory: metadata queries must not fail an update whose installs
-# succeeded.
+# succeeded. <gate> is "skipped" for the Pi core, whose install passes
+# --safe-chain-skip-minimum-package-age, and "active" for the Pi packages.
 pi_version_line() {
   local label=$1
   local package_name=$2
   local installed=$3
   local age_hours=$4
   local cutoff_epoch=$5
+  local gate=$6
   local latest published published_epoch release_epoch
 
   if [[ -z $installed ]]; then
@@ -264,7 +267,22 @@ pi_version_line() {
   fi
 
   if ! IFS=$'\t' read -r latest published_epoch published < <(registry_package_release "$package_name"); then
-    printf '%s %s (registry lookup failed; age gate status unknown)\n' "$label" "$installed"
+    if [[ $gate == skipped ]]; then
+      printf '%s %s (registry lookup failed; update status unknown)\n' "$label" "$installed"
+    else
+      printf '%s %s (registry lookup failed; age gate status unknown)\n' "$label" "$installed"
+    fi
+    return 0
+  fi
+
+  if [[ $gate == skipped ]]; then
+    if ! version_lt "$installed" "$latest"; then
+      printf '%s %s (age gate skipped)\n' "$label" "$installed"
+    else
+      printf '%s %s -> %s\n' "$label" "$installed" "$latest"
+      printf 'update-ai: %s %s is behind %s while the age gate is skipped; the update did not take effect\n' \
+        "$label" "$installed" "$latest" >&2
+    fi
     return 0
   fi
 
@@ -291,12 +309,13 @@ report_pi_versions() {
     die "could not read the npm cutoff used for the Pi installs: $npm_before"
   printf '==> Pi versions (Safe-chain minimum package age: %sh)\n' "$age_hours"
 
-  pi_version_line pi "$PI_PACKAGE_NAME" "$(NO_COLOR=1 pi --version 2>/dev/null || true)" "$age_hours" "$cutoff_epoch"
+  pi_version_line pi "$PI_PACKAGE_NAME" "$(NO_COLOR=1 pi --version 2>/dev/null || true)" \
+    "$age_hours" "$cutoff_epoch" skipped
 
   for source in "${PI_PACKAGE_SOURCES[@]}"; do
     package_name=${source#npm:}
     installed="$(pi_package_installed_version "$package_name" || true)"
-    pi_version_line "$source" "$package_name" "$installed" "$age_hours" "$cutoff_epoch"
+    pi_version_line "$source" "$package_name" "$installed" "$age_hours" "$cutoff_epoch" active
   done
 }
 
@@ -353,12 +372,19 @@ export PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
 
 if [[ $install_pi == true ]]; then
   require_supported_node
-  printf '==> Updating Pi coding agent through Safe-chain\n'
-  pi_npm_before="$(compute_npm_before)"
-  npm_config_before="$pi_npm_before" \
-    npm install --global --ignore-scripts "$PI_PACKAGE_NAME@latest"
-  ensure_pi_packages "$pi_npm_before"
-  report_pi_versions "$pi_npm_before"
+  printf '==> Updating Pi coding agent through Safe-chain (age gate skipped)\n'
+  # The core dependency tree keeps hitting the age gate on freshly published
+  # transitive dependencies, and opening each scope in the exclusion list would
+  # exempt executable packages. Skip the gate for this install instead; the
+  # malware scan still inspects every download.
+  npm install --global --ignore-scripts "$PI_PACKAGE_NAME@latest" \
+    --safe-chain-skip-minimum-package-age
+
+  # The Pi packages are third-party and keep the age gate, so align their npm
+  # resolution with the cutoff the gate enforces.
+  pi_packages_npm_before="$(compute_npm_before)"
+  ensure_pi_packages "$pi_packages_npm_before"
+  report_pi_versions "$pi_packages_npm_before"
 fi
 
 if [[ $install_claude == true ]]; then

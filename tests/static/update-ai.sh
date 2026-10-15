@@ -27,15 +27,20 @@ case "${1:-}" in
     grep -Fq 'safe_chain_minimum_package_age_hours()' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'report_pi_versions' "$ROOT_DIR/scripts/update-ai"
-    grep -Fq 'report_pi_versions "$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'report_pi_versions "$pi_packages_npm_before"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'published_epoch > cutoff_epoch' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'published_nanoseconds' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'deferred until %s (published %s)' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'newest allowed version' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'registry lookup failed; age gate status unknown' "$ROOT_DIR/scripts/update-ai"
-    grep -Fq 'npm_config_before="$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
-    grep -Fq 'ensure_pi_packages "$pi_npm_before"' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'registry lookup failed; update status unknown' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'age gate skipped' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq 'ensure_pi_packages "$pi_packages_npm_before"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'npm_config_before="$npm_before"' "$ROOT_DIR/scripts/update-ai"
+    # The Pi core install skips the age gate; the Pi packages keep it.
+    grep -Fq 'npm install --global --ignore-scripts "$PI_PACKAGE_NAME@latest"' \
+      "$ROOT_DIR/scripts/update-ai"
+    grep -Fq -- '--safe-chain-skip-minimum-package-age' "$ROOT_DIR/scripts/update-ai"
     if grep -qF 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS' "$ROOT_DIR/scripts/update-ai"; then
       printf 'update-ai must align npm resolution instead of excluding packages from the age gate.\n' >&2
       exit 1
@@ -63,6 +68,11 @@ case "${1:-}" in
     grep -Fq '.tools.webRunOnly = false' "$ROOT_DIR/scripts/update-ai"
     grep -Fq '.tools.imageGenerationOnly = false' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'safe-chain","npm' "$ROOT_DIR/scripts/update-ai"
+    # The myupdate coverage table prints the Pi package count, so it must match
+    # the sources update-ai installs.
+    pi_package_count="$(grep -c '^  "npm:' "$ROOT_DIR/scripts/update-ai")"
+    grep -Fq "readonly PI_PACKAGE_COUNT=$pi_package_count" \
+      "$ROOT_DIR/scripts/personal-bin/myupdate"
     grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
     grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"
     grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"

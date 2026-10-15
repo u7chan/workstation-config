@@ -5,6 +5,12 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT_DIR
 readonly MYUPDATE="$ROOT_DIR/scripts/personal-bin/myupdate"
 
+# Build the expected Safe-chain coverage rows with the table's own format so the
+# assertions compare the rendered columns, not hand-counted spaces.
+coverage_row() {
+  printf '%-18s %-10s %s\n' "$1" "$2" "$3"
+}
+
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
 
@@ -100,6 +106,8 @@ run_update() {
 
   [[ ! ${WORKSTATION_UPDATE_AI_TOOLS+x} ]] || \
     optional_environment+=("WORKSTATION_UPDATE_AI_TOOLS=$WORKSTATION_UPDATE_AI_TOOLS")
+  [[ ! ${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS+x} ]] || \
+    optional_environment+=("SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=$SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS")
   HOME="$fixture_home" \
   PATH="$fixture_bin:/usr/bin:/bin" \
   TEST_COUNTER_DIR="$RUN_COUNTER_DIR" \
@@ -120,6 +128,15 @@ run_update() {
 prepare_run normal
 normal_output="$(run_update 2>&1)"
 grep -Fq 'all updates completed successfully' <<<"$normal_output"
+# The coverage table makes every Safe-chain decision visible before the steps,
+# including the deliberate age gate skip for the Pi core.
+grep -Fqx '==> Safe-chain coverage' <<<"$normal_output"
+grep -Fqx "$(coverage_row target 'npm path' 'age gate')" <<<"$normal_output"
+grep -Fqx "$(coverage_row 'pi core' yes skipped)" <<<"$normal_output"
+grep -Fqx "$(coverage_row 'pi packages (4)' yes 48h)" <<<"$normal_output"
+grep -Fqx "$(coverage_row claude no -)" <<<"$normal_output"
+grep -Fqx "$(coverage_row opencode no -)" <<<"$normal_output"
+grep -Fqx "$(coverage_row herdr no -)" <<<"$normal_output"
 [[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1: ]]
 [[ $(sed -n '2p' "$RUN_COMMAND_LOG") == mise:1 ]]
 [[ $(wc -l <"$RUN_COMMAND_LOG") -eq 2 ]]
@@ -226,15 +243,46 @@ grep -Fq 'SafeChain blocked a malicious package download' "$test_dir/safe-chain-
 grep -Fq 'update failed: update-ai (SafeChain malware block)' "$test_dir/safe-chain-info-malware.out"
 # The environment selects only the requested AI tools; an empty value skips AI updates.
 prepare_run selected-ai
-WORKSTATION_UPDATE_AI_TOOLS=pi,opencode run_update >/dev/null
+WORKSTATION_UPDATE_AI_TOOLS=pi,opencode run_update >"$test_dir/selected-ai.out" 2>&1
 grep -Fqx 'update-ai:1:--pi --opencode' "$RUN_COMMAND_LOG"
+# The coverage table keeps unselected tools out of the listing.
+grep -Fqx "$(coverage_row 'pi core' yes skipped)" "$test_dir/selected-ai.out"
+grep -Fqx "$(coverage_row 'pi packages (4)' yes 48h)" "$test_dir/selected-ai.out"
+grep -Fqx "$(coverage_row opencode no -)" "$test_dir/selected-ai.out"
+grep -Fqx "$(coverage_row herdr no -)" "$test_dir/selected-ai.out"
+if grep -Fq 'claude' "$test_dir/selected-ai.out"; then
+  printf 'unselected tools must not appear in the Safe-chain coverage table.\n' >&2
+  exit 1
+fi
 
 prepare_run empty-ai
-WORKSTATION_UPDATE_AI_TOOLS='' run_update >/dev/null
+WORKSTATION_UPDATE_AI_TOOLS='' run_update >"$test_dir/empty-ai.out" 2>&1
 if grep -q '^update-ai:' "$RUN_COMMAND_LOG"; then
   printf 'empty WORKSTATION_UPDATE_AI_TOOLS unexpectedly invoked update-ai.\n' >&2
   exit 1
 fi
+grep -Fqx '==> Safe-chain coverage' "$test_dir/empty-ai.out"
+grep -Fqx "$(coverage_row herdr no -)" "$test_dir/empty-ai.out"
+if grep -Fq 'pi core' "$test_dir/empty-ai.out"; then
+  printf 'skipped AI updates must not appear in the Safe-chain coverage table.\n' >&2
+  exit 1
+fi
+
+# The displayed age gate follows SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS, and an
+# unparsable value fails before any step starts.
+prepare_run coverage-age-hours
+SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=10 run_update >"$test_dir/coverage-age-hours.out" 2>&1
+grep -Fqx "$(coverage_row 'pi packages (4)' yes 10h)" "$test_dir/coverage-age-hours.out"
+
+prepare_run invalid-age-hours
+set +e
+SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=48h run_update >"$test_dir/invalid-age-hours.out" 2>&1
+exit_code=$?
+set -e
+[[ $exit_code -eq 2 ]]
+grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours' \
+  "$test_dir/invalid-age-hours.out"
+[[ ! -s $RUN_COMMAND_LOG ]]
 
 # The config file is sourced only when the environment variable is unset.
 mkdir -p "$fixture_home/.config/workstation"

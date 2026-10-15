@@ -302,7 +302,7 @@ CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-t
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。
 
-Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します（解決版は[Safe-chainの節](#aikido-safe-chain)の`npm_config_before`でage経過済みに限定）。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`、`npm:@ogulcancelik/pi-session-recall`をglobal packageとして導入・更新します。
+Pi本体はmiseのtool定義および`mise.lock`では管理しません。`personal`の`update-ai`がmise管理のNode.js/npm環境へ入り、Safe-chain経由で`@earendil-works/pi-coding-agent@latest`を`--ignore-scripts`付きで導入・更新します。このinstallは[Safe-chainの節](#aikido-safe-chain)の`--safe-chain-skip-minimum-package-age`でageゲートだけを外し、malware検査は有効なまま最新版を入れます。Piを選択したときは続けてPi公式Package managerで`npm:pi-web-access`、`npm:pi-codex-image-gen`、`npm:@howaboua/pi-codex-conversion`、`npm:@ogulcancelik/pi-session-recall`をglobal packageとして導入・更新します。これらのPi Packageはageゲートを維持します。
 
 更新時は、Ubuntu 26.04 x86_64で次を実行し、差分と動作を確認します。
 
@@ -477,7 +477,7 @@ auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理し�
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
-Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Packageの詳細な用途、要件、設定所有権、Safe-chain経路、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
+Pi本体と4つのPi Packageの更新入口は`update-ai --pi`です。`personal_ai_tools`に`pi`が含まれるbootstrapでは同じ処理が走り、`myupdate`も設定された選択対象を`update-ai`へ渡します。Piはv0.84.2以上、Node.jsはv22.19以上を前提とし、各Packageが未導入なら`pi install <source>`、導入済みなら`pi update <source>`を実行します。Pi本体のinstallだけがageゲートを外し、malware検査は本体とPackageの両方で有効なままです。適用範囲の詳細は[Safe-chainの節](#aikido-safe-chain)を参照してください。Packageの詳細な用途、要件、設定所有権、責務境界は[Pi Packages一覧](pi-packages.md)を正本とします。
 
 `update-ai`はPi公式の`npmCommand`を`["mise", "exec", "node", "--", "safe-chain", "npm"]`へ設定し、既存の`settings.json`をJSONとして読み戻してこのキーだけをatomicにmergeします。Packageの登録、`~/.pi/agent/npm/`、`~/.pi/agent/sessions/**`、`~/.pi/agent/session-recall.json`、その他のユーザー設定はPiまたはユーザーが所有し、chezmoiは管理しません。
 
@@ -566,6 +566,8 @@ type -a gh herdr cagent claude opencode pi
 2. `mise upgrade herdr`
 
 各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。標準出力・標準エラーへ結果を直接表示し、いずれかの処理が2回とも失敗した場合は終了コード1を返します。多重起動はロックで抑止し、競合時は終了コード3で終了します。再provisioningのmise、AI CLI更新も同じロックへ参加します。Herdrの更新主体はmiseであり、`herdr update`は使用しません。
+
+開始時に`==> Safe-chain coverage`の表を出力し、更新経路ごとのSafe-chain適用範囲を可視化します。列は`target`、`npm path`（npm経由か）、`age gate`です。`pi core`は`age gate`が`skipped`（`update-ai`のinstallが`--safe-chain-skip-minimum-package-age`を使う）、`pi packages`は`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`（既定48h）、`claude`・`opencode`・`herdr`はnpmを経由しないため`-`です。選択されていないAI CLIは表示せず、`WORKSTATION_UPDATE_AI_TOOLS`と`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`へ追従します。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`が整数でない場合は開始前に終了コード2で失敗します。
 
 SafeChainのブロック（minimum package age / malware検知）は同じ入力で必ず再発するため、再試行せずに理由を表示して後続処理へ進みます。ageの場合はブロックされたパッケージ名と、時間を置くか`update-ai`と同じ`npm_config_before`で解決する旨を表示します。各ステップの出力は`tee`でコンソールへ流しつつ`~/.local/state/workstation-update/step-<label>.log`（labelの空白は`-`へ置換。例: `step-mise-upgrade-herdr.log`）へ複製し、失敗時はそのパスを案内します。この複製によりinstallerのstdoutがパイプになるため、TTY検出に依存するツールは表示が簡素になる場合があります。SafeChain以外の失敗は従来どおり5秒待って1回だけ再試行します。なお`pi update --extensions`を直接実行した場合はmyupdateの外なので、この分類は働きません。
 
@@ -669,9 +671,11 @@ shell integration（`~/.safe-chain/scripts/init-posix.sh`）は、chezmoi管理�
 ./tests/safe-chain-smoke.sh
 ```
 
-Piの更新は`update-ai`がnpmの`npm_config_before`へ「現在時刻 - minimum package age - 1時間」を設定し、解決対象をageゲートを通過済みのバージョンだけに限定します。Piの依存には`@types/node`（`protobufjs`経由）や`@aws-sdk/*`・`@smithy/*`（Bedrock経由）のような公開頻度の高い推移的依存があり、除外リスト方式ではゲートに引っかかるたびに例外を追加する必要があるためです。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`を設定している環境ではその値を基準にし、動的値は`pi`経由のPackage manager内部npmにも伝播します。`npmCommand`はmiseとSafe-chainを通り、malware検査は全パッケージで有効なままです。トレードオフとして、Pi本体とPi Packageは公開からage（既定48時間）経過後の最新版が入るため、更新反映が最大age分遅れます。Pi本体のnpm更新には`--ignore-scripts`を付けます。
+Pi本体のinstallは`--safe-chain-skip-minimum-package-age`でageゲートだけを外します。本体の依存には`@types/node`（`protobufjs`経由）や`@aws-sdk/*`・`@smithy/*`（Bedrock経由）のような公開頻度の高い推移的依存があり、`@earendil-works/*`の除外方式ではこれらのscopeを実行コードごと除外する必要が生じるためです。ゲートが無効になるのはこのinstallコマンドの解決全体で、malware検査は変わらず全パッケージへ適用され、`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`はこのinstallに影響しません。Pi本体のnpm更新には`--ignore-scripts`を付けます。
 
-`update-ai --pi`はインストール後に`==> Pi versions`ブロックを出力し、Pi本体と4つのPi Packageについて、実際に入った版とageゲートが見送った版を区別します。見送りは`<installed> -> <latest> deferred until <時刻> (published <時刻>)`（UTC。`deferred until`はageと1時間のマージンを通過する時刻）、ゲート通過済みの最新版が入っていれば`(newest allowed version)`です。見送りかどうかは、その実行でinstallに使ったcutoff（`npm_config_before`の値）に対して判定するため、更新中にゲート期限を跨いでも正常な据え置きを未適用と誤判定しません。`published`はregistryの値をそのまま表示し、`deferred until`は秒未満を切り上げた「実際に入る秒」を示します。ゲート通過済みなのに古い版が入っている場合は更新が効いていないため、`update-ai:`警告をstderrへ出します。registry照会は読み取り専用のmetadata queryで、失敗しても更新自体は成功として扱い`(registry lookup failed; age gate status unknown)`と表示します。
+Pi PackageはPi本体とは別の第三者提供packageであり、`pi`の`npmCommand`（miseとSafe-chainを通る）と`npm_config_before`によるageゲートを維持します。`update-ai`は`pi install` / `pi update`の直前に`npm_config_before`へ「現在時刻 - minimum package age - 1時間」を設定し、解決対象をageゲートを通過済みのバージョンだけに限定します。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`を設定している環境ではその値を基準にし、動的値は`pi`経由のPackage manager内部npmにも伝播します。トレードオフとして、Pi Packageは公開からage（既定48時間）経過後の最新版が入るため、更新反映が最大age分遅れます。
+
+`update-ai --pi`はインストール後に`==> Pi versions`ブロックを出力し、Pi本体と4つのPi Packageについて、実際に入った版とageゲートが見送った版を区別します。Pi本体はageゲートを外しているため、最新版が入っていれば`(age gate skipped)`、registry照会に失敗した場合は`(registry lookup failed; update status unknown)`と表示します。Pi Packageの見送りは`<installed> -> <latest> deferred until <時刻> (published <時刻>)`（UTC。`deferred until`はageと1時間のマージンを通過する時刻）、ゲート通過済みの最新版が入っていれば`(newest allowed version)`です。見送りかどうかは、その実行でinstallに使ったcutoff（`npm_config_before`の値）に対して判定するため、更新中にゲート期限を跨いでも正常な据え置きを未適用と誤判定しません。`published`はregistryの値をそのまま表示し、`deferred until`は秒未満を切り上げた「実際に入る秒」を示します。ゲート通過済みなのに古い版が入っている場合は更新が効いていないため、`update-ai:`警告をstderrへ出します。registry照会は読み取り専用のmetadata queryで、失敗しても更新自体は成功として扱い`(registry lookup failed; age gate status unknown)`と表示します。
 
 Pi Packagesの導入、重複登録防止、未管理設定の保持は外部モデルを使わずに確認できます。
 
