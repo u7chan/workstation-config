@@ -223,14 +223,16 @@ pi_package_installed_version() {
 # Read the newest published version, the second it becomes installable, and
 # its publish timestamp from the registry. The second rounds the publish time
 # up because npm's before cutoff is a whole second and npm-pick-manifest keeps
-# a version when Date.parse(published) <= cutoff. This is a metadata-only
-# query, so Safe-chain's package download gate does not apply to it and the
-# result shows what the age gate still holds back.
+# a version when Date.parse(published) <= cutoff. The query skips the age gate
+# because the gate suppresses versions younger than the cutoff in the metadata
+# and appends its notice to stdout, which would both hide the version the
+# report must show and break the JSON parse. Nothing is downloaded here, so
+# the malware scan has nothing to inspect.
 registry_package_release() {
   local package_name=$1
   local response latest published published_epoch published_nanoseconds
 
-  response="$(NO_COLOR=1 npm view "$package_name" dist-tags time --json 2>/dev/null)" || return 1
+  response="$(NO_COLOR=1 npm view "$package_name" dist-tags time --json --safe-chain-skip-minimum-package-age 2>/dev/null)" || return 1
   [[ -n $response ]] || return 1
   latest="$(jq -r '(if type == "array" then .[0] else . end)."dist-tags".latest // empty' <<<"$response" 2>/dev/null)" || return 1
   [[ -n $latest ]] || return 1

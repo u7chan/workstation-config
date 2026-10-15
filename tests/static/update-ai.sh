@@ -34,6 +34,10 @@ case "${1:-}" in
     grep -Fq 'newest allowed version' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'registry lookup failed; age gate status unknown' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'registry lookup failed; update status unknown' "$ROOT_DIR/scripts/update-ai"
+    # The status lookup reads the true registry state, so it skips the gate
+    # whose suppression and stdout notice would hide the held-back version.
+    grep -Fq 'npm view "$package_name" dist-tags time --json --safe-chain-skip-minimum-package-age' \
+      "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'age gate skipped' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'ensure_pi_packages "$pi_packages_npm_before"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq 'npm_config_before="$npm_before"' "$ROOT_DIR/scripts/update-ai"
