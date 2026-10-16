@@ -58,6 +58,7 @@ case "${1:-}" in
     grep -Fqx '      - link' "$plugin_tasks"
     grep -Fqx '      - unlink' "$plugin_tasks"
     grep -Fqx '      - u7chan.worktree-pi' "$plugin_tasks"
+    grep -Fq 'server_not_running' "$plugin_tasks"
     grep -Fq "when: \"'pi' in personal_ai_tools\"" "$plugin_tasks"
     grep -Fq "when: \"'pi' not in personal_ai_tools\"" "$plugin_tasks"
     # issue #211: the personal role installs the plugin, so chezmoi must not own it.

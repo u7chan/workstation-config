@@ -21,7 +21,7 @@ split_vertical = "prefix+v"
 close_pane     = "ctrl+w"
 reload_config  = "prefix+shift+r"
 
-# prefix+p で選択中スペース（子のワークツリーでも可）のワークツリーを作成する
+# prefix+p で選択中スペース（repo root のみ）のワークツリーを作成する
 new_worktree   = "prefix+p"
 # new_worktree に譲る（既定は prefix+p）
 previous_tab   = ""
