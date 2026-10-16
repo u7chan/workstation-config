@@ -12,7 +12,6 @@
 | [Herdr](https://github.com/ogulcancelik/herdr) | terminal上でAgentを多重化するCLI | `herdr` | `ogulcancelik/herdr` |
 | [Yazi](https://github.com/sxyazi/yazi) | 非同期I/Oベースのファイルマネージャ | `yazi` | `sxyazi/yazi` |
 | [Starship](https://github.com/starship/starship) | shell prompt | Bash起動時に自動で有効化 | `starship/starship` |
-| [cagent](https://github.com/u7chan/code-agent-launcher) | Agent起動コマンドを統一するlauncher | `cagent --help` | `u7chan/code-agent-launcher` |
 | [Playwright CLI](https://github.com/microsoft/playwright-cli) | coding agent向けのブラウザ自動化CLI | `playwright-cli --help` | `npm:@playwright/cli` |
 | [fzf](https://github.com/junegunn/fzf) | インタラクティブな曖昧検索 | `fzf` | `junegunn/fzf` |
 | [zoxide](https://github.com/ajeetdsouza/zoxide) | 頻繁に使うディレクトリへの高速ジャンプ（fzf連携） | `z <query>`, `zi` | `ajeetdsouza/zoxide` |
@@ -87,5 +86,5 @@ zoxide add ~/.config
 ## 設定の管理
 
 - YaziとStarshipの設定はchezmoiで管理します。詳細は[Workstation構成ガイド](workstation.md#yazi)を参照してください。
-- Hunk、Lazygit、Lazydocker、Herdr、cagentのユーザー設定は、必要になった時点で各ツールの公式ドキュメントを確認してください。現在はHerdrとcagentの非機密設定だけをchezmoiで管理しています。
+- Hunk、Lazygit、Lazydocker、Herdrのユーザー設定は、必要になった時点で各ツールの公式ドキュメントを確認してください。現在はHerdrの非機密設定だけをchezmoiで管理しています。
 - 認証情報、履歴、cache、runtime stateはリポジトリで管理しません。

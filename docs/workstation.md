@@ -290,7 +290,7 @@ Windows実行ファイルの実行可否と登録状態を切り分けてくだ�
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。
 
 - Node.js LTS、Bun 1.x、uv
-- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、cagent、Playwright CLI
+- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、Playwright CLI
 
 `ripgrep`はPi Package専用の一時依存ではなく、`base` / `personal`の両profileでmiseが恒久的に管理する共通CLIです。`pi-session-recall`の`session_search`はglobal sessions root全体を`rg -i -F`で検索するため、global JSONLが増えても高速かつliteralな検索を標準経路として再現できます。`rg`がない場合のgrep / Node scan fallbackはPackage側に残りますが、workstationではrgを優先backendとして利用します。
 
@@ -459,11 +459,11 @@ Yazi本体はmise、`~/.config/yazi/yazi.toml`とpackage宣言はchezmoiで管�
 
 pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新して`ya pkg install`を実行し、取得物をcommitせず上記smoke testを再実行してください。Yazi本体の更新は「miseの管理範囲」の手順でlockfileも更新します。
 
-## Herdr、cagentとAI CLI
+## HerdrとAI CLI
 
 <!-- TODO: u7chan.file-viewer の安定版リリース後に導入管理を見直す。 -->
 
-Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。`cagent`は`github:u7chan/code-agent-launcher` backendからLinux x64 release assetをlocked installし、`mise.lock`にURL、checksum、provenanceを固定します。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止したCodexも例外ではなく、bootstrapが削除するのはrepo管理の`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`だけです。Herdrが所有するintegration（`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`）とCodex CLI本体は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdr本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止したCodexも例外ではなく、bootstrapが削除するのはrepo管理の`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`だけです。Herdrが所有するintegration（`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`）とCodex CLI本体は残るため、不要なら手動で削除します（具体的なコマンドは後述）。廃止した`cagent`も例外ではなく、bootstrapが削除するのはrepo管理の`~/.config/cagent/config.yaml`だけです。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
@@ -491,58 +491,13 @@ update-ai
 ./tests/pi-packages-smoke.sh
 ```
 
-chezmoiが管理するのは`~/.config/opencode/opencode.json`、`~/.config/cagent/config.yaml`などのallowlist化した非機密設定だけです。`cagent`設定はOpenCode Goを既定agentかつ既定profileの`orchestrator`とし、OpenCode GoのLaunch ProfileおよびHerdrのstart/run templateを定義します。既定profileは設定の`default_profile`を変更して切り替えます。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+chezmoiが管理するのは`~/.config/opencode/opencode.json`などのallowlist化した非機密設定だけです。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
 
 Codex CLIはPiへ移行したため、リポジトリと導入対象から削除しました。`home/dot_codex/`（`config.toml`と`model-catalogs/workstation.json`）は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します。Herdrが所有する`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`、Codex CLI本体、`~/.codex`配下のauth・session・履歴はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します（`herdr integration uninstall codex`、`npm uninstall -g @openai/codex`、必要なら`rm -rf ~/.codex`）。
 
-`base`ではmise解決とversionだけ、`personal`では設定・doctor・profile別dry-runまで確認します。いずれも実Agentや外部モデルは起動しません。
+cagentはOpenCode Goのランチャーとして導入していましたが、使用しておらず、OpenCode 2ではトップレベルの`opencode --model`が使えないため撤去しました。`home/dot_config/cagent/`は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.config/cagent/config.yaml`を削除します。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します（`mise uninstall --all cagent`、必要なら`rm -rf ~/.config/cagent`）。
 
-```bash
-./tests/cagent-smoke.sh base
-./tests/cagent-smoke.sh personal
-```
-
-### cagent v1.0.0 Launch Profiles への移行
-
-cagent v1.0.0では旧形式の`levels`/`models`設定に後方互換がなく、設定を手動で移行する必要があります。
-既存の`~/.config/cagent/config.yaml`をバックアップしてから、bootstrapで新しいLaunch Profile形式の
-設定を適用してください。
-
-```bash
-# 既存設定のバックアップ
-cp ~/.config/cagent/config.yaml ~/.config/cagent/config.yaml.v0.3.bak
-
-# bootstrapで新しい設定を適用
-./bootstrap personal
-
-# 移行後の確認
-cagent --version
-cagent doctor
-cagent profiles
-cagent --dry-run orchestrator
-```
-
-v0.3.xの`default_agent`/`default_level`とagent別の`levels`/`models`設定は、v1.0.0の
-Launch Profileへ手動で移行する必要があります。移行の概要は
-[cagent READMEのv0.3.x→v1.0.0移行ガイド](https://github.com/u7chan/code-agent-launcher?tab=readme-ov-file#v03x%E3%81%8B%E3%82%89v100%E3%81%B8%E3%81%AE%E6%89%8B%E5%8B%95%E7%A7%BB%E8%A1%8C)
-を参照してください。
-
-現行の設定で定義するLaunch Profileは次の2つです。
-
-| Profile | Agent | Model | Effort |
-|---|---|---|---|
-| `worker-opencode` | OpenCode Go | `deepseek-v4-flash` | — (TODO) |
-| `orchestrator` | OpenCode Go | `deepseek-v4-pro` | — (TODO) |
-
-Herdr templateは`{level}`から`{profile}`に変更され、Herdr Startで任意のLaunch Profileを
-指定した会話セッションを起動できます。
-
-```bash
-./tests/cagent-smoke.sh base
-./tests/cagent-smoke.sh personal
-```
-
-WSL再起動後は次を実行し、Herdr、cagent、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の3種類（Claude Code / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
+WSL再起動後は次を実行し、Herdr、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の3種類（Claude Code / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
 
 ```bash
 ./tests/wsl-restart-smoke.sh
@@ -557,7 +512,7 @@ native session restoreの実機確認では、選択済みCLIをHerdrのpane内�
 ```bash
 eval "$(~/.local/bin/mise activate bash --shims)"
 hash -r
-type -a gh herdr cagent claude opencode pi
+type -a gh herdr claude opencode pi
 ```
 
 ### 開発ツールの手動更新

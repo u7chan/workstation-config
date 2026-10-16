@@ -3,9 +3,6 @@ lockfile = true
 lockfile_platforms = ["linux-x64"]
 minimum_release_age = "1h"
 
-[tool_alias]
-cagent = "github:u7chan/code-agent-launcher"
-
 [tools]
 node = "lts"
 bun = "1"
@@ -23,5 +20,4 @@ herdr = "latest"
 zoxide = "latest"
 fzf = "latest"
 gh = "latest"
-cagent = { version = "1.1.0", filter_bins = "cagent" }
 "npm:@playwright/cli" = "latest"

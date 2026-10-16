@@ -168,6 +168,12 @@ rm -f -- "$HOME/.codex/config.toml"
 rm -f -- "$HOME/.codex/model-catalogs/workstation.json"
 rmdir -- "$HOME/.codex/model-catalogs" 2>/dev/null || true
 
+# cagent was removed in favor of OpenCode 2. Only the repo-managed config is
+# removed here; the mise-installed CLI and other ~/.config/cagent files stay
+# until the user removes them.
+rm -f -- "$HOME/.config/cagent/config.yaml"
+rmdir -- "$HOME/.config/cagent" 2>/dev/null || true
+
 if [[ $CLAUDE_SELECTED == true ]]; then
   printf '==> Merging Claude Code settings\n'
   "$ROOT_DIR/scripts/merge-claude-settings"

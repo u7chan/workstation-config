@@ -11,8 +11,6 @@ case "${1:-}" in
     grep -q '^ripgrep = "latest"' "$mise_config"
     command -v rg >/dev/null
     rg --version >/dev/null
-    grep -Fq 'cagent = "github:u7chan/code-agent-launcher"' "$mise_config"
-    grep -Fq 'cagent = { version = "1.1.0", filter_bins = "cagent" }' "$mise_config"
     grep -Fq '"npm:@playwright/cli" = "latest"' "$mise_config"
     grep -Fq 'backend = "npm:@playwright/cli"' "$mise_lock"
     test -s "$mise_lock"
