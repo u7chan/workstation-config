@@ -467,7 +467,7 @@ Herdrと`cagent`本体はmiseで管理します。Herdrはbootstrapごとに`lat
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
-`personal` roleは`worktree.created`イベント用の自作プラグイン`u7chan.worktree-pi`を`~/.config/herdr/local-plugins/worktree-pi/`へ配置し、`personal_ai_tools`に`pi`が含まれる場合だけ`herdr plugin link`で有効化します。キー割当は`~/.config/herdr/config.toml`で`new_worktree`（既定`prefix+shift+g`）を`prefix+p`へ変更し、重複する`previous_tab`は未割当にします。スペース（子のワークツリーでも可）を選択して`prefix+p`を押すと、右クリックメニューの`New worktree`と同じフォームが開き、作成されたワークスペースのroot paneで`herdr agent start pi --kind pi`がinteractiveになるまで待ってからpiが起動します。`pi`非選択時はunlinkと配置物の削除を行います。動作を変えたい場合はプラグイン内の`config.sh`を編集するか、`$HERDR_PLUGIN_CONFIG_DIR/config.sh`（`~/.config/herdr/plugins/config/u7chan.worktree-pi`、Git管理外）で上書きします。piを起動するリポジトリを絞る場合は`WORKTREE_PI_REPOS`へrepo rootを列挙します。
+`personal` roleは`worktree.created`イベント用の自作プラグイン`u7chan.worktree-pi`を`~/.config/herdr/local-plugins/worktree-pi/`へ配置し、`personal_ai_tools`に`pi`が含まれる場合だけ`herdr plugin link`で有効化します。キー割当は`~/.config/herdr/config.toml`で`new_worktree`（既定`prefix+shift+g`）を`prefix+p`へ変更し、重複する`previous_tab`は未割当にします。スペース（子のワークツリーでも可）を選択して`prefix+p`を押すと、右クリックメニューの`New worktree`と同じフォームが開き、作成されたワークスペースのroot paneで`herdr agent start pi --kind pi`がinteractiveになるまで待ってからpiが起動します。Herdrのagent nameはlive agent間で一意でなければならないため、名前は`pi-<worktreeのbranch slug>`（branchが無い場合は`pi-<workspace id>`）を生成し、同名が使用中ならworkspace idへフォールバックします。`pi`非選択時はunlinkと配置物の削除を行います。動作を変えたい場合はプラグイン内の`config.sh`を編集するか、`$HERDR_PLUGIN_CONFIG_DIR/config.sh`（`~/.config/herdr/plugins/config/u7chan.worktree-pi`、Git管理外）で上書きします。piを起動するリポジトリを絞る場合は`WORKTREE_PI_REPOS`へrepo rootを列挙します。
 
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|

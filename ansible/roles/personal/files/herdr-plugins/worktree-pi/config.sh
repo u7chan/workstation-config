@@ -10,11 +10,16 @@ WORKTREE_PI_ENABLED=1
 # Repository roots that launch pi. An empty array enables every repository.
 WORKTREE_PI_REPOS=()
 
-# Agent name and kind passed to `herdr agent start`.
+# Agent kind passed to `herdr agent start`.
 WORKTREE_PI_AGENT="pi"
+
+# Prefix of the generated agent name. Herdr requires names unique among live
+# agents, so the plugin appends the worktree branch slug and falls back to the
+# workspace id (for example pi-calm-field-33d1 or pi-w6r).
+WORKTREE_PI_AGENT_NAME_PREFIX="pi"
 
 # Interactive-readiness timeout in milliseconds.
 WORKTREE_PI_AGENT_TIMEOUT_MS=60000
 
-# Extra arguments appended after the agent name, for example ("--model" "gpt-6-luna").
+# Extra arguments appended after the agent kind, for example ("--model" "gpt-6-luna").
 WORKTREE_PI_AGENT_ARGS=()
