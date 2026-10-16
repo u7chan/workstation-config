@@ -1,0 +1,80 @@
+---
+- name: Ensure the local Herdr plugin directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/herdr/local-plugins"
+    state: directory
+    mode: "0755"
+  when: "'pi' in personal_ai_tools"
+
+- name: Install the local Herdr worktree Pi plugin
+  ansible.builtin.copy:
+    src: herdr-plugins/worktree-pi/
+    dest: "{{ ansible_facts['user_dir'] }}/.config/herdr/local-plugins/worktree-pi/"
+    directory_mode: "0755"
+    mode: preserve
+  when: "'pi' in personal_ai_tools"
+
+- name: Link the local Herdr worktree Pi plugin
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/flock
+      - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
+      - "{{ herdr_binary.stdout | trim }}"
+      - plugin
+      - link
+      - "{{ ansible_facts['user_dir'] }}/.config/herdr/local-plugins/worktree-pi"
+      - --enabled
+  environment: "{{ personal_herdr_env }}"
+  changed_when: false
+  when: "'pi' in personal_ai_tools"
+
+- name: Check the local Herdr worktree Pi plugin
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary.stdout | trim }}"
+      - plugin
+      - list
+      - --plugin
+      - u7chan.worktree-pi
+      - --json
+  environment: "{{ personal_herdr_env }}"
+  register: herdr_worktree_pi  # noqa var-naming[no-role-prefix]
+  changed_when: false
+  when: "'pi' in personal_ai_tools"
+
+- name: Verify the local Herdr worktree Pi plugin is linked and enabled
+  ansible.builtin.assert:
+    that:
+      - ((herdr_worktree_pi.stdout | from_json).result.plugins | length) == 1
+      - (herdr_worktree_pi.stdout | from_json).result.plugins[0].enabled
+      - >-
+        (herdr_worktree_pi.stdout | from_json).result.plugins[0].plugin_root
+        == ansible_facts['user_dir'] ~ '/.config/herdr/local-plugins/worktree-pi'
+    fail_msg: "The local Herdr worktree Pi plugin is not linked and enabled"
+  when: "'pi' in personal_ai_tools"
+
+- name: Unlink the local Herdr worktree Pi plugin
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary.stdout | trim }}"
+      - plugin
+      - unlink
+      - u7chan.worktree-pi
+  environment: "{{ personal_herdr_env }}"
+  register: herdr_worktree_pi_unlink  # noqa var-naming[no-role-prefix]
+  changed_when: false
+  # Only plugin unlink is a server API in Herdr 0.9.5 (link and list work
+  # offline). Keep the deployed plugin when the server is down so the registry
+  # and the files stay consistent, and defer the cleanup to a later run.
+  failed_when: >-
+    herdr_worktree_pi_unlink.rc != 0
+    and 'server_not_running' not in (herdr_worktree_pi_unlink.stderr | default(''))
+  when: "'pi' not in personal_ai_tools"
+
+- name: Remove the local Herdr worktree Pi plugin files
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.config/herdr/local-plugins/worktree-pi"
+    state: absent
+  when:
+    - "'pi' not in personal_ai_tools"
+    - herdr_worktree_pi_unlink.rc | default(1) == 0

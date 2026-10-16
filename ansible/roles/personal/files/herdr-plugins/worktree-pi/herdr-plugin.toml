@@ -1,0 +1,10 @@
+id = "u7chan.worktree-pi"
+name = "Worktree Pi launcher"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Start pi in the root pane of a worktree workspace created by Herdr"
+platforms = ["linux", "macos"]
+
+[[events]]
+on = "worktree.created"
+command = ["./hook.sh"]

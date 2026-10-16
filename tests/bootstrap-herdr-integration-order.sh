@@ -28,6 +28,7 @@ task_block() {
 update_line="$(line_number '- name: Update selected AI CLI tools' "$update_ai_tasks")"
 update_include_line="$(line_number 'ansible.builtin.import_tasks: update_ai.yml' "$personal_main")"
 herdr_include_line="$(line_number 'ansible.builtin.import_tasks: herdr_integration.yml' "$personal_main")"
+plugins_include_line="$(line_number 'ansible.builtin.import_tasks: herdr_plugins.yml' "$personal_main")"
 directories_line="$(line_number '- name: Ensure Herdr integration config directories exist for selected AI CLI tools' "$herdr_tasks")"
 install_line="$(line_number '- name: Install selected Herdr integrations' "$herdr_tasks")"
 status_line="$(line_number '- name: Check selected Herdr integration status' "$herdr_tasks")"
@@ -35,9 +36,10 @@ assert_line="$(line_number '- name: Verify selected Herdr integrations are curre
 
 [[ $update_line -gt 0 && $update_include_line -gt 0 && \
   $update_include_line -lt $herdr_include_line && $herdr_include_line -gt 0 && \
+  $herdr_include_line -lt $plugins_include_line && $plugins_include_line -gt 0 && \
   $directories_line -lt $install_line && $install_line -lt $status_line && \
   $status_line -lt $assert_line ]] || {
-  printf 'bootstrap-herdr-integration-order: AI CLI update, directories, install, status, and assertion must be ordered.\n' >&2
+  printf 'bootstrap-herdr-integration-order: AI CLI update, directories, install, status, assertion, and local plugin import must be ordered.\n' >&2
   exit 1
 }
 
