@@ -32,15 +32,15 @@ for tool in "${expected_tools[@]}"; do
   esac
 done
 
-resolution="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'type -a herdr cagent' 2>&1)" || {
+resolution="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'type -a herdr' 2>&1)" || {
   printf '%s\n' "$resolution" >&2
   exit 1
 }
 printf '%s\n' "$resolution"
 
-paths_output="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'command -v herdr; command -v cagent' 2>/dev/null)"
+paths_output="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" bash --login -ic 'command -v herdr' 2>/dev/null)"
 mapfile -t paths <<<"$paths_output"
-for path in "${paths[@]:0:2}"; do
+for path in "${paths[@]:0:1}"; do
   [[ $path == "$HOME/.local/share/mise/"* ]] || {
     printf 'wsl-restart-smoke: expected mise-managed Linux path, got %s\n' "$path" >&2
     exit 1

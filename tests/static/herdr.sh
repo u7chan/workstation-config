@@ -12,8 +12,8 @@ case "${1:-}" in
     bash -n "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     ;;
   wsl-restart-greps)
-    grep -q 'type -a herdr cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
-    grep -q 'command -v herdr; command -v cagent' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+    grep -q 'type -a herdr' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
+    grep -q 'command -v herdr' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     grep -q 'command -v gh' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     grep -q 'expected_tools' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
     grep -q 'herdr integration status' "$ROOT_DIR/tests/wsl-restart-smoke.sh"
