@@ -78,7 +78,7 @@ case "${1:-}" in
     grep -Fq "readonly PI_PACKAGE_COUNT=$pi_package_count" \
       "$ROOT_DIR/scripts/personal-bin/myupdate"
     grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
-    grep -q 'https://opencode.ai/install' "$ROOT_DIR/scripts/update-ai"
+    grep -q 'https://opencode.ai/v2/install' "$ROOT_DIR/scripts/update-ai"
     grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"
     grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
     grep -Fq 'exec "$mise_bin" exec node -- "$0" "$@"' "$ROOT_DIR/scripts/update-ai"

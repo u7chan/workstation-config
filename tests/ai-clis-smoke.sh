@@ -127,7 +127,7 @@ jq -e '
 ' "$HOME/.pi/agent/pi-codex-conversion.json" >/dev/null
 grep -Fqx 'curl claude exclusion=' "$log"
 grep -Fqx 'curl opencode exclusion=' "$log"
-grep -Fq '  "autoupdate": false' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
+grep -Fq '  "update": "disable"' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -Fqx 'export DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 # shellcheck disable=SC2016
 grep -Fqx 'export PATH="$HOME/.opencode/bin:$PATH"' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
