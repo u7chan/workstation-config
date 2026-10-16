@@ -13,6 +13,7 @@ case "${1:-}" in
         "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-agents.sh" \
         "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-datetime.sh" \
         "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-resources.sh" \
+        "$ROOT_DIR/ansible/roles/personal/files/herdr-plugins/worktree-pi/hook.sh" \
         "$ROOT_DIR/scripts/update-ai" \
         "$ROOT_DIR/tests/ai-clis-smoke.sh" \
         "$ROOT_DIR/tests/update-ai-age-gate-status.sh" \
