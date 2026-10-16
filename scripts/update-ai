@@ -395,8 +395,8 @@ if [[ $install_claude == true ]]; then
 fi
 
 if [[ $install_opencode == true ]]; then
-  printf '==> Updating OpenCode from the official binary installer\n'
-  curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path
+  printf '==> Updating OpenCode 2 from the official binary installer\n'
+  curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
 fi
 
 printf '==> AI CLI versions\n'

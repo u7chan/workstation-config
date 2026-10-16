@@ -463,7 +463,7 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 <!-- TODO: u7chan.file-viewer の安定版リリース後に導入管理を見直す。 -->
 
-Herdr本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止したCodexも例外ではなく、bootstrapが削除するのはrepo管理の`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`だけです。Herdrが所有するintegration（`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`）とCodex CLI本体は残るため、不要なら手動で削除します（具体的なコマンドは後述）。廃止した`cagent`も例外ではなく、bootstrapが削除するのはrepo管理の`~/.config/cagent/config.yaml`だけです。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。AI CLIの認証は手動です。
+Herdr本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止したCodexも例外ではなく、bootstrapが削除するのはrepo管理の`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`だけです。Herdrが所有するintegration（`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`）とCodex CLI本体は残るため、不要なら手動で削除します（具体的なコマンドは後述）。廃止した`cagent`も例外ではなく、bootstrapが削除するのはrepo管理の`~/.config/cagent/config.yaml`だけです。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。OpenCodeはv2系（`https://opencode.ai/v2/install`、パッケージは`@opencode/cli`）を使い、v1系のinstallerは使いません。v1へ戻す場合はv1 installer（`https://opencode.ai/install`）を再実行します。AI CLIの認証は手動です。
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
@@ -472,10 +472,10 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
-| OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js` | `~/.config/opencode/opencode.json` |
+| OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js`、`~/.config/opencode/cli.json`、`~/.config/opencode/tui.jsonc`、`~/.config/opencode/herdr-tui-session.js`、`~/.config/opencode/herdr-opencode/`、`~/.config/opencode/package.json` / `package-lock.json` / `node_modules` / `.gitignore`（OpenCode 2のTUIプラグイン登録は`cli.json`が正本で、`tui.jsonc`はv1の残置物） | `~/.config/opencode/opencode.json` |
 | Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは3ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`、openai-codexのモデル別context budget（`modelOverrides`、コンパクション費用対策）の`~/.pi/agent/models.json`、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルトを`create`属性で配布する`~/.pi/agent/web-search.json`（既存ファイルは上書きしないため、API key等の手動追加はユーザーruntime）。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
-auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
+auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。OpenCode 2ではTUIプラグインの登録先が`~/.config/opencode/cli.json`へ変わり、このファイルはHerdrが更新するruntimeとしてリポジトリの管理対象に含めません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
@@ -491,7 +491,7 @@ update-ai
 ./tests/pi-packages-smoke.sh
 ```
 
-chezmoiが管理するのは`~/.config/opencode/opencode.json`などのallowlist化した非機密設定だけです。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
+chezmoiが管理するのは`~/.config/opencode/opencode.json`などのallowlist化した非機密設定だけです。`~/.config/opencode/opencode.json`はOpenCode 2の形式で配布し、更新確認の停止は`update`、プロジェクト外アクセスは`permissions`の順序ルール（`*`の`ask`の後に`/tmp/*`の`allow`）で表現します。auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。
 
 Codex CLIはPiへ移行したため、リポジトリと導入対象から削除しました。`home/dot_codex/`（`config.toml`と`model-catalogs/workstation.json`）は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します。Herdrが所有する`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`、Codex CLI本体、`~/.codex`配下のauth・session・履歴はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します（`herdr integration uninstall codex`、`npm uninstall -g @openai/codex`、必要なら`rm -rf ~/.codex`）。
 
