@@ -55,10 +55,11 @@ case "${1:-}" in
     done
     ;;
   runtime-data)
-    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/agent/create_web-search.json のみがPiのGit管理対象ユーザー設定。
+    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/agent/create_web-search.json、home/dot_pi/agent/AGENTS.md のみがPiのGit管理対象ユーザー設定。
     if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
       | grep -Fvx 'home/dot_pi/agent/models.json' \
       | grep -Fvx 'home/dot_pi/agent/create_web-search.json' \
+      | grep -Fvx 'home/dot_pi/agent/AGENTS.md' \
       | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
       printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
       exit 1
