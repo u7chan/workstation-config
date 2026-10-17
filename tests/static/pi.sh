@@ -37,6 +37,15 @@ case "${1:-}" in
     grep -Fq 'for ai_config_dir in .claude .config/opencode .pi' "$ROOT_DIR/bootstrap"
     grep -Fqx '.pi/agent/models.json' "$ROOT_DIR/home/.chezmoiignore"
     ;;
+  agents-md)
+    # ~/.pi/agent/AGENTS.mdはチャット出力のリンク規約をユーザー全体へ配布する。
+    test -f "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq '## チャット出力でのリンク' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq 'リンクの owner / repo はカレントディレクトリの origin から取る。' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq 'rm -f -- "$HOME/.pi/agent/AGENTS.md"' "$ROOT_DIR/bootstrap"
+    grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
+    grep -Fqx '.pi/agent/AGENTS.md' "$ROOT_DIR/home/.chezmoiignore"
+    ;;
   base-role-guard)
     for pi_package in pi-web-access pi-codex-image-gen pi-codex-conversion @ogulcancelik/pi-session-recall; do
       if grep -R -Fq "$pi_package" "$ROOT_DIR/ansible/roles/base"; then
@@ -56,7 +65,7 @@ case "${1:-}" in
     fi
     ;;
   *)
-    printf 'Usage: %s <stage: keybindings|config|web-search|base-role-guard|runtime-data>\n' "$0" >&2
+    printf 'Usage: %s <stage: keybindings|config|web-search|agents-md|base-role-guard|runtime-data>\n' "$0" >&2
     exit 2
     ;;
 esac

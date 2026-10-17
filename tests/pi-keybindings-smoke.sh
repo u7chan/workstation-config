@@ -44,6 +44,14 @@ jq -e '
   (."gpt-6-luna".contextWindow == 1050000)
 ' "$models_file" >/dev/null
 
+# The managed AGENTS.md carries the global chat link convention that makes
+# Issue / PR numbers and commit SHAs clickable markdown links in pi output.
+agents_md="$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+readonly agents_md
+grep -Fxq '# 出力の作法' "$agents_md"
+grep -Fq '## チャット出力でのリンク' "$agents_md"
+grep -Fq 'リンクの owner / repo はカレントディレクトリの origin から取る。' "$agents_md"
+
 # .chezmoiignore keeps the files managed only when bootstrap selects Pi.
 # Without the variable the files stay unmanaged so a bare chezmoi apply never
 # creates Pi configuration outside of bootstrap.
@@ -70,7 +78,7 @@ assert_ignore_pattern() {
   fi
 }
 
-for target in '.pi/agent/keybindings.json' '.pi/agent/models.json'; do
+for target in '.pi/agent/keybindings.json' '.pi/agent/models.json' '.pi/agent/AGENTS.md'; do
   assert_ignore_pattern "$target" "$target" present env -u WORKSTATION_PI_SELECTED
   assert_ignore_pattern "$target" "$target" present env WORKSTATION_PI_SELECTED=false
   assert_ignore_pattern "$target" "$target" absent env WORKSTATION_PI_SELECTED=true
@@ -92,6 +100,7 @@ mkdir -p "$selected_home"
 apply_source true "$selected_home"
 cmp "$expected_file" "$selected_home/.pi/agent/keybindings.json"
 cmp "$models_file" "$selected_home/.pi/agent/models.json"
+cmp "$agents_md" "$selected_home/.pi/agent/AGENTS.md"
 
 # Unselected Pi: chezmoi leaves existing files untouched (unmanaged).
 # Removing them on downgrade is bootstrap's responsibility.
@@ -100,6 +109,7 @@ unselected_home="$test_dir/unselected"
 mkdir -p "$unselected_home/.pi/agent"
 printf '%s\n' "$existing_content" >"$unselected_home/.pi/agent/keybindings.json"
 printf '%s\n' '{"providers":{"openai-codex":{"modelOverrides":{"gpt-5.6-sol":{"contextWindow":12345}}}}}' >"$unselected_home/.pi/agent/models.json"
+printf '%s\n' '# user local note' >"$unselected_home/.pi/agent/AGENTS.md"
 apply_source false "$unselected_home"
 grep -Fxq "$existing_content" "$unselected_home/.pi/agent/keybindings.json" || {
   printf 'Unselected Pi must keep the existing keybindings.json unmanaged.\n' >&2
@@ -109,5 +119,9 @@ grep -Fq '"contextWindow":12345' "$unselected_home/.pi/agent/models.json" || {
   printf 'Unselected Pi must keep the existing models.json unmanaged.\n' >&2
   exit 1
 }
+grep -Fxq '# user local note' "$unselected_home/.pi/agent/AGENTS.md" || {
+  printf 'Unselected Pi must keep the existing AGENTS.md unmanaged.\n' >&2
+  exit 1
+}
 
-printf 'Pi keybindings and models.json smoke checks passed.\n'
+printf 'Pi keybindings, models.json, and AGENTS.md smoke checks passed.\n'
