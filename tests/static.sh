@@ -24,6 +24,7 @@ run mise.sh config                       # 旧L31-50
 run pi.sh keybindings                    # 旧L51-58
 run pi.sh config                         # issue #174: models.json管理
 run pi.sh web-search                     # issue #182: web-search.json create配布
+run pi.sh agents-md                      # ~/.pi/agent/AGENTS.md link convention
 run bootstrap.sh ci-workflow             # 旧L59
 run mise.sh ansible-base                 # 旧L60-71
 run smoke.sh syntax-tools                # 旧L72-74

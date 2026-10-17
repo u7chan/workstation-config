@@ -159,6 +159,7 @@ if [[ $PI_SELECTED == false ]]; then
   rm -f -- "$HOME/.pi/agent/keybindings.json"
   rm -f -- "$HOME/.pi/agent/models.json"
   rm -f -- "$HOME/.pi/agent/web-search.json"
+  rm -f -- "$HOME/.pi/agent/AGENTS.md"
   rm -f -- "$HOME/.pi/web-search.json"
 fi
 

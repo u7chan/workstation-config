@@ -37,6 +37,15 @@ case "${1:-}" in
     grep -Fq 'for ai_config_dir in .claude .config/opencode .pi' "$ROOT_DIR/bootstrap"
     grep -Fqx '.pi/agent/models.json' "$ROOT_DIR/home/.chezmoiignore"
     ;;
+  agents-md)
+    # ~/.pi/agent/AGENTS.mdはチャット出力のリンク規約をユーザー全体へ配布する。
+    test -f "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq '[#123](URL)' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq 'URL はカレントディレクトリの origin から作る。' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq 'rm -f -- "$HOME/.pi/agent/AGENTS.md"' "$ROOT_DIR/bootstrap"
+    grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
+    grep -Fqx '.pi/agent/AGENTS.md' "$ROOT_DIR/home/.chezmoiignore"
+    ;;
   base-role-guard)
     for pi_package in pi-web-access pi-codex-image-gen pi-codex-conversion @ogulcancelik/pi-session-recall; do
       if grep -R -Fq "$pi_package" "$ROOT_DIR/ansible/roles/base"; then
@@ -46,17 +55,18 @@ case "${1:-}" in
     done
     ;;
   runtime-data)
-    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/agent/create_web-search.json のみがPiのGit管理対象ユーザー設定。
+    # home/dot_pi/agent/keybindings.json と models.json、home/dot_pi/agent/create_web-search.json、home/dot_pi/agent/AGENTS.md のみがPiのGit管理対象ユーザー設定。
     if git -C "$ROOT_DIR" ls-files | grep -Fvx 'home/dot_pi/agent/keybindings.json' \
       | grep -Fvx 'home/dot_pi/agent/models.json' \
       | grep -Fvx 'home/dot_pi/agent/create_web-search.json' \
+      | grep -Fvx 'home/dot_pi/agent/AGENTS.md' \
       | grep -Eiq '(^|/)(web-search\.json|codex-image-gen\.json|pi-codex-conversion\.json|generated-images|dot_pi|pi/)(/|$)'; then
       printf 'Pi package settings, generated images, and runtime state must not be Git-managed.\n' >&2
       exit 1
     fi
     ;;
   *)
-    printf 'Usage: %s <stage: keybindings|config|web-search|base-role-guard|runtime-data>\n' "$0" >&2
+    printf 'Usage: %s <stage: keybindings|config|web-search|agents-md|base-role-guard|runtime-data>\n' "$0" >&2
     exit 2
     ;;
 esac

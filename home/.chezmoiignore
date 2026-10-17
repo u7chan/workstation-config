@@ -1,5 +1,7 @@
 {{- /*
-Piのキーバインド・modelOverrides・web-search.jsonはbootstrapがPiを選択した場合だけ配置する。
+Piのキーバインド・modelOverrides・web-search.json・AGENTS.mdはbootstrapがPiを選択した場合だけ配置する。
+AGENTS.mdはチャット出力でIssue / PR番号・コミットSHAをマークダウンリンクにする規約で、
+ユーザー全体の指示ファイル（~/.pi/agent/AGENTS.md）として配布する。
 bootstrapはWORKSTATION_PI_SELECTED=trueを渡し、未選択時・変数未設定時は
 これらのファイルをchezmoi管理対象外にする。既存ファイルの削除はbootstrapが行う。
 web-search.jsonはファイル名のcreate_プレフィックス（home/dot_pi/agent/create_web-search.json）で
@@ -12,5 +14,6 @@ pi-web-access 0.29.0以降はpiのagent dir（~/.pi/agent/web-search.json）を�
 .pi/agent/keybindings.json
 .pi/agent/models.json
 .pi/agent/web-search.json
+.pi/agent/AGENTS.md
 {{- end }}
 README.md
