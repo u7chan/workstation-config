@@ -30,6 +30,7 @@ case "${1:-}" in
     grep -Fq 'command = "lazygit"' "$herdr_config"
     grep -Fqx 'new_worktree   = "prefix+p"' "$herdr_config"
     grep -Fqx 'previous_tab   = ""' "$herdr_config"
+    grep -Fq 'herdr-status-board/bin/herdr-status-board summary' "$herdr_config"
     if grep -Eq '^key[[:space:]]*=[[:space:]]*"prefix\+[hr]"' "$herdr_config"; then
       printf 'Removed Herdr keybindings must not be managed.\n' >&2
       exit 1
