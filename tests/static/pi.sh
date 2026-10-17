@@ -40,8 +40,8 @@ case "${1:-}" in
   agents-md)
     # ~/.pi/agent/AGENTS.mdはチャット出力のリンク規約をユーザー全体へ配布する。
     test -f "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
-    grep -Fq '## チャット出力でのリンク' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
-    grep -Fq 'リンクの owner / repo はカレントディレクトリの origin から取る。' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq '[#123](URL)' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
+    grep -Fq 'URL はカレントディレクトリの origin から作る。' "$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
     grep -Fq 'rm -f -- "$HOME/.pi/agent/AGENTS.md"' "$ROOT_DIR/bootstrap"
     grep -Fq 'ne (env "WORKSTATION_PI_SELECTED")' "$ROOT_DIR/home/.chezmoiignore"
     grep -Fqx '.pi/agent/AGENTS.md' "$ROOT_DIR/home/.chezmoiignore"

@@ -48,9 +48,8 @@ jq -e '
 # Issue / PR numbers and commit SHAs clickable markdown links in pi output.
 agents_md="$ROOT_DIR/home/dot_pi/agent/AGENTS.md"
 readonly agents_md
-grep -Fxq '# 出力の作法' "$agents_md"
-grep -Fq '## チャット出力でのリンク' "$agents_md"
-grep -Fq 'リンクの owner / repo はカレントディレクトリの origin から取る。' "$agents_md"
+grep -Fq '[#123](URL)' "$agents_md"
+grep -Fq 'URL はカレントディレクトリの origin から作る。' "$agents_md"
 
 # .chezmoiignore keeps the files managed only when bootstrap selects Pi.
 # Without the variable the files stay unmanaged so a bare chezmoi apply never
