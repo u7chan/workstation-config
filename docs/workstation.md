@@ -298,6 +298,15 @@ Python本体はmiseで管理しません。プロジェクトの`.python-version
 
 対話シェルでは`mise activate bash --shims`を使い、mise管理ツールのshimをPATHの先頭に置きます。バージョン固有のインストール先を直接PATHへ残さないため、bootstrapやmise更新後も既存のユーザー用バイナリが管理対象CLIを隠しません。
 
+login shellではUbuntu既定の`~/.profile`が`~/.bashrc`の読み込み後に`$HOME/bin`と`$HOME/.local/bin`をPATHの先頭へ置くため、`home/modify_dot_profile`が`~/.profile`の末尾でmise shimsを再前置して順序を戻します（miseが無い環境ではno-op）。shimを隠すので、mise管理ツールと同じ名前のバイナリは`~/.local/bin`などへ置かないでください。`~/.local/bin/gh`のような古い単体インストールはbootstrapの管理外であるため、不要ならユーザーが手動で削除し、mise shimへ解決することを確認します。
+
+```bash
+rm ~/.local/bin/gh
+bash --login -ic 'command -v gh'
+```
+
+削除後は`~/.local/share/mise/shims/gh`が表示されます。
+
 CLIツールの用途と基本的な起動方法は[CLIツールガイド](cli-tools.md)を参照してください。
 
 `provisioning/mise/config.toml`はグローバルmise設定の配布元、`provisioning/mise/mise.lock`はUbuntu 26.04 x86_64で検証する実バージョンとダウンロード情報を保持します。これらはmiseのプロジェクト設定として検出されないパスに置き、bootstrapが`~/.config/mise/`へ配置します。Herdr以外はbootstrapがlocked modeで導入するため、lockfileにない版への暗黙更新は行いません。HerdrはAI CLIとしての更新頻度を優先し、bootstrapごとに`latest`を解決してローカルのlockfileを更新します。

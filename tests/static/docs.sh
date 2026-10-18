@@ -81,8 +81,16 @@ case "${1:-}" in
     grep -Fq '| `npm:@ogulcancelik/pi-session-recall` |' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '0.84.2' "$ROOT_DIR/docs/pi-packages.md"
     ;;
+  mise-local-bin)
+    # issue #216: login shellのPATH順序と、mise管理ツールと同名のバイナリを
+    # ~/.local/binへ置かない運用ルール。
+    grep -Fq 'home/modify_dot_profile' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'mise管理ツールと同じ名前のバイナリ' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'rm ~/.local/bin/gh' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '~/.local/share/mise/shims/gh' "$ROOT_DIR/docs/workstation.md"
+    ;;
   *)
-    printf 'Usage: %s <stage: links|pi-packages>\n' "$0" >&2
+    printf 'Usage: %s <stage: links|pi-packages|mise-local-bin>\n' "$0" >&2
     exit 2
     ;;
 esac
