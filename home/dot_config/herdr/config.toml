@@ -53,3 +53,15 @@ type    = "popup"
 command = "lazygit"
 width   = "90%"
 height  = "90%"
+
+# prefix+m で看板（確認待ち / お知らせ / PR / タスク）を開く。既にあればそのタブへフォーカスする
+[[keys.command]]
+key     = "prefix+m"
+type    = "plugin_action"
+command = "u7chan.status-board.open-board"
+
+# prefix+shift+m で要点だけをポップアップ表示（今のペインを壊さない）
+[[keys.command]]
+key     = "prefix+shift+m"
+type    = "plugin_action"
+command = "u7chan.status-board.glance-board"

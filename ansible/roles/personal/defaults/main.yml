@@ -5,3 +5,17 @@ personal_ai_tools:
   - claude
   - opencode
   - pi
+# 自作Herdrプラグインのリンク宣言。プラグイン本体のcloneとbuildは各プラグインのリポジトリが所有し、
+# personal roleは「ビルド済みのプラグインをリンクして有効化する」ところだけを管理する。
+# 空リストにするとリンク処理をスキップする（--extra-vars '{"personal_herdr_local_plugins":[]}'）。
+personal_herdr_local_plugins:
+  - id: u7chan.status-board
+    source: u7chan/herdr-status-board
+    root: "{{ ansible_facts['user_dir'] }}/.config/herdr/local-plugins/herdr-status-board"
+    binary: bin/herdr-status-board
+    build: make build
+  - id: u7chan.file-viewer
+    source: u7chan/herdr-file-viewer
+    root: "{{ ansible_facts['user_dir'] }}/workspace/herdr-file-viewer"
+    binary: bin/herdr-file-viewer
+    build: CGO_ENABLED=0 go build -trimpath -o bin/herdr-file-viewer ./cmd/herdr-file-viewer

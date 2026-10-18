@@ -78,3 +78,13 @@
   when:
     - "'pi' not in personal_ai_tools"
     - herdr_worktree_pi_unlink.rc | default(1) == 0
+
+# ビルド済みの自作プラグイン（Herdrのレジストリ登録）だけを管理する。clone / build は各プラグインの
+# リポジトリが所有する。宣言から外れたプラグインのunlinkは自動では行わない（Herdr公式integrationと
+# 同じ方針）。不要になったら `herdr plugin unlink <id>` を手動で実行する。
+- name: Manage the linked local Herdr plugins
+  ansible.builtin.include_tasks: herdr_local_plugin.yml
+  loop: "{{ personal_herdr_local_plugins }}"
+  loop_control:
+    loop_var: herdr_local_plugin
+    label: "{{ herdr_local_plugin.id }}"
