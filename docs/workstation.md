@@ -469,16 +469,22 @@ Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi source
 
 `personal` roleは`u7chan.worktree-pi`に加えて、ビルド済みの自作プラグイン`u7chan.status-board`（看板ボード。`~/.config/herdr/local-plugins/herdr-status-board/`）と`u7chan.file-viewer`（`~/workspace/herdr-file-viewer/`）を`personal_herdr_local_plugins`の宣言に従って`herdr plugin link --enabled`でリンクします。プラグイン本体のcloneとbuildは各プラグインのリポジトリが所有し、workstation-configはプラグインのファイルもバイナリも管理しません。宣言したルートにビルド済みバイナリが無い場合はリンクせず、clone先とbuildコマンドを表示してbootstrapを続行します（ビルド手順の正本は各プラグインのREADME）。宣言から外したプラグインのunlinkは自動では行わないため、不要になったら`herdr plugin unlink u7chan.status-board`のように手動で外します。
 
-新しいPC（fresh workstation）では、次の2つを先に用意してから`./bootstrap`を実行します。`herdr plugin link`はビルドを実行しないため、リンクはビルド後に行う必要があります（Herdr本体・AI CLIはbootstrapが導入します）。
+新しいPC（fresh workstation）では、`mise`と`make`を導入する**最初の`./bootstrap`を先に実行**し、プラグインをclone・buildしてから`./bootstrap`をもう一度実行します（`mise`が見つからない場合は新しいシェルを開いてから実行します。2回目の`personal` roleがリンクと有効化を行います）。`herdr plugin link`はビルドを実行しないため、リンクはビルド後に行う必要があります。初回はプラグインが未ビルドのため、リンクせずに下記の復元手順が警告として表示されます。
 
 ```bash
-# 看板ボード（private repo。GitHub認証が必要。Goはプラグインの.mise.tomlで固定）
+# 1. 最初のbootstrap（mise・make・Herdr本体・AI CLI・Herdr integrationを導入）
+./bootstrap
+
+# 2. 看板ボード（private repo。GitHub認証が必要。Goはプラグインの.mise.tomlで固定）
 git clone https://github.com/u7chan/herdr-status-board ~/.config/herdr/local-plugins/herdr-status-board
 (cd ~/.config/herdr/local-plugins/herdr-status-board && mise install && make build)
 
-# ファイルビューア
+# 3. ファイルビューア
 git clone https://github.com/u7chan/herdr-file-viewer ~/workspace/herdr-file-viewer
 (cd ~/workspace/herdr-file-viewer && CGO_ENABLED=0 mise exec go@1.27.0 -- go build -trimpath -o bin/herdr-file-viewer ./cmd/herdr-file-viewer)
+
+# 4. もう一度bootstrap（ビルド済みのプラグインをリンクして有効化する）
+./bootstrap
 ```
 
 このリポジトリのmise設定はGoをpinしていないため、freshな環境では`go build`がそのままでは通りません（`go`が未導入なら`go: command not found`、miseにGoがあってもpinが無ければ`No version is set for shim: go`で失敗します）。Goが未導入/未pinの場合は、上記のように`mise exec go@1.27.0 -- ...`でtoolchainを一時導入してからビルドします（バージョンはプラグインの`go.mod`の`toolchain`に合わせます）。Goをpin済みの環境では`CGO_ENABLED=0 go build -trimpath -o bin/herdr-file-viewer ./cmd/herdr-file-viewer`のままで構いません。

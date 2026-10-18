@@ -8,7 +8,7 @@ Piの設定ファイルは`home/dot_pi/`配下でchezmoi管理します。キー
 
 チャット出力のリンク規約は`home/dot_pi/agent/AGENTS.md`をユーザー全体の指示ファイル（`~/.pi/agent/AGENTS.md`）として配布します。Issue / PR番号やコミットSHAをマークダウンリンクで示し、リンクのowner / repoはカレントディレクトリのoriginから取ります。完全管理のため、ローカルで直接追記した内容は次回`chezmoi apply`でリポジトリの宣言状態へ戻ります。
 
-Herdrの設定は`home/dot_config/herdr/`配下でchezmoi管理します。タブバー右とキーバインドの`config.toml`、およびタブバー用の`scripts/status-*.sh`が対象です。プラグイン本体（`~/.config/herdr/local-plugins/`）はビルドを伴うため`personal` roleがビルド済みのものだけをリンクし、`~/.config/herdr/.secrets`等のトークン・webhookは`.chezmoiignore`で配布対象外にしています（Herdr所有の`~/.config/herdr/plugins/config/`も管理しません）。
+Herdrの設定は`home/dot_config/herdr/`配下でchezmoi管理します。タブバー右とキーバインドの`config.toml`、およびタブバー用の`scripts/status-*.sh`が対象です。プラグイン本体の配置先・clone・build・linkはworkstation-configの管理外で、`personal` roleはビルド済みプラグインのリンクだけを行います（詳細とfresh環境での手順は[Workstation構成ガイド](../docs/workstation.md)の「HerdrとAI CLI」を正とします）。`~/.config/herdr/.secrets`等のトークン・webhookは`.chezmoiignore`で配布対象外にしています（Herdr所有の`~/.config/herdr/plugins/config/`も管理しません）。
 
 Codex CLIはPiへ移行したため管理対象から外しました。`home/dot_codex/`は削除し、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します（Herdrが所有する`~/.codex/hooks.json`と`herdr-agent-state.sh`は残ります）。
 

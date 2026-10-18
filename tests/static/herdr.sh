@@ -97,11 +97,22 @@ case "${1:-}" in
     grep -Fq 'personal_herdr_local_plugins' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'prefix+m' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'herdr plugin unlink' "$ROOT_DIR/docs/workstation.md"
-    # fresh workstation向けの手順: miseはGoをpinしていないため`go build`だけでは通らない。
+    # fresh workstation向けの手順順序: 最初のbootstrapがmise/makeを導入するため、clone/buildはその後で行い、
+    # linkはもう一度bootstrapを実行して行う（roleの警告メッセージと同じ順序）。
+    first_bootstrap_line="$(grep -n -F -m1 '# 1. 最初のbootstrap' "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
+    plugin_url='https://github.com/u7chan/herdr-status-board'
+    plugin_clone_line="$(grep -n -F -m1 "git clone $plugin_url" "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
+    relink_line="$(grep -n -F -m1 '# 4. もう一度bootstrap' "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
+    [[ -n $first_bootstrap_line && -n $plugin_clone_line && -n $relink_line && \
+      $first_bootstrap_line -lt $plugin_clone_line && $plugin_clone_line -lt $relink_line ]] || {
+      printf 'The fresh-install steps must clone and build the plugins after the first bootstrap.\n' >&2
+      exit 1
+    }
     grep -Fq 'mise exec go@' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'No version is set for shim: go' "$ROOT_DIR/docs/workstation.md"
-    # secretsとplugin本体は配布対象外であることをsourceの説明にも書く。
+    # secretsとplugin本体は配布対象外であることをsourceの説明にも書く（clone/buildの詳細はdocsを正とする）。
     grep -Fq '.config/herdr/.secrets' "$ROOT_DIR/home/README.md"
+    grep -Fq '../docs/workstation.md' "$ROOT_DIR/home/README.md"
     ;;
   runtime-data)
     if find "$ROOT_DIR/home" -type f \( \
