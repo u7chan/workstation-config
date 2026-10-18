@@ -92,16 +92,23 @@ case "${1:-}" in
     # 秘密情報（トークン・webhook）はリポジトリに置かない。Herdr所有のplugin config / stateも管理しない。
     grep -Fqx '.config/herdr/.secrets' "$ROOT_DIR/home/.chezmoiignore"
     test ! -e "$ROOT_DIR/home/dot_config/herdr/plugins"
+    # 廃止した常看板の説明をchezmoi sourceへ残さない。
+    if grep -r -F -q '看板' "$ROOT_DIR/home/"; then
+      printf 'The retired status board description must not remain in the chezmoi source.\n' >&2
+      exit 1
+    fi
     grep -Fq 'personal_herdr_local_plugins' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'prefix+f' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'herdr plugin unlink' "$ROOT_DIR/docs/workstation.md"
-    # 常看板の廃止を1行で説明し、clone/build手順（repo slug）は残さない。
+    # 常看板の廃止を1行で説明し、clone/build手順（repo slug）は残さない。既存linkの整理も書く。
     grep -Fq '常看板' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'Webコンソールへ一本化' "$ROOT_DIR/docs/workstation.md"
-    if grep -Fq 'herdr-status-board' "$ROOT_DIR/docs/workstation.md"; then
-      printf 'The retired status board plugin must not be documented.\n' >&2
+    if grep -Fq 'github.com/u7chan/herdr-status-board' "$ROOT_DIR/docs/workstation.md"; then
+      printf 'The retired status board clone instructions must not come back.\n' >&2
       exit 1
     fi
+    grep -Fq 'herdr plugin unlink u7chan.status-board' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'rm -rf ~/.config/herdr/local-plugins/herdr-status-board' "$ROOT_DIR/docs/workstation.md"
     # fresh workstation向けの手順順序: 最初のbootstrapがmise/makeを導入するため、clone/buildはその後で行い、
     # linkはもう一度bootstrapを実行して行う（roleの警告メッセージと同じ順序）。
     first_bootstrap_line="$(grep -n -F -m1 '# 1. 最初のbootstrap' "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
