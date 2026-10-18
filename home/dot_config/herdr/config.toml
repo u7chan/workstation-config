@@ -9,8 +9,6 @@ tab_bar_right = [
   { type = "command", command = "~/.config/herdr/scripts/status-resources.sh", interval_seconds = 1, timeout_seconds = 2 },
   { type = "command", command = "~/.config/herdr/scripts/status-agents.sh", interval_seconds = 1, timeout_seconds = 2 },
   { type = "command", command = "~/.config/herdr/scripts/status-datetime.sh", interval_seconds = 1, timeout_seconds = 2 },
-  # 看板の要点（ローカルのみ・ネットワーク禁止）: 確認待ち / PR / 警告
-  { type = "command", command = "~/.config/herdr/local-plugins/herdr-status-board/bin/herdr-status-board summary", interval_seconds = 2, timeout_seconds = 2 },
 ]
 tab_bar_right_separator = " \ue0b1 "  # NerdFont powerline thin chevron U+E0B1
 
@@ -53,15 +51,3 @@ type    = "popup"
 command = "lazygit"
 width   = "90%"
 height  = "90%"
-
-# prefix+m で看板（確認待ち / お知らせ / PR / タスク）を開く。既にあればそのタブへフォーカスする
-[[keys.command]]
-key     = "prefix+m"
-type    = "plugin_action"
-command = "u7chan.status-board.open-board"
-
-# prefix+shift+m で要点だけをポップアップ表示（今のペインを壊さない）
-[[keys.command]]
-key     = "prefix+shift+m"
-type    = "plugin_action"
-command = "u7chan.status-board.glance-board"

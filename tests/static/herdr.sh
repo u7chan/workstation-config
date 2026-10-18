@@ -30,14 +30,10 @@ case "${1:-}" in
     grep -Fq 'command = "lazygit"' "$herdr_config"
     grep -Fqx 'new_worktree   = "prefix+p"' "$herdr_config"
     grep -Fqx 'previous_tab   = ""' "$herdr_config"
-    grep -Fq 'herdr-status-board/bin/herdr-status-board summary' "$herdr_config"
-    # issue #221: 看板ボード（u7chan.status-board）のキーバインド2件
-    grep -Fqx 'key     = "prefix+m"' "$herdr_config"
-    grep -Fqx 'command = "u7chan.status-board.open-board"' "$herdr_config"
-    grep -Fqx 'key     = "prefix+shift+m"' "$herdr_config"
-    grep -Fqx 'command = "u7chan.status-board.glance-board"' "$herdr_config"
-    if grep -Eq '^key[[:space:]]*=[[:space:]]*"prefix\+[hr]"' "$herdr_config"; then
-      printf 'Removed Herdr keybindings must not be managed.\n' >&2
+    # 常看板（u7chan.status-board）の廃止でキー2件とタブバー行を外した（issue #221）
+    if grep -Eq '^key[[:space:]]*=[[:space:]]*"prefix\+(m|shift\+m|[hr])"' "$herdr_config" \
+      || grep -Fq 'status-board' "$herdr_config"; then
+      printf 'Removed Herdr keybindings and the retired status board must not be managed.\n' >&2
       exit 1
     fi
     test ! -e "$ROOT_DIR/home/dot_config/herdr/plugins/config/herdr-file-viewer/config.toml"
@@ -81,12 +77,14 @@ case "${1:-}" in
     grep -Fq 'loop: "{{ personal_herdr_local_plugins }}"' "$local_plugin_tasks"
     grep -Fq 'loop_var: herdr_local_plugin' "$local_plugin_tasks"
     grep -Fq 'personal_herdr_local_plugins:' "$local_plugin_defaults"
-    grep -Fqx '  - id: u7chan.status-board' "$local_plugin_defaults"
     grep -Fqx '  - id: u7chan.file-viewer' "$local_plugin_defaults"
-    grep -Fqx '    binary: bin/herdr-status-board' "$local_plugin_defaults"
     grep -Fqx '    binary: bin/herdr-file-viewer' "$local_plugin_defaults"
-    grep -Fq '.config/herdr/local-plugins/herdr-status-board' "$local_plugin_defaults"
     grep -Fq '/workspace/herdr-file-viewer' "$local_plugin_defaults"
+    # 常看板（u7chan.status-board）は廃止したため、link/enableの宣言に残さない。
+    if grep -Fq 'status-board' "$local_plugin_defaults"; then
+      printf 'The retired status board plugin must not be declared.\n' >&2
+      exit 1
+    fi
     grep -Fq 'ansible.builtin.stat:' "$local_plugin_task"
     grep -Fq 'when: not herdr_local_plugin_binary.stat.exists' "$local_plugin_task"
     grep -Fqx '      - --enabled' "$local_plugin_task"
@@ -95,17 +93,24 @@ case "${1:-}" in
     grep -Fqx '.config/herdr/.secrets' "$ROOT_DIR/home/.chezmoiignore"
     test ! -e "$ROOT_DIR/home/dot_config/herdr/plugins"
     grep -Fq 'personal_herdr_local_plugins' "$ROOT_DIR/docs/workstation.md"
-    grep -Fq 'prefix+m' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'prefix+f' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'herdr plugin unlink' "$ROOT_DIR/docs/workstation.md"
+    # 常看板の廃止を1行で説明し、clone/build手順（repo slug）は残さない。
+    grep -Fq '常看板' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'Webコンソールへ一本化' "$ROOT_DIR/docs/workstation.md"
+    if grep -Fq 'herdr-status-board' "$ROOT_DIR/docs/workstation.md"; then
+      printf 'The retired status board plugin must not be documented.\n' >&2
+      exit 1
+    fi
     # fresh workstation向けの手順順序: 最初のbootstrapがmise/makeを導入するため、clone/buildはその後で行い、
     # linkはもう一度bootstrapを実行して行う（roleの警告メッセージと同じ順序）。
     first_bootstrap_line="$(grep -n -F -m1 '# 1. 最初のbootstrap' "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
-    plugin_url='https://github.com/u7chan/herdr-status-board'
+    plugin_url='https://github.com/u7chan/herdr-file-viewer'
     plugin_clone_line="$(grep -n -F -m1 "git clone $plugin_url" "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
-    relink_line="$(grep -n -F -m1 '# 4. もう一度bootstrap' "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
+    relink_line="$(grep -n -F -m1 '# 3. もう一度bootstrap' "$ROOT_DIR/docs/workstation.md" | cut -d: -f1)"
     [[ -n $first_bootstrap_line && -n $plugin_clone_line && -n $relink_line && \
       $first_bootstrap_line -lt $plugin_clone_line && $plugin_clone_line -lt $relink_line ]] || {
-      printf 'The fresh-install steps must clone and build the plugins after the first bootstrap.\n' >&2
+      printf 'The fresh-install steps must clone and build the plugin after the first bootstrap.\n' >&2
       exit 1
     }
     grep -Fq 'mise exec go@' "$ROOT_DIR/docs/workstation.md"
