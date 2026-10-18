@@ -1,0 +1,57 @@
+---
+# ビルド済みの自作Herdrプラグインをリンクして有効化する。プラグイン本体（clone / build）は各プラグインの
+# リポジトリが所有するため、ここではビルド済みバイナリの存在を確認してからリンクする。未ビルドの場合は
+# リンクせず、復元に必要なコマンドを表示する（プラグインが無くてもbootstrapは止めない）。
+# herdr_local_plugin は herdr_plugins.yml の include_tasks が渡す。
+
+- name: Check the built plugin binary for {{ herdr_local_plugin.id }}
+  ansible.builtin.stat:
+    path: "{{ herdr_local_plugin.root }}/{{ herdr_local_plugin.binary }}"
+  register: herdr_local_plugin_binary  # noqa var-naming[no-role-prefix]
+  changed_when: false
+
+- name: Report the missing plugin build for {{ herdr_local_plugin.id }}
+  ansible.builtin.debug:
+    msg: >-
+      {{ herdr_local_plugin.id }} is not linked: {{ herdr_local_plugin.root }}/{{ herdr_local_plugin.binary }}
+      does not exist. Clone {{ herdr_local_plugin.source }} into {{ herdr_local_plugin.root }}, build it
+      there (`{{ herdr_local_plugin.build }}`; see the Herdr section of docs/workstation.md for the required
+      toolchain), and run ./bootstrap again.
+  when: not herdr_local_plugin_binary.stat.exists
+
+- name: Link and enable the built plugin for {{ herdr_local_plugin.id }}
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/flock
+      - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
+      - "{{ herdr_binary.stdout | trim }}"
+      - plugin
+      - link
+      - "{{ herdr_local_plugin.root }}"
+      - --enabled
+  environment: "{{ personal_herdr_env }}"
+  changed_when: false
+  when: herdr_local_plugin_binary.stat.exists
+
+- name: Check the linked plugin for {{ herdr_local_plugin.id }}
+  ansible.builtin.command:
+    argv:
+      - "{{ herdr_binary.stdout | trim }}"
+      - plugin
+      - list
+      - --plugin
+      - "{{ herdr_local_plugin.id }}"
+      - --json
+  environment: "{{ personal_herdr_env }}"
+  register: herdr_local_plugin_status  # noqa var-naming[no-role-prefix]
+  changed_when: false
+  when: herdr_local_plugin_binary.stat.exists
+
+- name: Verify the linked plugin is enabled for {{ herdr_local_plugin.id }}
+  ansible.builtin.assert:
+    that:
+      - ((herdr_local_plugin_status.stdout | from_json).result.plugins | length) == 1
+      - (herdr_local_plugin_status.stdout | from_json).result.plugins[0].enabled
+      - (herdr_local_plugin_status.stdout | from_json).result.plugins[0].plugin_root == herdr_local_plugin.root
+    fail_msg: "{{ herdr_local_plugin.id }} is not linked and enabled from {{ herdr_local_plugin.root }}"
+  when: herdr_local_plugin_binary.stat.exists

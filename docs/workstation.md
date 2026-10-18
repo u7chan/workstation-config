@@ -461,13 +461,33 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 ## HerdrとAI CLI
 
-<!-- TODO: u7chan.file-viewer の安定版リリース後に導入管理を見直す。 -->
-
 Herdr本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。Claude Code、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止したCodexも例外ではなく、bootstrapが削除するのはrepo管理の`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`だけです。Herdrが所有するintegration（`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`）とCodex CLI本体は残るため、不要なら手動で削除します（具体的なコマンドは後述）。廃止した`cagent`も例外ではなく、bootstrapが削除するのはrepo管理の`~/.config/cagent/config.yaml`だけです。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。OpenCodeはv2系（`https://opencode.ai/v2/install`、パッケージは`@opencode/cli`）を使い、v1系のinstallerは使いません。v1へ戻す場合はバイナリと設定をv1形式へ揃えます（手順は後述）。AI CLIの認証は手動です。
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
 `personal` roleは`worktree.created`イベント用の自作プラグイン`u7chan.worktree-pi`を`~/.config/herdr/local-plugins/worktree-pi/`へ配置し、`personal_ai_tools`に`pi`が含まれる場合だけ`herdr plugin link`で有効化します。キー割当は`~/.config/herdr/config.toml`で`new_worktree`（既定`prefix+shift+g`）を`prefix+p`へ変更し、重複する`previous_tab`は未割当にします。repo rootのスペースを選択して`prefix+p`を押すと、右クリックメニューの`New worktree`と同じフォームが開き、作成されたワークスペースのroot paneで`herdr agent start pi --kind pi`がinteractiveになるまで待ってからpiが起動します。Herdrの仕様上、worktree作成はrepo parent workspaceから開始する必要があり（APIは子ワークツリーの指定を`linked_worktree_source`で拒否するため）、子ワークツリーを選択した状態では作成できません。Herdrのagent nameはlive agent間で一意でなければならないため、名前は`pi-<worktreeのbranch slug>`（branchが無い場合は`pi-<workspace id>`）を生成し、同名が使用中ならworkspace idへフォールバックします。`pi`非選択時はunlinkと配置物の削除を行います。Herdr 0.9.5の`plugin unlink`はserver APIのため、server停止中は`server_not_running`を許容して配置物も残し、server起動後のbootstrapで整理します。動作を変えたい場合はプラグイン内の`config.sh`を編集するか、`$HERDR_PLUGIN_CONFIG_DIR/config.sh`（`~/.config/herdr/plugins/config/u7chan.worktree-pi`、Git管理外）で上書きします。piを起動するリポジトリを絞る場合は`WORKTREE_PI_REPOS`へrepo rootを列挙します。
+
+`personal` roleは`u7chan.worktree-pi`に加えて、ビルド済みの自作プラグイン`u7chan.file-viewer`（`~/workspace/herdr-file-viewer/`）を`personal_herdr_local_plugins`の宣言に従って`herdr plugin link --enabled`でリンクします。プラグイン本体のcloneとbuildは各プラグインのリポジトリが所有し、workstation-configはプラグインのファイルもバイナリも管理しません。宣言したルートにビルド済みバイナリが無い場合はリンクせず、clone先とbuildコマンドを表示してbootstrapを続行します（ビルド手順の正本は各プラグインのREADME）。宣言から外したプラグインのunlinkは自動では行わないため、不要になったら`herdr plugin unlink u7chan.status-board`のように手動で外します。
+
+常看板（`u7chan.status-board`）は廃止しました（確認待ち・受付・使用量の表示はWebコンソールへ一本化）。そのため、fresh環境でclone・buildが必要な自作プラグインはファイルビューアだけです。既にlink済みの環境のlinkと`~/.config/herdr/local-plugins/herdr-status-board/`はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します（`herdr plugin unlink u7chan.status-board`、必要なら`rm -rf ~/.config/herdr/local-plugins/herdr-status-board`）。
+
+新しいPC（fresh workstation）では、`mise`と`make`を導入する**最初の`./bootstrap`を先に実行**し、プラグインをclone・buildしてから`./bootstrap`をもう一度実行します（`mise`が見つからない場合は新しいシェルを開いてから実行します。2回目の`personal` roleがリンクと有効化を行います）。`herdr plugin link`はビルドを実行しないため、リンクはビルド後に行う必要があります。初回はプラグインが未ビルドのため、リンクせずに下記の復元手順が警告として表示されます。
+
+```bash
+# 1. 最初のbootstrap（mise・make・Herdr本体・AI CLI・Herdr integrationを導入）
+./bootstrap
+
+# 2. ファイルビューア
+git clone https://github.com/u7chan/herdr-file-viewer ~/workspace/herdr-file-viewer
+(cd ~/workspace/herdr-file-viewer && CGO_ENABLED=0 mise exec go@1.27.0 -- go build -trimpath -o bin/herdr-file-viewer ./cmd/herdr-file-viewer)
+
+# 3. もう一度bootstrap（ビルド済みのプラグインをリンクして有効化する）
+./bootstrap
+```
+
+このリポジトリのmise設定はGoをpinしていないため、freshな環境では`go build`がそのままでは通りません（`go`が未導入なら`go: command not found`、miseにGoがあってもpinが無ければ`No version is set for shim: go`で失敗します）。Goが未導入/未pinの場合は、上記のように`mise exec go@1.27.0 -- ...`でtoolchainを一時導入してからビルドします（バージョンはプラグインの`go.mod`の`toolchain`に合わせます）。Goをpin済みの環境では`CGO_ENABLED=0 go build -trimpath -o bin/herdr-file-viewer ./cmd/herdr-file-viewer`のままで構いません。
+
+キーバインドは`home/dot_config/herdr/config.toml`（chezmoi管理）で、`prefix+f`をファイルビューアに割り当てます。プラグインが未リンクの環境ではこのキーは動作しないため、先にリンクを復元してください。`~/.config/herdr/.secrets`等のトークン・webhookはユーザーruntimeとして扱い、リポジトリにも配布物にも含めません（Herdr所有の`~/.config/herdr/plugins/config/`も同様に管理しません）。
 
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|

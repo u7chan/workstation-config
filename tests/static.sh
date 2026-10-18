@@ -52,6 +52,7 @@ run docs.sh pi-packages                  # 旧L204-240
 run herdr.sh wsl-restart-greps           # 旧L241-245
 run herdr.sh config                      # 旧L246-259
 run herdr.sh plugins                     # issue #211: worktree-pi plugin
+run herdr.sh local-plugins               # issue #221: file-viewer plugin link
 run herdr.sh runtime-data                # 旧L281-292
 run pi.sh runtime-data                   # 旧L293-298
 run ansible.sh vars-git                  # 旧L300

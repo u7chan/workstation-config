@@ -16,4 +16,7 @@ pi-web-access 0.29.0以降はpiのagent dir（~/.pi/agent/web-search.json）を�
 .pi/agent/web-search.json
 .pi/agent/AGENTS.md
 {{- end }}
+# Herdrプラグイン等が使うトークン・webhookはユーザーruntimeとして所有し、
+# sourceに置かれても配布しない。
+.config/herdr/.secrets
 README.md
