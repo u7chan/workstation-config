@@ -8,6 +8,7 @@ case "${1:-}" in
       shellcheck \
         "$ROOT_DIR/bootstrap" \
         "$ROOT_DIR/home/modify_dot_bashrc" \
+        "$ROOT_DIR/home/modify_dot_profile" \
         "$ROOT_DIR/home/modify_dot_gitconfig" \
         "$ROOT_DIR/home/dot_config/workstation/shell/init.bash" \
         "$ROOT_DIR/home/dot_config/herdr/scripts/executable_status-agents.sh" \

@@ -37,6 +37,7 @@ run smoke.sh syntax-update               # 旧L90
 run personal.sh role                     # 旧L91-104
 run mise.sh yazi                         # 旧L106-115
 run shell-init.sh syntax-bashrc          # 旧L117
+run shell-init.sh syntax-profile         # issue #216: login shellのPATH順序
 run gitconfig.sh syntax                  # 旧L118
 run shell-init.sh syntax-init            # 旧L119
 run herdr.sh syntax-status               # 旧L120-121 + status-resources.sh追加
@@ -63,6 +64,8 @@ run bootstrap.sh sudo-env                # 旧L317-330
 run windows-terminal.sh doc-json         # 旧L332-378
 run gitconfig.sh suite                   # 旧L380-441
 run shell-init.sh bashrc-suite           # 旧L443-485
+run shell-init.sh profile-suite          # issue #216: login shellのmise shims再前置
+run docs.sh mise-local-bin               # issue #216: 同名バイナリを置かない運用ルール
 run bootstrap.sh invalid-profile         # 旧L487-490
 run lint.sh lint                         # 旧L492-543
 
