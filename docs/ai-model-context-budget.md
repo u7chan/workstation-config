@@ -51,3 +51,7 @@
 - 新しいモデルを利用し始めたとき。`modelOverrides`の対象外モデルはprovider既定のcontext windowで動作します。利用を始める場合はこの原則でbudgetを判断してください
 - providerの料金・利用枠・usage multiplierが変わったとき
 - Piのコンパクション仕様（reserve、クランプ率）が変わったとき
+
+## 関連
+
+- 使用量（quota）の取得元と確認手順は[AI CLIの使用量（quota）取得](ai-usage-quota.md)を参照してください。
