@@ -287,29 +287,39 @@ WenQuanYi Zen Heiは`ja`をサポート対象として宣言しているため�
 （playwright-cli、Chrome、Electron）のCJKフォールバックが中国語字形になり、「置換先」の
 `置`などが日本語と異なる字形で描画されます。
 
-Chromium系はページの`lang`をfontconfigの問い合わせに渡さないため、`lang=ja`を条件に
-したルール（`70-fonts-noto-cjk.conf`と同じ書き方）では解決しません（実測）。そこで
+Chromium系はページの`lang`を条件にしたfontconfigルールが効かないため（この環境の
+Chrome for Testing 152で実測。Skiaのfontconfig backendはBCP-47から`FC_LANG`を立てる
+実装があり、Chromiumの経路しだいで変わる）、`lang=ja`を条件にしたルール
+（`70-fonts-noto-cjk.conf`と同じ書き方）では解決しません。そこで
 `home/dot_config/fontconfig/fonts.conf`（実配置先`~/.config/fontconfig/fonts.conf`）で
 generic familyの並びそのものに手を入れ、WenQuanYi Zen Heiより前にNoto Sans / Serif /
 Mono CJK JPを置いています。Latinは従来どおりDejaVuを先に残すため、英字の見た目は
-変わりません。prefer先の実体は`base_apt_packages`の`fonts-noto-cjk`で導入します。
-`fonts-wqy-zenhei`は中国語ページのために残し、`prefer`の上書きだけで日本語側を
-固定します。
+変わりません。prefer先の実体は`base_apt_packages`の`fonts-noto-cjk`（約89MiB）で
+導入します。
 
-日本語フォントを変える場合は`home/dot_config/fontconfig/fonts.conf`のfamily名を
-差し替えます。置き換え先も`base_apt_packages`へ追加してください。
+この設定のトレードオフとして、ChromiumのCJKフォールバックは言語を問わず
+Noto CJK JPの字形になります。中国語ページもSC字形ではなく日本語字形で描画され、
+`lang`を渡すfontconfig利用側（Pango系など）は`lang=zh-cn`でSCを選ぶので影響を
+受けません。`fonts-wqy-zenhei`は削除すると他の利用側への影響が広く、戻しにくい
+ため残しますが、残してもChromiumの中国語ページの描画は WQY には戻りません。
+
+このファイルはchezmoiが丸ごと管理するため、手元で追記した`<alias>`は次回の
+`chezmoi apply`で上書きされます。日本語フォントを変える場合は
+`home/dot_config/fontconfig/fonts.conf`のfamily名を差し替え、置き換え先も
+`base_apt_packages`へ追加してください。
 
 導入後は次で確認できます。
 
 ```bash
 fc-match -s sans-serif | grep -E 'Noto Sans CJK JP|WenQuanYi' | head -2
+fc-match 'sans-serif:charset=76f4'   # 直 (U+76F4)。Chromium相当の文字単位解決
 ./tests/fontconfig-smoke.sh
 ```
 
 1行目が`Noto Sans CJK JP`ならOKです。`fc-match "sans-serif:lang=ja"`の結果だけでは
-判断できません。Chromiumが`lang`を渡さないため、これがNotoを返してもCJKの描画は
-中国語字形のままになる場合があります。最終確認はChromiumで`直`と`令`を含むページを
-描画して字形を見ることです。
+判断できません。langを条件にしたルールが効かない環境では、これがNotoを返してもCJKの
+描画は中国語字形のままになる場合があります。最終確認はChromiumで`直`と`令`を含む
+ページを描画して字形を見ることです。
 
 ## 開発時の確認
 

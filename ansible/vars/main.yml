@@ -8,6 +8,11 @@ base_apt_packages:
   - build-essential
   - ca-certificates
   - curl
+  # Japanese font used as the CJK fallback target for Chromium-based tools.
+  # ~/.config/fontconfig/fonts.conf (chezmoi) prefers Noto CJK JP over the Chinese
+  # font that 64-wqy-zenhei.conf prepends to the generic families, so the prefer
+  # target has to exist in the base profile.
+  - fonts-noto-cjk
   - git
   - jq
   - postgresql-client
@@ -15,11 +20,6 @@ base_apt_packages:
   # wl-paste first, then xclip, then powershell.exe, so wl-clipboard keeps
   # image paste (Alt+V) and /copy working even when WSLInterop is broken.
   - wl-clipboard
-  # Japanese font used as the CJK fallback target for Chromium-based tools.
-  # ~/.config/fontconfig/fonts.conf (chezmoi) prefers Noto CJK JP over the Chinese
-  # font that 64-wqy-zenhei.conf prepends to the generic families, so the prefer
-  # target has to exist in the base profile.
-  - fonts-noto-cjk
 
 # Optional personal role. Set this to false with Ansible extra vars when Docker
 # is not wanted on a personal workstation.
