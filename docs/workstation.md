@@ -279,6 +279,38 @@ WSLInterop停止状態（`powershell.exe`が`Exec format error`になる状態�
 [WSLのbinfmtエラーとWindows interop](#wslのbinfmtエラーとwindows-interop)の手順で、
 Windows実行ファイルの実行可否と登録状態を切り分けてください。
 
+## 日本語フォント（CJKフォールバック）
+
+WSLに`fonts-wqy-zenhei`が入っていると、その`/etc/fonts/conf.d/64-wqy-zenhei.conf`が
+`serif` / `sans-serif` / `monospace`の`prefer`へ中国語フォントWenQuanYi Zen Heiを挿します。
+WenQuanYi Zen Heiは`ja`をサポート対象として宣言しているため、Chromium系ツール
+（playwright-cli、Chrome、Electron）のCJKフォールバックが中国語字形になり、「置換先」の
+`置`などが日本語と異なる字形で描画されます。
+
+Chromium系はページの`lang`をfontconfigの問い合わせに渡さないため、`lang=ja`を条件に
+したルール（`70-fonts-noto-cjk.conf`と同じ書き方）では解決しません（実測）。そこで
+`home/dot_config/fontconfig/fonts.conf`（実配置先`~/.config/fontconfig/fonts.conf`）で
+generic familyの並びそのものに手を入れ、WenQuanYi Zen Heiより前にNoto Sans / Serif /
+Mono CJK JPを置いています。Latinは従来どおりDejaVuを先に残すため、英字の見た目は
+変わりません。prefer先の実体は`base_apt_packages`の`fonts-noto-cjk`で導入します。
+`fonts-wqy-zenhei`は中国語ページのために残し、`prefer`の上書きだけで日本語側を
+固定します。
+
+日本語フォントを変える場合は`home/dot_config/fontconfig/fonts.conf`のfamily名を
+差し替えます。置き換え先も`base_apt_packages`へ追加してください。
+
+導入後は次で確認できます。
+
+```bash
+fc-match -s sans-serif | grep -E 'Noto Sans CJK JP|WenQuanYi' | head -2
+./tests/fontconfig-smoke.sh
+```
+
+1行目が`Noto Sans CJK JP`ならOKです。`fc-match "sans-serif:lang=ja"`の結果だけでは
+判断できません。Chromiumが`lang`を渡さないため、これがNotoを返してもCJKの描画は
+中国語字形のままになる場合があります。最終確認はChromiumで`直`と`令`を含むページを
+描画して字形を見ることです。
+
 ## 開発時の確認
 
 ```bash

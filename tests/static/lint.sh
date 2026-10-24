@@ -25,6 +25,7 @@ case "${1:-}" in
         "$ROOT_DIR/tests/safe-chain-smoke.sh" \
         "$ROOT_DIR/tests/personal-cli-smoke.sh" \
         "$ROOT_DIR/tests/docker-smoke.sh" \
+        "$ROOT_DIR/tests/fontconfig-smoke.sh" \
         "$ROOT_DIR/scripts/personal-bin/myupdate" \
         "$ROOT_DIR/tests/workstation-update-smoke.sh" \
         "$ROOT_DIR/scripts/personal-bin/myclaude" \
