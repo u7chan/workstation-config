@@ -594,13 +594,13 @@ Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-cod
 
 ### Git cleanup
 
-マージ済みPRのローカル作業ブランチを片付ける場合は、そのブランチをcheckoutしたprimary worktreeで実行します。
+マージ済みPRのローカル作業ブランチを片付ける場合は、そのブランチをcheckoutしたprimary worktreeで実行します。ベースブランチ（`main`、`master`、`develop`）では`gh`を呼ばず、`origin`からのfast-forwardだけを行います。
 
 ```bash
 gpc
 ```
 
-未追跡ファイルを含むdirty tree、linked worktree、未マージPR、PRのhead不一致、`main`・`master`・`develop`以外のbaseでは停止します。成功時だけbaseへ切り替え、`origin`からfast-forwardして、対象PRのローカルhead branchだけを削除します。remote branch、他のローカルブランチ、worktree、stashは変更しません。
+未追跡ファイルを含むdirty tree、linked worktree、detached HEAD、未マージPR、PRのhead不一致、`main`・`master`・`develop`以外のPR baseでは停止します。ベースブランチでは`origin`からfast-forwardするだけで、成功時に更新後の短縮SHAを表示します。作業ブランチでは成功時だけbaseへ切り替え、`origin`からfast-forwardして、対象PRのローカルhead branchだけを削除します。remote branch、他のローカルブランチ、worktree、stashは変更しません。
 
 Agent worktreeの一括整理は、primary worktreeから実行します。既定はdry-runです。
 

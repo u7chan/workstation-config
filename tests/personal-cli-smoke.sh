@@ -53,6 +53,48 @@ chmod +x "$mock_bin/gh"
 [[ $($GPC --help) == *'Usage: gpc'* ]]
 [[ $($GAC --help) == *'Usage: gac'* ]]
 
+# gpc: a base branch only fast-forwards from origin and never needs gh.
+base_repo=$(create_repo base-repo)
+base_upstream="$test_dir/base-upstream"
+git clone --quiet "$test_dir/base-repo.git" "$base_upstream"
+configure_repo "$base_upstream"
+git -C "$base_upstream" commit --allow-empty -m upstream >/dev/null
+git -C "$base_upstream" push --quiet origin main >/dev/null
+fail_bin="$test_dir/fail-bin"
+mkdir -p "$fail_bin"
+cat >"$fail_bin/gh" <<'EOF'
+#!/usr/bin/env bash
+printf 'gpc called gh on a base branch.\n' >&2
+exit 1
+EOF
+chmod +x "$fail_bin/gh"
+(
+  cd "$base_repo"
+  PATH="$fail_bin:$PATH" "$GPC" >/dev/null
+)
+[[ $(git -C "$base_repo" rev-parse main) == "$(git -C "$base_upstream" rev-parse main)" ]]
+[[ $(git -C "$base_repo" branch --show-current) == main ]]
+
+# A dirty base branch stops before pulling.
+git -C "$base_upstream" commit --allow-empty -m upstream-again >/dev/null
+git -C "$base_upstream" push --quiet origin main >/dev/null
+base_oid=$(git -C "$base_repo" rev-parse main)
+touch "$base_repo/untracked"
+if (
+  cd "$base_repo"
+  PATH="$fail_bin:$PATH" "$GPC" >/dev/null 2>&1
+); then
+  printf 'gpc pulled a dirty base branch.\n' >&2
+  exit 1
+fi
+[[ $(git -C "$base_repo" rev-parse main) == "$base_oid" ]]
+rm "$base_repo/untracked"
+(
+  cd "$base_repo"
+  PATH="$fail_bin:$PATH" "$GPC" >/dev/null
+)
+[[ $(git -C "$base_repo" rev-parse main) == "$(git -C "$base_upstream" rev-parse main)" ]]
+
 pr_repo=$(create_repo pr-repo)
 git -C "$pr_repo" switch -c feature/pr >/dev/null
 git -C "$pr_repo" commit --allow-empty -m feature >/dev/null
