@@ -303,6 +303,14 @@ Noto CJK JPの字形になります。中国語ページもSC字形ではなく�
 受けません。`fonts-wqy-zenhei`は削除すると他の利用側への影響が広く、戻しにくい
 ため残しますが、残してもChromiumの中国語ページの描画はWQYには戻りません。
 
+![設定前: WenQuanYi Zen Hei（中国語字形）](./images/fontconfig-cjk-before.png)
+
+![設定後: Noto Sans CJK JP（日本語字形）](./images/fontconfig-cjk-after.png)
+
+上は設定前（WenQuanYi Zen Hei）、下は設定後（Noto Sans CJK JP）。`置`の上部、`直`の
+下端、`令`の最終画、`骨`の内側で字形の差が分かります。どちらも`font-family: system-ui,
+sans-serif`のChromiumスクリーンショット。
+
 このファイルはchezmoiが丸ごと管理するため、手元で追記した`<alias>`は次回の
 `chezmoi apply`で上書きされます。日本語フォントを変える場合は
 `home/dot_config/fontconfig/fonts.conf`のfamily名を差し替え、置き換え先も
