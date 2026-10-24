@@ -7,6 +7,7 @@
 | やりたいこと | コマンド | 覚え方 |
 |---|---|---|
 | マージ済みPRの作業ブランチを片付ける | `gpc` | Git PR Cleanup |
+| ベースブランチを`origin`から最新化する | `gpc` | `main`等ではpullのみ |
 | Agent用worktreeを確認する（dry-run） | `gac` | Git Agent Cleanup |
 | Agent用worktreeを実際に片付ける | `gac --apply` | まず引数なしで対象を確認 |
 | カレントディレクトリを自分だけに公開する | `http 8000` | localhost限定 |
@@ -21,7 +22,7 @@
 
 ### `gpc`
 
-現在のローカルブランチに対応するGitHub PRがマージ済みなら、base branchへ戻って最新化し、元のローカルブランチを削除します。
+現在のブランチが`main`、`master`、`develop`のいずれかなら、`origin`からfast-forwardするだけです。それ以外のブランチでは、対応するGitHub PRがマージ済みならbase branchへ戻って最新化し、元のローカルブランチを削除します。
 
 ```bash
 gpc
@@ -31,12 +32,13 @@ gpc
 
 - primary worktreeで実行している
 - 未追跡ファイルを含めてworktreeがcleanである
-- 現在のブランチに対応するPRがマージ済みである
-- ローカルbranchの先端がPRのheadと一致している
-- PRのbaseが`main`、`master`、`develop`のいずれかである
-- `gh`がインストール済みで、GitHubへ認証済みである
+- detached HEADではない
+- base branch以外では、現在のブランチに対応するPRがマージ済みである
+- base branch以外では、ローカルbranchの先端がPRのheadと一致している
+- base branch以外では、PRのbaseが`main`、`master`、`develop`のいずれかである
+- base branch以外では、`gh`がインストール済みで、GitHubへ認証済みである
 
-成功時はbase branchへswitchし、`origin`からfast-forwardした後、元のローカルbranchだけを削除します。remote branch、linked worktree、stashには触れません。
+base branchでは`gh`を呼ばず、`git pull --ff-only origin <branch>`だけを実行して更新後の短縮SHAを表示します。作業ブランチではbase branchへswitchし、`origin`からfast-forwardした後、元のローカルbranchだけを削除します。remote branch、linked worktree、stashには触れません。
 
 ### `gac`
 
