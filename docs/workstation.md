@@ -297,6 +297,10 @@ Mono CJK JPを置いています。Latinは従来どおりDejaVuを先に残す�
 変わりません。prefer先の実体は`base_apt_packages`の`fonts-noto-cjk`（約89MiB）で
 導入します。
 
+`fonts-noto-cjk`を入れるだけでは並びは変わりません（`64-wqy-zenhei.conf`の`prefer`が
+勝つ）。実機では導入直後の`fc-match 'sans-serif:charset=76f4'`が`WenQuanYi Zen Hei`の
+ままで、この`fonts.conf`を適用して初めて`Noto Sans CJK JP`になりました。
+
 この設定のトレードオフとして、ChromiumのCJKフォールバックは言語を問わず
 Noto CJK JPの字形になります。中国語ページもSC字形ではなく日本語字形で描画され、
 `lang`を渡すfontconfig利用側（Pango系など）は`lang=zh-cn`でSCを選ぶので影響を
