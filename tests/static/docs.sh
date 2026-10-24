@@ -20,6 +20,14 @@ case "${1:-}" in
     test -f "$ROOT_DIR/docs/ai-model-context-budget.md"
     grep -Fq '[docs/ai-model-context-budget.md](docs/ai-model-context-budget.md)' "$ROOT_DIR/AGENTS.md"
     grep -Fq '[AIモデルのcontext budgetポリシー](ai-model-context-budget.md)' "$ROOT_DIR/docs/workstation.md"
+    # AI CLI usage knowledge: endpoints, auth, and sanitization.
+    test -f "$ROOT_DIR/docs/ai-usage-quota.md"
+    grep -Fq '[docs/ai-usage-quota.md](docs/ai-usage-quota.md)' "$ROOT_DIR/AGENTS.md"
+    grep -Fq 'https://chatgpt.com/backend-api/wham/usage' "$ROOT_DIR/docs/ai-usage-quota.md"
+    grep -Fq 'https://opencode.ai/inference/go/v1/usage' "$ROOT_DIR/docs/ai-usage-quota.md"
+    grep -Fq 'print-bearer-token' "$ROOT_DIR/docs/ai-usage-quota.md"
+    grep -Fq 'Pi は必須ではない' "$ROOT_DIR/docs/ai-usage-quota.md"
+    grep -Fq 'access token は期限付き' "$ROOT_DIR/docs/ai-usage-quota.md"
     # issue #197: distinguish the WSL package version from the distro execution mode.
     grep -Fq '## WSL本体のバージョンと実行方式' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
     grep -Fxq 'wsl --version' "$ROOT_DIR/docs/bootstrap-prerequisites.md"
