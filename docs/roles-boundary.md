@@ -18,7 +18,8 @@
 | credential helper / auth state / `safe.directory=*` | — | — | いずれの role も管理しない |
 | Ansible profile の選択 | `base` | `personal` | `workstation_profile` extra var で制御 |
 | Ubuntu 26.04 WSL2 の systemd 259 回避策 | 担当 | — | `base` role。対象環境（Ubuntu 26.04 WSL2 + systemd 259）のみ適用 |
-| ベース APT パッケージ（build-essential, ca-certificates, curl, git, jq, postgresql-client, wl-clipboard） | 担当 | — | `base` role の `base_apt_packages`。`wl-clipboard` は WSLg の Wayland クリップボード基盤で、Pi の画像貼り付け（`Alt+V`）を WSLInterop 停止時でも成立させる（issue #178）。詳細は [workstation.md](workstation.md) の「wl-clipboard（WSLgクリップボード）」を参照 |
+| ベース APT パッケージ（build-essential, ca-certificates, curl, git, jq, postgresql-client, wl-clipboard, fonts-noto-cjk） | 担当 | — | `base` role の `base_apt_packages`。`wl-clipboard` は WSLg の Wayland クリップボード基盤で、Pi の画像貼り付け（`Alt+V`）を WSLInterop 停止時でも成立させる（issue #178）。`fonts-noto-cjk` は Chromium 系の CJK フォールバック先で、`~/.config/fontconfig/fonts.conf` の `prefer` が指す実体。詳細は [workstation.md](workstation.md) の「wl-clipboard（WSLgクリップボード）」と「日本語フォント（CJKフォールバック）」を参照 |
+| 日本語フォントの優先順（`~/.config/fontconfig/fonts.conf`） | 担当 | 担当（継承） | chezmoi 管理（`home/dot_config/fontconfig/fonts.conf`）。`fonts-wqy-zenhei` の `64-wqy-zenhei.conf` が generic family へ挿す中国語フォントより前に Noto CJK JP を並べ、Chromium 系の CJK フォールバックを日本語字形に固定する。詳細は [workstation.md](workstation.md) の「日本語フォント（CJKフォールバック）」を参照 |
 | `~/.local/bin` の作成 | 担当 | — | `base` role |
 | chezmoi バイナリの導入 | 担当 | — | `base` role。chezmoi source の適用は `bootstrap` で共通 |
 | mise バイナリ・設定・lockfile の導入 | 担当 | — | `base` role。`provisioning/mise/config.toml` / `mise.lock` |

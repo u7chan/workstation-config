@@ -13,3 +13,5 @@ Herdrの設定は`home/dot_config/herdr/`配下でchezmoi管理します。タ�
 Codex CLIはPiへ移行したため管理対象から外しました。`home/dot_codex/`は削除し、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します（Herdrが所有する`~/.codex/hooks.json`と`herdr-agent-state.sh`は残ります）。
 
 cagentはOpenCode 2では使えないため管理対象から外しました。`home/dot_config/cagent/`は削除し、bootstrapが旧`~/.config/cagent/config.yaml`を削除します（miseで導入したCLI本体と他の`~/.config/cagent/`は残ります）。
+
+日本語フォントの優先順は`home/dot_config/fontconfig/fonts.conf`（実配置先`~/.config/fontconfig/fonts.conf`）でchezmoi管理します。WSLの`fonts-wqy-zenhei`が`/etc/fonts/conf.d/64-wqy-zenhei.conf`でgeneric familyの先頭に中国語フォントを挿すため、Chromium系ツールのCJKフォールバックが中国語字形になります。この設定はWenQuanYi Zen Heiより前にNoto CJK JPを並べ、LatinはDejaVuのまま残します。prefer先の実体は`base` roleが`fonts-noto-cjk`で導入します（詳細は[Workstation構成ガイド](../docs/workstation.md)の「日本語フォント（CJKフォールバック）」）。

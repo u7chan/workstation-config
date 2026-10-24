@@ -279,6 +279,60 @@ WSLInterop停止状態（`powershell.exe`が`Exec format error`になる状態�
 [WSLのbinfmtエラーとWindows interop](#wslのbinfmtエラーとwindows-interop)の手順で、
 Windows実行ファイルの実行可否と登録状態を切り分けてください。
 
+## 日本語フォント（CJKフォールバック）
+
+WSLに`fonts-wqy-zenhei`が入っていると、その`/etc/fonts/conf.d/64-wqy-zenhei.conf`が
+`serif` / `sans-serif` / `monospace`の`prefer`へ中国語フォントWenQuanYi Zen Heiを挿します。
+WenQuanYi Zen Heiは`ja`をサポート対象として宣言しているため、Chromium系ツール
+（playwright-cli、Chrome、Electron）のCJKフォールバックが中国語字形になり、「置換先」の
+`置`などが日本語と異なる字形で描画されます。
+
+この環境のChrome for Testing 152では、`lang=ja`を条件にしたfontconfigルール
+（`70-fonts-noto-cjk.conf`と同じ書き方）がCJKフォールバックに効きませんでした。
+Skiaのfontconfig backendはBCP-47から`FC_LANG`を立てる実装があり、Chromiumの経路しだいで
+変わる部分です。そこで`home/dot_config/fontconfig/fonts.conf`
+（実配置先`~/.config/fontconfig/fonts.conf`）で
+generic familyの並びそのものに手を入れ、WenQuanYi Zen Heiより前にNoto Sans / Serif /
+Mono CJK JPを置いています。Latinは従来どおりDejaVuを先に残すため、英字の見た目は
+変わりません。prefer先の実体は`base_apt_packages`の`fonts-noto-cjk`（約89MiB）で
+導入します。
+
+`fonts-noto-cjk`を入れるだけでは並びは変わりません（`64-wqy-zenhei.conf`の`prefer`が
+勝つ）。実機では導入直後の`fc-match 'sans-serif:charset=76f4'`が`WenQuanYi Zen Hei`の
+ままで、この`fonts.conf`を適用して初めて`Noto Sans CJK JP`になりました。
+
+この設定のトレードオフとして、ChromiumのCJKフォールバックは言語を問わず
+Noto CJK JPの字形になります。中国語ページもSC字形ではなく日本語字形で描画され、
+`lang`を渡すfontconfig利用側（Pango系など）は`lang=zh-cn`でSCを選ぶので影響を
+受けません。`fonts-wqy-zenhei`は削除すると他の利用側への影響が広く、戻しにくい
+ため残しますが、残してもChromiumの中国語ページの描画はWQYには戻りません。
+
+![設定前: WenQuanYi Zen Hei（中国語字形）](./images/fontconfig-cjk-before.png)
+
+![設定後: Noto Sans CJK JP（日本語字形）](./images/fontconfig-cjk-after.png)
+
+上は設定前（WenQuanYi Zen Hei）、下は設定後（Noto Sans CJK JP）。`置`の上部、`直`の
+下端、`令`の最終画、`骨`の内側で字形の差が分かります。どちらも`font-family: system-ui,
+sans-serif`のChromiumスクリーンショット。
+
+このファイルはchezmoiが丸ごと管理するため、手元で追記した`<alias>`は次回の
+`chezmoi apply`で上書きされます。日本語フォントを変える場合は
+`home/dot_config/fontconfig/fonts.conf`のfamily名を差し替え、置き換え先も
+`base_apt_packages`へ追加してください。
+
+導入後は次で確認できます。
+
+```bash
+fc-match -s sans-serif | grep -E 'Noto Sans CJK JP|WenQuanYi' | head -2
+fc-match 'sans-serif:charset=76f4'   # 直 (U+76F4)。Chromium相当の文字単位解決
+./tests/fontconfig-smoke.sh
+```
+
+1行目が`Noto Sans CJK JP`ならOKです。`fc-match "sans-serif:lang=ja"`の結果だけでは
+判断できません。langを条件にしたルールが効かない環境では、これがNotoを返してもCJKの
+描画は中国語字形のままになる場合があります。最終確認はChromiumで`直`と`令`を含む
+ページを描画して字形を見ることです。
+
 ## 開発時の確認
 
 ```bash

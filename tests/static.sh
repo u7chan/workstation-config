@@ -59,6 +59,7 @@ run pi.sh runtime-data                   # 旧L293-298
 run ansible.sh vars-git                  # 旧L300
 run mise.sh gh                           # 旧L301
 run ansible.sh vars-packages             # 旧L302-303
+run fontconfig.sh config                 # CJKフォールバックを日本語字形に固定
 run docker.sh docker                     # 旧L305-316
 run bootstrap.sh sudo-env                # 旧L317-330
 run windows-terminal.sh doc-json         # 旧L332-378
