@@ -26,7 +26,7 @@
 | Safe-chain の導入・更新 | 担当 | — | `base` role。バージョンは `ansible/vars/main.yml` で固定 |
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
-| mise 管理ツール（Node.js LTS, Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Hunk, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
+| mise 管理ツール（Node.js 26.x (LTS), Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Hunk, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
 | AI CLI（Claude Code / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
 | Herdr integration（Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
