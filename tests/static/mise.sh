@@ -6,7 +6,7 @@ case "${1:-}" in
   config)
     mise_config="$ROOT_DIR/provisioning/mise/config.toml"
     mise_lock="$ROOT_DIR/provisioning/mise/mise.lock"
-    grep -q '^node = "lts"' "$mise_config"
+    grep -q '^node = "26"' "$mise_config"
     grep -q '^herdr = "latest"' "$mise_config"
     grep -q '^ripgrep = "latest"' "$mise_config"
     command -v rg >/dev/null
