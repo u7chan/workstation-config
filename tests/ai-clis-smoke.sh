@@ -83,16 +83,16 @@ EOF
 cat >"$test_bin/curl" <<'EOF'
 #!/usr/bin/env bash
 case "$*" in
-  *claude.ai*) name=claude ;;
-  *opencode.ai*) name=opencode ;;
+  *claude.ai*) name=claude; version='2.1.314 (Claude Code)' ;;
+  *opencode.ai*) name=opencode; version='opencode v2.2.2' ;;
   *) exit 98 ;;
 esac
 printf 'curl %s exclusion=%s\n' "$name" "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
-cat <<SCRIPT
-mkdir -p "\$HOME/.local/bin"
-printf '#!/usr/bin/env bash\\nprintf "${name} test\\\\n"\\n' >"\$HOME/.local/bin/${name}"
-chmod +x "\$HOME/.local/bin/${name}"
-SCRIPT
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'printf %s\n' "'$version\\n'"
+} >"$HOME/.local/bin/${name}"
+chmod +x "$HOME/.local/bin/${name}"
 EOF
 chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
 
@@ -101,7 +101,12 @@ printf '%s\n' '{"packages":["npm:existing"],"unmanaged":{"keep":true}}' \
   >"$HOME/.pi/agent/settings.json"
 printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state.ts"
 
-"$ROOT_DIR/scripts/update-ai" >/dev/null
+"$ROOT_DIR/scripts/update-ai" >"$test_dir/update-ai.out"
+
+# Every installer prints its own version shape, so the summary must label each
+# tool and normalize the version the same way.
+cmp <(printf '%s\n' '==> AI CLI versions' 'pi 0.84.2' 'claude 2.1.314' 'opencode 2.2.2') \
+  <(sed -n '/^==> AI CLI versions$/,$p' "$test_dir/update-ai.out")
 
 # The Pi core install skips the Safe-chain minimum package age gate and keeps
 # the malware scan, so it must not resolve against npm_config_before.
@@ -200,16 +205,16 @@ EOF
   cat >"$flag_bin/curl" <<'EOF'
 #!/usr/bin/env bash
 case "$*" in
-  *claude.ai*) name=claude ;;
-  *opencode.ai*) name=opencode ;;
+  *claude.ai*) name=claude; version='2.1.314 (Claude Code)' ;;
+  *opencode.ai*) name=opencode; version='opencode v2.2.2' ;;
   *) exit 98 ;;
 esac
 printf 'curl %s exclusion=%s\n' "$name" "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
-cat <<SCRIPT
-mkdir -p "\$HOME/.local/bin"
-printf '#!/usr/bin/env bash\\nprintf "${name} test\\n"\\n' >"\$HOME/.local/bin/${name}"
-chmod +x "\$HOME/.local/bin/${name}"
-SCRIPT
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'printf %s\n' "'$version\\n'"
+} >"$HOME/.local/bin/${name}"
+chmod +x "$HOME/.local/bin/${name}"
 EOF
   chmod +x "$flag_bin/npm" "$flag_bin/curl"
 
