@@ -88,11 +88,16 @@ case "$*" in
   *) exit 98 ;;
 esac
 printf 'curl %s exclusion=%s\n' "$name" "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
-{
-  printf '#!/usr/bin/env bash\n'
-  printf 'printf %s\n' "'$version\\n'"
-} >"$HOME/.local/bin/${name}"
-chmod +x "$HOME/.local/bin/${name}"
+# Hand the installer to the caller so the smoke test still exercises the
+# download-and-run path; the installer writes the CLI the summary reads.
+cat <<SCRIPT
+mkdir -p "\$HOME/.local/bin"
+cat >"\$HOME/.local/bin/${name}" <<'INNER'
+#!/usr/bin/env bash
+printf '%s\\n' '${version}'
+INNER
+chmod +x "\$HOME/.local/bin/${name}"
+SCRIPT
 EOF
 chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
 
@@ -210,11 +215,16 @@ case "$*" in
   *) exit 98 ;;
 esac
 printf 'curl %s exclusion=%s\n' "$name" "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
-{
-  printf '#!/usr/bin/env bash\n'
-  printf 'printf %s\n' "'$version\\n'"
-} >"$HOME/.local/bin/${name}"
-chmod +x "$HOME/.local/bin/${name}"
+# Hand the installer to the caller so the smoke test still exercises the
+# download-and-run path; the installer writes the CLI the summary reads.
+cat <<SCRIPT
+mkdir -p "\$HOME/.local/bin"
+cat >"\$HOME/.local/bin/${name}" <<'INNER'
+#!/usr/bin/env bash
+printf '%s\\n' '${version}'
+INNER
+chmod +x "\$HOME/.local/bin/${name}"
+SCRIPT
 EOF
   chmod +x "$flag_bin/npm" "$flag_bin/curl"
 
