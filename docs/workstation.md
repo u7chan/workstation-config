@@ -339,6 +339,27 @@ fc-match 'sans-serif:charset=76f4'   # 直 (U+76F4)。Chromium相当の文字単
 ./tests/static.sh
 ```
 
+## CI
+
+`.github/workflows/ci.yml`が`gitleaks`、`static`、`lockfile`の3 jobを実行します。
+
+- `gitleaks`: 履歴全体からsecretを検出します。
+- `static`: `./tests/static.sh`を実行します。
+- `lockfile`: workflowが使うactionの参照と`.github/workflows/actions.lock`が一致することを検証します。
+
+workflowが使う外部actionは`.github/workflows/actions.lock`でcommitに固定します。workflow側は`actions/checkout@v6.1.0`のようにバージョン付きのrefで書き、実行時はlockfileに記録されたcommitが使われます。lockfileは直接の依存だけでなく推移的依存も記録し、参照先リポジトリの`owner_id` / `repo_id`も保持します。
+
+lockfileは手で編集せず、`gh-actions-lock`で再生成します。actionやworkflowを追加・変更したら、同じPRでlockfileを更新してください。
+
+```bash
+gh extension install github/gh-actions-lock
+gh actions-lock
+```
+
+`lockfile` jobは`gh actions-lock --verify`を実行し、lockfileが古い場合は失敗します。Dependabotがactionを更新するPRでは、lockfileも同じPRで更新されます。lockfileの差分は依存更新としてレビューします。`commit`の変更は実行されるコードの変更、`owner_id` / `repo_id`の変更は参照先リポジトリの変更を意味します。
+
+lockfileの対象外は、runner image、container image、`run:`内でのツールinstall、reusable workflowです。reusable workflowを呼び出す場合は、呼び出し元でfull commit SHAに固定してください。
+
 ## miseの管理範囲
 
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。

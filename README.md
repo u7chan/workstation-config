@@ -24,7 +24,7 @@ Ubuntu 26.04 WSL2 上の開発環境を、コードで定義し再現可能に�
 | エディタ | Neovim |
 | ファイルマネージャ | Yazi |
 | AI CLI | Claude Code / OpenCode / Pi / Herdr |
-| CI | GitHub Actions + gitleaks |
+| CI | GitHub Actions + gitleaks + actions.lock |
 
 ## Quick start
 
