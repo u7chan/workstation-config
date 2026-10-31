@@ -14,17 +14,34 @@ case "${1:-}" in
 
     test -f "$lockfile"
     grep -Fq "'.github/workflows/ci.yml':" "$lockfile"
-    grep -Fq "'actions/checkout@" "$lockfile"
     grep -Fq "commit: 'sha1-" "$lockfile"
     grep -Fq "owner_id: " "$lockfile"
     grep -Fq "repo_id: " "$lockfile"
 
-    grep -Fq 'uses: actions/checkout@v6.1.0' "$workflow"
-    # major のみ（@v6）の参照に戻ると、lockfile の narrow とずれる。
-    if grep -Eq '^ +uses: actions/checkout@v[0-9]+$' "$workflow"; then
-      printf 'ci.yml must reference actions/checkout with a version, not a major tag.\n' >&2
+    # ci.yml の外部 action 参照。`./` と `$/` は自リポジトリ参照なので除外する。
+    # 特定のリリース値は固定しない。Dependabot が action と lockfile を同時に更新する
+    # ため、ここで版を決め打ちすると正しい更新 PR が失敗する。
+    mapfile -t action_refs < <(
+      sed -n 's/^ *uses: *\([^ #]*\).*$/\1/p' "$workflow" | grep -Ev '^(\./|\$/)' || true
+    )
+    if [ "${#action_refs[@]}" -eq 0 ]; then
+      printf 'ci.yml has no external action reference to check.\n' >&2
       exit 1
     fi
+
+    for ref in "${action_refs[@]}"; do
+      # major のみ（@v6）やタグ以外の ref は lockfile の narrow とずれる。
+      if ! [[ "$ref" =~ ^[^@]+@v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf 'ci.yml must reference %s with a full version (vX.Y.Z).\n' "$ref" >&2
+        exit 1
+      fi
+      # 参照と lockfile の対応が崩れたら再生成を促す。
+      if ! grep -Fq "'$ref'" "$lockfile"; then
+        printf 'actions.lock has no entry for %s; run `gh actions-lock`.\n' "$ref" >&2
+        exit 1
+      fi
+    done
+
     grep -Fq 'gh actions-lock --verify' "$workflow"
     grep -Fq 'persist-credentials: false' "$workflow"
     grep -Fq 'GH_TOKEN: ${{ github.token }}' "$workflow"
