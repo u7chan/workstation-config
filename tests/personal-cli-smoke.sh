@@ -230,6 +230,7 @@ mkdir -p "$test_home/.config/envs/test" "$claude_bin"
 cat >"$claude_bin/claude" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+[[ $ANTHROPIC_DEFAULT_FABLE_MODEL == "$ANTHROPIC_MODEL" ]]
 printf '%s\n' "$ANTHROPIC_BASE_URL|$ANTHROPIC_AUTH_TOKEN|$ANTHROPIC_MODEL|$*"
 EOF
 chmod +x "$claude_bin/claude"
@@ -239,7 +240,8 @@ API_KEY="$(touch should-not-exist)"
 MODEL="example/model"
 EOF
 chmod 600 "$test_home/.config/envs/test/.env"
-myclaude_output=$(HOME="$test_home" PATH="$claude_bin:$PATH" "$MYCLAUDE" test --version 2>/dev/null)
+myclaude_output=$(HOME="$test_home" PATH="$claude_bin:$PATH" \
+  ANTHROPIC_DEFAULT_FABLE_MODEL="inherited/model" "$MYCLAUDE" test --version 2>/dev/null)
 # The literal command substitution verifies that myclaude does not source the file.
 # shellcheck disable=SC2016
 [[ $myclaude_output == 'https://provider.example.invalid|$(touch should-not-exist)|example/model|--version' ]]
