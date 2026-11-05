@@ -24,7 +24,7 @@ die() {
 
 restrict_ai_config_directories() {
   local ai_config_dir
-  for ai_config_dir in .claude .config/opencode .pi; do
+  for ai_config_dir in .claude .config/opencode .pi .codex; do
     if [[ -d "$HOME/$ai_config_dir" ]]; then
       chmod 0700 -- "$HOME/$ai_config_dir"
     fi
@@ -60,7 +60,7 @@ if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
     personal_ai_tools_json="["
     for ai_tool in "${requested_ai_tools[@]}"; do
       case "$ai_tool" in
-        claude|opencode|pi) ;;
+        claude|codex|opencode|pi) ;;
         *) die "unsupported WORKSTATION_PERSONAL_AI_TOOLS value: $ai_tool" ;;
       esac
       if [[ $ai_tool == "claude" ]]; then
@@ -162,12 +162,6 @@ if [[ $PI_SELECTED == false ]]; then
   rm -f -- "$HOME/.pi/agent/AGENTS.md"
   rm -f -- "$HOME/.pi/web-search.json"
 fi
-
-# Codex CLI support was removed in favor of Pi. chezmoi does not delete targets
-# whose source entry is gone, so remove the retired files explicitly.
-rm -f -- "$HOME/.codex/config.toml"
-rm -f -- "$HOME/.codex/model-catalogs/workstation.json"
-rmdir -- "$HOME/.codex/model-catalogs" 2>/dev/null || true
 
 # cagent was removed in favor of OpenCode 2. Only the repo-managed config is
 # removed here; the mise-installed CLI and other ~/.config/cagent files stay

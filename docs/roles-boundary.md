@@ -27,9 +27,9 @@
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
 | mise 管理ツール（Node.js 26.x (LTS), Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Hunk, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
-| AI CLI（Claude Code / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
+| AI CLI（Claude Code / Codex CLI / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
-| Herdr integration（Claude Code / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
+| Herdr integration（Claude Code / Codex CLI / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
 | Herdrローカルプラグイン（`u7chan.worktree-pi` / `u7chan.file-viewer`） | — | 担当 | 自作plugin。`u7chan.worktree-pi`は`personal` roleが`ansible/roles/personal/files/herdr-plugins/worktree-pi/`から`~/.config/herdr/local-plugins/worktree-pi/`へ配置し、`personal_ai_tools`に`pi`を含む場合だけ`herdr plugin link`する（非選択時はunlinkと削除。Herdr server停止中は次回のbootstrapへ繰り延べ）。既定設定はplugin内の`config.sh`、マシン固有の上書きは`HERDR_PLUGIN_CONFIG_DIR`（Git管理外）。`u7chan.file-viewer`はビルド済みの配置先を`personal_herdr_local_plugins`で宣言し、`personal` roleは`herdr plugin link --enabled`だけを行う（clone・buildはpluginのリポジトリが所有。未ビルドならリンクせず警告して続行）。常看板`u7chan.status-board`は廃止し、確認待ち・受付・使用量の表示はWebコンソールへ一本化 |
 | AI CLI 設定（Claude Code / OpenCode） | — | 担当 | OpenCode は chezmoi source として配置。`~/.claude/statusline.py` は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理 |
 | Pi ユーザー設定（`~/.pi/agent/keybindings.json` / `~/.pi/agent/models.json` / `~/.pi/agent/web-search.json` / `~/.pi/agent/AGENTS.md`） | — | 担当 | WSL2/Windows Terminal向けPiキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）、openai-codexのモデル別context budget（`modelOverrides`）、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルト、チャット出力でIssue / PR番号・コミットSHAをマークダウンリンクにするユーザー全体の指示（`AGENTS.md`）。chezmoiが`home/dot_pi/agent/`配下を管理し（web-search.jsonは`create`属性）、bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ配置し、未選択・`base`では削除する。web-search.jsonは`create`属性のため、既存ファイル（API key等の手動追加）は上書きしない。その他のPiユーザー設定は管理しない |
@@ -38,6 +38,8 @@
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
 Pi本体とPi Packagesは`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。`personal_ai_tools`でPiが選択されている場合だけglobal scopeへ導入し、`base`では変更しません。要件、Packageごとの所有権、設定merge、Safe-chain経路、検証手順は[Pi Packages一覧](pi-packages.md)に集約しています。
+
+Codex CLIも`personal_ai_tools`に`codex`が含まれる場合だけ、mise管理のNode.js/npmとSafe-chain経由で`@openai/codex`を導入・更新します。ageゲートとmalware検査は有効なまま、`--ignore-scripts`付きで導入します。`~/.codex/config.toml`やmodel catalogはchezmoiで管理せず、bootstrapでも削除しません。認証・session・履歴もユーザーruntimeとして保持します。
 
 表の`ripgrep`はPi Package登録ではなく、`base` / `personal`共通のmise管理CLIです。`pi-session-recall`の`session_search`がglobal sessions rootを検索する際の優先backendとして恒久的に利用します。Package側のgrep / Node scan fallbackは維持し、CIの`ubuntu-slim`だけはstatic checkの`command -v rg` / `rg --version`を満たすためworkflowでAPT導入します。したがって、CIのAPT追加はworkstationの責務境界やmiseの導入経路を変更しません。
 
@@ -61,7 +63,7 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
   `personal_mise_path` / `personal_herdr_env`）。
 - `base` に含まれない責務は `personal` にも含まれません。`personal` は `base` を包含するため、
   `personal` プロファイルでは上表の `base` 列が「担当」の項目もすべて適用されます。
-- `personal_ai_tools` の許可リスト（`claude` / `opencode` / `pi`）の正本は
+- `personal_ai_tools` の許可リスト（`claude` / `codex` / `opencode` / `pi`）の正本は
   `ansible/roles/personal/defaults/main.yml` です。この集合はshell側でも検証・展開されるため、
   `bootstrap` の `WORKSTATION_PERSONAL_AI_TOOLS` 検証、`ansible/roles/personal/tasks/update_ai.yml`
   のassert、`scripts/update-ai` のCLIフラグ、`scripts/personal-bin/myupdate` の設定検証と同期して

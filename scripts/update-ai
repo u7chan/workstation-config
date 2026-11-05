@@ -34,9 +34,9 @@ readonly NODE_MINIMUM_VERSION_PATCH=0
 
 # Safe-chain blocks downloads of packages newer than its minimum package age
 # (48 hours by default). The Pi core install skips that gate, but the Pi
-# packages keep it, so resolve their npm versions against the same cutoff and
-# never request a package the gate would block. One hour of margin keeps the
-# registry cutoff ahead of the gate.
+# packages and Codex keep it, so resolve their npm versions against the same
+# cutoff and never request a package the gate would block. One hour of margin
+# keeps the registry cutoff ahead of the gate.
 safe_chain_minimum_package_age_hours() {
   local age_hours=${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS:-48}
   [[ $age_hours =~ ^[0-9]+$ ]] || die "SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours: $age_hours"
@@ -45,7 +45,7 @@ safe_chain_minimum_package_age_hours() {
 
 compute_npm_before() {
   local age_hours
-  age_hours="$(safe_chain_minimum_package_age_hours)"
+  age_hours="$(safe_chain_minimum_package_age_hours)" || return 1
   date -u -d "@$(( $(date +%s) - (age_hours + 1) * 3600 ))" +%Y-%m-%dT%H:%M:%SZ
 }
 
@@ -364,17 +364,20 @@ ai_cli_version_line() {
 }
 
 install_claude=false
+install_codex=false
 install_opencode=false
 install_pi=false
 
 if [[ $# -eq 0 ]]; then
   install_claude=true
+  install_codex=true
   install_opencode=true
   install_pi=true
 else
   for arg in "$@"; do
     case "$arg" in
       --claude) install_claude=true ;;
+      --codex) install_codex=true ;;
       --opencode) install_opencode=true ;;
       --pi) install_pi=true ;;
       *) die "Unknown option: $arg" ;;
@@ -405,6 +408,13 @@ if [[ $install_pi == true ]]; then
   report_pi_versions "$pi_packages_npm_before"
 fi
 
+if [[ $install_codex == true ]]; then
+  printf '==> Updating Codex CLI through Safe-chain\n'
+  codex_npm_before="$(compute_npm_before)"
+  npm_config_before="$codex_npm_before" \
+    npm install --global --ignore-scripts @openai/codex
+fi
+
 if [[ $install_claude == true ]]; then
   printf '==> Updating Claude Code from the official native installer\n'
   curl -fsSL https://claude.ai/install.sh | bash
@@ -418,6 +428,9 @@ fi
 printf '==> AI CLI versions\n'
 if [[ $install_pi == true ]]; then
   ai_cli_version_line pi "$(NO_COLOR=1 pi --version 2>/dev/null || true)"
+fi
+if [[ $install_codex == true ]]; then
+  ai_cli_version_line codex "$(codex --version 2>/dev/null || true)"
 fi
 if [[ $install_claude == true ]]; then
   ai_cli_version_line claude "$(claude --version 2>/dev/null || true)"

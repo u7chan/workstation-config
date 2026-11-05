@@ -34,6 +34,7 @@ case "${1:-}" in
     "$ROOT_DIR/tests/bootstrap-ai-mise-order.sh"
     "$ROOT_DIR/tests/bootstrap-herdr-integration-order.sh"
     "$ROOT_DIR/tests/ai-clis-smoke.sh"
+    "$ROOT_DIR/tests/workstation-update-smoke.sh"
     "$ROOT_DIR/tests/update-ai-age-gate-status.sh"
     "$ROOT_DIR/tests/pi-packages-smoke.sh"
     "$ROOT_DIR/tests/pi-keybindings-smoke.sh"

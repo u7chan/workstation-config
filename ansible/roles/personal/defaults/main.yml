@@ -3,6 +3,7 @@ personal_git_user_name: u7chan
 personal_git_user_email: 34462401+u7chan@users.noreply.github.com
 personal_ai_tools:
   - claude
+  - codex
   - opencode
   - pi
 # 自作Herdrプラグインのリンク宣言。プラグイン本体のcloneとbuildは各プラグインのリポジトリが所有し、

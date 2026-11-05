@@ -19,12 +19,12 @@ systemctl is-active --quiet "$user_unit" || {
 
 expected_tools=("$@")
 if ((${#expected_tools[@]} == 0)); then
-  expected_tools=(claude opencode pi)
+  expected_tools=(claude codex opencode pi)
 fi
 
 for tool in "${expected_tools[@]}"; do
   case "$tool" in
-    claude|opencode|pi) ;;
+    claude|codex|opencode|pi) ;;
     *)
       printf 'wsl-restart-smoke: unsupported AI CLI: %s\n' "$tool" >&2
       exit 1
@@ -62,7 +62,7 @@ for tool in "${expected_tools[@]}"; do
   tool_path="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" \
     bash --login -ic 'command -v "$1"' _ "$tool" 2>/dev/null)"
   case "$tool" in
-    pi)
+    pi|codex)
       [[ $tool_path == "$HOME/.local/share/mise/"* ]] || {
         printf 'wsl-restart-smoke: unexpected %s path: %s\n' "$tool" "$tool_path" >&2
         exit 1

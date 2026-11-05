@@ -159,6 +159,12 @@ if [[ ${1:-} == --version ]]; then
 fi
 EOF
 
+cat >"$linux_bin/codex" <<'EOF'
+#!/usr/bin/env bash
+printf 'linux codex %s\n' "$*" >>"$TEST_INSTALL_LOG"
+printf 'codex-cli 0.148.0\n'
+EOF
+
 cat >"$linux_bin/pi" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -231,20 +237,26 @@ cat >"$windows_bin/pi" <<'EOF'
 printf 'windows pi must not run\n' >&2
 exit 127
 EOF
+cat >"$windows_bin/codex" <<'EOF'
+#!/usr/bin/env bash
+printf 'windows codex must not run\n' >&2
+exit 127
+EOF
 chmod +x "$test_home/.local/bin/mise" "$linux_bin/node" "$linux_bin/npm" "$linux_bin/pi" \
-  "$linux_bin/safe-chain" \
-  "$windows_bin/npm" "$windows_bin/pi"
+  "$linux_bin/codex" "$linux_bin/safe-chain" \
+  "$windows_bin/npm" "$windows_bin/pi" "$windows_bin/codex"
 
 HOME="$test_home" \
 PATH="$windows_bin:$PATH" \
 TEST_INSTALL_LOG="$log" \
 TEST_LINUX_BIN="$linux_bin" \
-  "$ROOT_DIR/scripts/update-ai" --pi >/dev/null
+  "$ROOT_DIR/scripts/update-ai" --pi --codex >/dev/null
 
 grep -Fqx 'mise exec node' "$log"
 # The Pi core install skips the Safe-chain age gate and carries no cutoff; the
 # Pi packages keep the gate through their npmCommand path below.
 grep -Fqx 'linux npm install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age before=' "$log"
+grep -Eq '^linux npm install --global --ignore-scripts @openai/codex before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
 grep -Fqx 'linux pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'linux pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'linux pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
@@ -254,8 +266,9 @@ grep -Eq '^linux safe-chain npm install pi-codex-image-gen exclusion= before=[0-
 grep -Eq '^linux safe-chain npm install @howaboua/pi-codex-conversion exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
 grep -Eq '^linux safe-chain npm install @ogulcancelik/pi-session-recall exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$' "$log"
 grep -Fqx 'linux pi --version' "$log"
-if grep -Fq 'windows npm' "$log" || grep -Fq 'windows pi' "$log"; then
-  printf 'bootstrap-ai-mise-order: Windows npm or Pi shim was used.\n' >&2
+grep -Fqx 'linux codex --version' "$log"
+if grep -Eq 'windows (npm|pi|codex)' "$log"; then
+  printf 'bootstrap-ai-mise-order: Windows npm, Pi, or Codex shim was used.\n' >&2
   exit 1
 fi
 

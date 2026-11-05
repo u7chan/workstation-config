@@ -17,6 +17,14 @@ export UPDATE_AI_MISE_ACTIVE=1
 cat >"$HOME/.safe-chain/scripts/init-posix.sh" <<'EOF'
 npm() {
   printf 'npm exclusion=%s before=%s args=%s\n' "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "${npm_config_before:-}" "$*" >>"$TEST_INSTALL_LOG"
+  if [[ $* == 'install --global --ignore-scripts @openai/codex' ]]; then
+    cat >"$HOME/.local/bin/codex" <<'SCRIPT'
+#!/usr/bin/env bash
+printf 'codex-cli 0.148.0\n'
+SCRIPT
+    chmod +x "$HOME/.local/bin/codex"
+    return 0
+  fi
   cat >"$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -110,12 +118,15 @@ printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state
 
 # Every installer prints its own version shape, so the summary must label each
 # tool and normalize the version the same way.
-cmp <(printf '%s\n' '==> AI CLI versions' 'pi 0.84.2' 'claude 2.1.314' 'opencode 2.2.2') \
+cmp <(printf '%s\n' '==> AI CLI versions' 'pi 0.84.2' 'codex 0.148.0' 'claude 2.1.314' 'opencode 2.2.2') \
   <(sed -n '/^==> AI CLI versions$/,$p' "$test_dir/update-ai.out")
 
 # The Pi core install skips the Safe-chain minimum package age gate and keeps
 # the malware scan, so it must not resolve against npm_config_before.
 grep -Fqx 'npm exclusion= before= args=install --global --ignore-scripts @earendil-works/pi-coding-agent@latest --safe-chain-skip-minimum-package-age' "$log"
+# Codex keeps the age gate and resolves against its cutoff, without bypassing
+# Safe-chain or running lifecycle scripts.
+grep -Eq '^npm exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @openai/codex$' "$log"
 grep -Fqx 'pi install npm:pi-web-access --no-approve' "$log"
 grep -Fqx 'pi install npm:pi-codex-image-gen --no-approve' "$log"
 grep -Fqx 'pi install npm:@howaboua/pi-codex-conversion --no-approve' "$log"
@@ -143,7 +154,7 @@ grep -Fqx 'export DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/
 grep -Fqx 'export PATH="$HOME/.opencode/bin:$PATH"' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 
 # Selective flag behavior: only the requested tool(s) are invoked.
-for flag in claude opencode pi; do
+for flag in claude codex opencode pi; do
   flag_test_dir="$(mktemp -d)"
   flag_home="$flag_test_dir/home"
   flag_bin="$flag_test_dir/bin"
@@ -154,6 +165,14 @@ for flag in claude opencode pi; do
   cat >"$flag_home/.safe-chain/scripts/init-posix.sh" <<EOF
 npm() {
   printf 'npm exclusion=%s before=%s args=%s\n' "\${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" "\${npm_config_before:-}" "\$*" >>"\$TEST_INSTALL_LOG"
+  if [[ \$* == 'install --global --ignore-scripts @openai/codex' ]]; then
+    cat >"\$HOME/.local/bin/codex" <<'SCRIPT'
+#!/usr/bin/env bash
+printf 'codex-cli 0.148.0\n'
+SCRIPT
+    chmod +x "\$HOME/.local/bin/codex"
+    return 0
+  fi
   cat >"\$HOME/.local/bin/pi" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -228,7 +247,11 @@ SCRIPT
 EOF
   chmod +x "$flag_bin/npm" "$flag_bin/curl"
 
-  "$ROOT_DIR/scripts/update-ai" "--$flag" >/dev/null
+  "$ROOT_DIR/scripts/update-ai" "--$flag" >"$flag_test_dir/update-ai.out"
+
+  # The summary contains exactly the selected CLI, not installed but unselected tools.
+  [[ $(sed -n '/^==> AI CLI versions$/,$p' "$flag_test_dir/update-ai.out" | wc -l) -eq 2 ]]
+  grep -Eq "^$flag [0-9]+[.][0-9]+[.][0-9]+$" "$flag_test_dir/update-ai.out"
 
   case "$flag" in
     pi)
@@ -247,6 +270,33 @@ EOF
         printf 'pi flag should not invoke curl.\n' >&2
         exit 1
       fi
+      if grep -Fq 'args=install --global --ignore-scripts @openai/codex' "$flag_log"; then
+        printf 'pi flag should not install Codex.\n' >&2
+        exit 1
+      fi
+      ;;
+    codex)
+      grep -Eq '^npm exclusion= before=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z args=install --global --ignore-scripts @openai/codex$' "$flag_log"
+      [[ $(wc -l <"$flag_log") -eq 1 ]]
+      [[ ! -e "$HOME/.pi/agent/settings.json" ]]
+
+      # A custom age changes the cutoff; malformed values must fail before npm
+      # is called rather than accidentally install without an age cutoff.
+      earliest_cutoff=$(( $(date +%s) - 11 * 3600 ))
+      SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=10 "$ROOT_DIR/scripts/update-ai" --codex >/dev/null
+      latest_cutoff=$(( $(date +%s) - 11 * 3600 ))
+      cutoff="$(tail -n 1 "$flag_log" | sed -E 's/^npm exclusion= before=([^ ]+) args=.*/\1/')"
+      cutoff_epoch="$(date -u -d "$cutoff" +%s)"
+      ((earliest_cutoff <= cutoff_epoch && cutoff_epoch <= latest_cutoff))
+      [[ $(wc -l <"$flag_log") -eq 2 ]]
+      if SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=48h "$ROOT_DIR/scripts/update-ai" --codex \
+        >"$flag_test_dir/invalid-age.out" 2>&1; then
+        printf 'Codex must reject an invalid Safe-chain age.\n' >&2
+        exit 1
+      fi
+      grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours' \
+        "$flag_test_dir/invalid-age.out"
+      [[ $(wc -l <"$flag_log") -eq 2 ]]
       ;;
     claude|opencode)
       grep -Fqx "curl $flag exclusion=" "$flag_log"

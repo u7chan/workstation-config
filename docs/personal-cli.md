@@ -118,6 +118,8 @@ chmod 600 ~/.config/envs/<provider>/.env
 myupdate
 ```
 
+Codex CLIも既定の対象です。既存環境は`./bootstrap personal`でコマンドと設定を再配置してください。Codexだけを更新する場合は`WORKSTATION_UPDATE_AI_TOOLS=codex myupdate`を使います。
+
 更新対象の選択方法（`WORKSTATION_UPDATE_AI_TOOLS`による上書き）、Pi Packageの処理内容、再provisioningとの排他制御の詳細は[Workstation構成ガイド](workstation.md#開発ツールの手動更新)を参照してください。
 
 ## 開発時の確認
