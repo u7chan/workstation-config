@@ -134,6 +134,7 @@ grep -Fqx '==> Safe-chain coverage' <<<"$normal_output"
 grep -Fqx "$(coverage_row target 'npm path' 'age gate')" <<<"$normal_output"
 grep -Fqx "$(coverage_row 'pi core' yes skipped)" <<<"$normal_output"
 grep -Fqx "$(coverage_row 'pi packages (4)' yes 48h)" <<<"$normal_output"
+grep -Fqx "$(coverage_row codex yes 48h)" <<<"$normal_output"
 grep -Fqx "$(coverage_row claude no -)" <<<"$normal_output"
 grep -Fqx "$(coverage_row opencode no -)" <<<"$normal_output"
 grep -Fqx "$(coverage_row herdr no -)" <<<"$normal_output"
@@ -250,8 +251,17 @@ grep -Fqx "$(coverage_row 'pi core' yes skipped)" "$test_dir/selected-ai.out"
 grep -Fqx "$(coverage_row 'pi packages (4)' yes 48h)" "$test_dir/selected-ai.out"
 grep -Fqx "$(coverage_row opencode no -)" "$test_dir/selected-ai.out"
 grep -Fqx "$(coverage_row herdr no -)" "$test_dir/selected-ai.out"
-if grep -Fq 'claude' "$test_dir/selected-ai.out"; then
+if grep -Eq 'claude|codex' "$test_dir/selected-ai.out"; then
   printf 'unselected tools must not appear in the Safe-chain coverage table.\n' >&2
+  exit 1
+fi
+
+prepare_run codex-only
+WORKSTATION_UPDATE_AI_TOOLS=codex run_update >"$test_dir/codex-only.out" 2>&1
+grep -Fqx 'update-ai:1:--codex' "$RUN_COMMAND_LOG"
+grep -Fqx "$(coverage_row codex yes 48h)" "$test_dir/codex-only.out"
+if grep -Eq 'pi core|pi packages|claude|opencode' "$test_dir/codex-only.out"; then
+  printf 'Codex-only updates must not include other AI tools.\n' >&2
   exit 1
 fi
 
@@ -273,6 +283,7 @@ fi
 prepare_run coverage-age-hours
 SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS=10 run_update >"$test_dir/coverage-age-hours.out" 2>&1
 grep -Fqx "$(coverage_row 'pi packages (4)' yes 10h)" "$test_dir/coverage-age-hours.out"
+grep -Fqx "$(coverage_row codex yes 10h)" "$test_dir/coverage-age-hours.out"
 
 prepare_run invalid-age-hours
 set +e
@@ -286,10 +297,10 @@ grep -Fq 'SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS must be a whole number of hours' 
 
 # The config file is sourced only when the environment variable is unset.
 mkdir -p "$fixture_home/.config/workstation"
-printf '%s\n' 'WORKSTATION_UPDATE_AI_TOOLS="claude"' >"$fixture_home/.config/workstation/myupdate.conf"
+printf '%s\n' 'WORKSTATION_UPDATE_AI_TOOLS="claude,codex"' >"$fixture_home/.config/workstation/myupdate.conf"
 prepare_run config-selection
 run_update >/dev/null
-grep -Fqx 'update-ai:1:--claude' "$RUN_COMMAND_LOG"
+grep -Fqx 'update-ai:1:--claude --codex' "$RUN_COMMAND_LOG"
 prepare_run config-override
 WORKSTATION_UPDATE_AI_TOOLS=opencode run_update >/dev/null
 grep -Fqx 'update-ai:1:--opencode' "$RUN_COMMAND_LOG"

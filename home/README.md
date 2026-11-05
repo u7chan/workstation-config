@@ -10,7 +10,7 @@ Piの設定ファイルは`home/dot_pi/`配下でchezmoi管理します。キー
 
 Herdrの設定は`home/dot_config/herdr/`配下でchezmoi管理します。タブバー右とキーバインドの`config.toml`、およびタブバー用の`scripts/status-*.sh`が対象です。外部プラグイン本体のclone・buildはworkstation-configの管理外です。`personal` roleはプラグインのHerdrへのlink・有効化を管理し、`u7chan.worktree-pi`はこのrepoから`~/.config/herdr/local-plugins/worktree-pi/`へファイル配置も行います（詳細とfresh環境での手順は[Workstation構成ガイド](../docs/workstation.md)の「HerdrとAI CLI」を正とします）。`~/.config/herdr/.secrets`等のトークン・webhookは`.chezmoiignore`で配布対象外にしています（Herdr所有の`~/.config/herdr/plugins/config/`も管理しません）。
 
-Codex CLIはPiへ移行したため管理対象から外しました。`home/dot_codex/`は削除し、bootstrapが旧`~/.codex/config.toml`と`~/.codex/model-catalogs/workstation.json`を削除します（Herdrが所有する`~/.codex/hooks.json`と`herdr-agent-state.sh`は残ります）。
+Codex CLI本体は`personal`の`update-ai`で導入・更新しますが、設定はchezmoiで管理しません。`home/dot_codex/`は復活させず、既存の`~/.codex/config.toml`やmodel catalog、認証・session・履歴は保持します。Herdrが生成する`~/.codex/hooks.json`と`herdr-agent-state.sh`はHerdrの管理対象です。
 
 cagentはOpenCode 2では使えないため管理対象から外しました。`home/dot_config/cagent/`は削除し、bootstrapが旧`~/.config/cagent/config.yaml`を削除します（miseで導入したCLI本体と他の`~/.config/cagent/`は残ります）。
 

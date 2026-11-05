@@ -43,7 +43,7 @@
 
 ### 適用範囲
 
-- 対象はPiの`openai-codex` providerです。Codex CLIはPiへ移行したため`home/dot_codex/`と`model-catalogs/workstation.json`を削除し、budgetはPiの`modelOverrides`だけで表現します。
+- 対象はPiの`openai-codex` providerです。Codex CLIの旧設定`home/dot_codex/`と`model-catalogs/workstation.json`は管理対象から外し、budgetはPiの`modelOverrides`だけで表現します。Codex CLI本体を導入しても、CLI側のbudgetや設定は管理しません。
 - Codex CLIのmodel catalogはプロンプト本文を各モデルへ埋め込む全置換カタログで、per-model budgetのためだけに数百KiBの生成物を持ち続ける必要がありました。この管理コストも削除の理由です。
 
 ## 再評価のトリガー

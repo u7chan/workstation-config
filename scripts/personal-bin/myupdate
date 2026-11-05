@@ -36,7 +36,7 @@ if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
     IFS=',' read -r -a configured_ai_tools <<<"$WORKSTATION_UPDATE_AI_TOOLS"
     for configured_ai_tool in "${configured_ai_tools[@]}"; do
       case $configured_ai_tool in
-        claude|opencode|pi)
+        claude|codex|opencode|pi)
           UPDATE_AI_ARGS+=("--$configured_ai_tool")
           [[ " ${SELECTED_AI_TOOLS[*]-} " == *" $configured_ai_tool "* ]] || \
             SELECTED_AI_TOOLS+=("$configured_ai_tool")
@@ -47,7 +47,7 @@ if [[ ${WORKSTATION_UPDATE_AI_TOOLS+x} ]]; then
   fi
 else
   # update-ai installs every tool when no flag selects a subset.
-  SELECTED_AI_TOOLS=(pi claude opencode)
+  SELECTED_AI_TOOLS=(pi codex claude opencode)
 fi
 
 umask 077
@@ -98,13 +98,14 @@ print_safe_chain_coverage() {
 
   printf '==> Safe-chain coverage\n'
   printf '%-18s %-10s %s\n' 'target' 'npm path' 'age gate'
-  for tool in pi claude opencode; do
+  for tool in pi codex claude opencode; do
     selected_ai_tool "$tool" || continue
     case $tool in
       pi)
         printf '%-18s %-10s %s\n' 'pi core' 'yes' 'skipped'
         printf '%-18s %-10s %s\n' "pi packages ($PI_PACKAGE_COUNT)" 'yes' "${age_hours}h"
         ;;
+      codex) printf '%-18s %-10s %s\n' "$tool" 'yes' "${age_hours}h" ;;
       *) printf '%-18s %-10s %s\n' "$tool" 'no' '-' ;;
     esac
   done

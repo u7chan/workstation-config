@@ -49,10 +49,8 @@ case "${1:-}" in
       printf 'update-ai must align npm resolution instead of excluding packages from the age gate.\n' >&2
       exit 1
     fi
-    if grep -qF '@openai/codex' "$ROOT_DIR/scripts/update-ai"; then
-      printf 'update-ai must not install the retired Codex CLI.\n' >&2
-      exit 1
-    fi
+    grep -Fq 'npm install --global --ignore-scripts @openai/codex' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq -- '--codex) install_codex=true' "$ROOT_DIR/scripts/update-ai"
     grep -Fq '"npm:pi-web-access"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq '"npm:pi-codex-image-gen"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq '"npm:@howaboua/pi-codex-conversion"' "$ROOT_DIR/scripts/update-ai"
