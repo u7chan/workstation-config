@@ -2,7 +2,7 @@
 
 This directory is the repository-local chezmoi source. Dedicated configuration issues add managed files here.
 
-Claude Codeの`settings.json` merge fragmentは、設定全体を上書きしないためリポジトリ直下の`claude/settings.json`で管理します。`home/dot_claude/statusline.py`だけをchezmoiの管理対象として配置し、bootstrapがClaude選択時にfragmentの`theme`と`statusLine`を既存設定へmergeします。
+Claude Codeの`settings.json` merge fragmentは、設定全体を上書きしないためリポジトリ直下の`claude/settings.json`で管理します。status lineは`home/dot_claude/statusline/`（入口の`statusline.sh`と表示を組み立てる`statusline.jq`）をchezmoiの管理対象として配置し、bootstrapがClaude選択時にfragmentの`theme`と`statusLine`を既存設定へmergeします。status lineは`jq`とNerd Fontのアイコンを使います。旧`~/.claude/statusline.py`はbootstrapが削除します。
 
 Piの設定ファイルは`home/dot_pi/`配下でchezmoi管理します。キーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）は`home/dot_pi/agent/keybindings.json`、openai-codexのモデル別context budgetを`contextWindow`で表現する`modelOverrides`は`home/dot_pi/agent/models.json`です（piは`~/.pi/config.json`を読まず、`~/.pi/agent/models.json`が正規パス）。pi-web-access 0.29.0以降は`~/.pi/agent/web-search.json`を設定ファイルとして読むため、curatorブラウザを開かない`workflow: "auto-summary"`デフォルトは`home/dot_pi/agent/create_web-search.json`を`create`属性で配布します（既存ファイルは上書きしないため、API key等の手動追加は次回`chezmoi apply`でも維持されます。旧`~/.pi/web-search.json`が残っていて新パスにファイルが無い場合だけbootstrapが新パスへ移動します。新旧両方がある場合は移行されません）。bootstrapはPi選択時にだけ`WORKSTATION_PI_SELECTED=true`を渡して配置し、未選択時は`.chezmoiignore`テンプレートが対象外にした上でbootstrapが既存ファイルを削除します。
 

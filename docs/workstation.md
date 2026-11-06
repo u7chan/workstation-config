@@ -575,12 +575,12 @@ git clone https://github.com/u7chan/herdr-file-viewer ~/workspace/herdr-file-vie
 
 | Agent | Herdrが生成・更新するruntime artifact | chezmoiの管理範囲 |
 |---|---|---|
-| Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline.py`（chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
+| Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline/`（`statusline.sh`・`statusline.jq`、chezmoi）、および`claude/settings.json`の`theme`・`statusLine`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | Codex CLI | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | 管理しない。設定・model catalog・auth・session・履歴はユーザーruntime |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js`、`~/.config/opencode/cli.json`、`~/.config/opencode/tui.jsonc`、`~/.config/opencode/herdr-tui-session.js`、`~/.config/opencode/herdr-opencode/`、`~/.config/opencode/package.json` / `package-lock.json` / `node_modules` / `.gitignore`（OpenCode 2のTUIプラグイン登録は`cli.json`が正本で、`tui.jsonc`はv1の残置物） | `~/.config/opencode/opencode.json` |
 | Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは4ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`、openai-codexのモデル別context budget（`modelOverrides`、コンパクション費用対策）の`~/.pi/agent/models.json`、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルトを`create`属性で配布する`~/.pi/agent/web-search.json`（既存ファイルは上書きしないため、API key等の手動追加はユーザーruntime）、チャット出力のIssue / PR番号・コミットSHAをマークダウンリンクにするユーザー全体の指示を配布する`~/.pi/agent/AGENTS.md`。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
-auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。OpenCode 2ではTUIプラグインの登録先が`~/.config/opencode/cli.json`へ変わり、このファイルはHerdrが更新するruntimeとしてリポジトリの管理対象に含めません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
+auth、履歴、DB、session、cache、ログ、Herdr生成stateはGit管理しません。Claude Codeのstatus lineは`~/.claude/statusline/statusline.sh`がstatusLine JSONにgitのブランチ名を添えて`statusline.jq`へ渡し、Issue・PR・model・ctx・prompt cache・rate limitを1行に組み立てます。表示には`jq`とNerd Fontのアイコンが必要です（フォントは[Windows Terminalの設定](windows-terminal.md)を参照）。OpenCode 2ではTUIプラグインの登録先が`~/.config/opencode/cli.json`へ変わり、このファイルはHerdrが更新するruntimeとしてリポジトリの管理対象に含めません。Herdr公式integrationの詳細な対象パスとnative session restoreの条件は[公式integrationドキュメント](https://herdr.dev/docs/integrations/)を参照してください。
 
 PiのHerdr extensionとPi Packagesは別の管理境界にあり、前者はHerdr、後者はPi Package managerが所有します。Package導入時も`~/.pi/agent/extensions/herdr-agent-state.ts`を上書きせず、Piの組み込みツール登録を変更しません。
 
