@@ -169,6 +169,10 @@ fi
 rm -f -- "$HOME/.config/cagent/config.yaml"
 rmdir -- "$HOME/.config/cagent" 2>/dev/null || true
 
+# The Claude status line moved to ~/.claude/statusline/. chezmoi apply does not
+# remove files it stopped managing, so drop the previously managed entry point.
+rm -f -- "$HOME/.claude/statusline.py"
+
 if [[ $CLAUDE_SELECTED == true ]]; then
   printf '==> Merging Claude Code settings\n'
   "$ROOT_DIR/scripts/merge-claude-settings"

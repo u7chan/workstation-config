@@ -27,7 +27,9 @@ grep -Fq 'if [[ $ai_tool == "claude" ]]; then' "$BOOTSTRAP"
 
 jq -e 'if type == "object" then has("theme") and has("statusLine") else false end' \
   "$FRAGMENT" >/dev/null
-grep -Fqx '    "command": "python3 ~/.claude/statusline.py"' \
+grep -Fqx '    "command": "bash ~/.claude/statusline/statusline.sh",' \
+  "$FRAGMENT"
+grep -Fqx '    "refreshInterval": 1' \
   "$FRAGMENT"
 
 test_dir="$(mktemp -d)"
@@ -56,8 +58,9 @@ run_merge
 jq -e '
   .theme == "dark"
   and .statusLine.type == "command"
-  and .statusLine.command == "python3 ~/.claude/statusline.py"
-  and ((.statusLine | keys | sort) == ["command", "type"])
+  and .statusLine.command == "bash ~/.claude/statusline/statusline.sh"
+  and .statusLine.refreshInterval == 1
+  and ((.statusLine | keys | sort) == ["command", "refreshInterval", "type"])
   and .permissions.allow[0] == "Bash"
   and .hooks.keep == "herdr"
   and .unmanaged.keep == true
@@ -71,7 +74,7 @@ make_fixture fresh
 run_merge
 jq -e '
   .theme == "dark"
-  and .statusLine.command == "python3 ~/.claude/statusline.py"
+  and .statusLine.command == "bash ~/.claude/statusline/statusline.sh"
   and ((keys | sort) == ["statusLine", "theme"])
 ' "$fixture_home/.claude/settings.json" >/dev/null
 [[ $(stat -c '%a' "$fixture_home/.claude/settings.json") == 600 ]]

@@ -2,6 +2,7 @@
   "theme": "dark",
   "statusLine": {
     "type": "command",
-    "command": "python3 ~/.claude/statusline.py"
+    "command": "bash ~/.claude/statusline/statusline.sh",
+    "refreshInterval": 1
   }
 }
