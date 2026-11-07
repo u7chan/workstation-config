@@ -39,31 +39,21 @@ case "${1:-}" in
     test ! -e "$ROOT_DIR/home/dot_config/herdr/plugins/config/herdr-file-viewer/config.toml"
     ;;
   plugins)
-    plugin_dir="$ROOT_DIR/ansible/roles/personal/files/herdr-plugins/worktree-pi"
+    # worktree作成時にroot paneでpiを起動する自作プラグインは廃止した。ワークツリー作成と最初の
+    # ペインでのエージェント起動はWebコンソール（hwc）が行うため、TUIから作った場合はshellが残る。
     plugin_tasks="$ROOT_DIR/ansible/roles/personal/tasks/herdr_plugins.yml"
-    test -f "$plugin_dir/herdr-plugin.toml"
-    test -f "$plugin_dir/config.sh"
-    test -x "$plugin_dir/hook.sh"
-    grep -Fqx 'id = "u7chan.worktree-pi"' "$plugin_dir/herdr-plugin.toml"
-    grep -Fqx 'on = "worktree.created"' "$plugin_dir/herdr-plugin.toml"
-    grep -Fqx 'command = ["./hook.sh"]' "$plugin_dir/herdr-plugin.toml"
-    grep -Fq 'HERDR_PLUGIN_EVENT_JSON' "$plugin_dir/hook.sh"
-    grep -Fq 'HERDR_PANE_ID' "$plugin_dir/hook.sh"
-    grep -Fq 'WORKTREE_PI_REPOS' "$plugin_dir/config.sh"
-    grep -Fq 'WORKTREE_PI_AGENT_NAME_PREFIX' "$plugin_dir/config.sh"
-    grep -Fq '.data.worktree.branch' "$plugin_dir/hook.sh"
-    grep -Fq 'agent_name_taken' "$plugin_dir/hook.sh"
     test -f "$plugin_tasks"
     grep -Fq 'ansible.builtin.import_tasks: herdr_plugins.yml' "$ROOT_DIR/ansible/roles/personal/tasks/main.yml"
-    grep -Fq 'herdr-plugins/worktree-pi/' "$plugin_tasks"
-    grep -Fqx '      - plugin' "$plugin_tasks"
-    grep -Fqx '      - link' "$plugin_tasks"
-    grep -Fqx '      - unlink' "$plugin_tasks"
-    grep -Fqx '      - u7chan.worktree-pi' "$plugin_tasks"
-    grep -Fq 'server_not_running' "$plugin_tasks"
-    grep -Fq "when: \"'pi' in personal_ai_tools\"" "$plugin_tasks"
-    grep -Fq "when: \"'pi' not in personal_ai_tools\"" "$plugin_tasks"
-    # issue #211: the personal role installs the plugin, so chezmoi must not own it.
+    grep -Fq 'ansible.builtin.include_tasks: herdr_local_plugin.yml' "$plugin_tasks"
+    test ! -e "$ROOT_DIR/ansible/roles/personal/files/herdr-plugins"
+    if grep -r -F -q 'u7chan.worktree-pi' "$ROOT_DIR/ansible" "$ROOT_DIR/home"; then
+      printf 'The retired worktree Pi plugin must not be managed.\n' >&2
+      exit 1
+    fi
+    # 廃止したプラグインの後片付けはユーザー操作なので、コマンドをdocsに残す。
+    grep -Fq 'herdr plugin unlink u7chan.worktree-pi' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'rm -rf ~/.config/herdr/local-plugins/worktree-pi' "$ROOT_DIR/docs/workstation.md"
+    # chezmoiはHerdrのローカルプラグイン配置先を管理しない。
     test ! -e "$ROOT_DIR/home/dot_config/herdr/local-plugins"
     ;;
   local-plugins)
