@@ -8,7 +8,7 @@
 - name: Manage Herdr integrations for selected AI CLI tools
   ansible.builtin.import_tasks: herdr_integration.yml
 
-- name: Manage the local Herdr worktree Pi plugin
+- name: Manage the linked local Herdr plugins
   ansible.builtin.import_tasks: herdr_plugins.yml
 
 - name: Manage personal CLI scripts
