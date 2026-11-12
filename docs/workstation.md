@@ -365,7 +365,7 @@ lockfileの対象外は、runner image、container image、`run:`内でのツー
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。
 
 - Node.js 26.x（LTS）、Bun 1.x、uv
-- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Hunk、Lazygit、Lazydocker、Yazi、Starship、Herdr、Playwright CLI
+- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Lazygit、Lazydocker、Yazi、Starship、Herdr、Playwright CLI
 
 `ripgrep`はPi Package専用の一時依存ではなく、`base` / `personal`の両profileでmiseが恒久的に管理する共通CLIです。`pi-session-recall`の`session_search`はglobal sessions root全体を`rg -i -F`で検索するため、global JSONLが増えても高速かつliteralな検索を標準経路として再現できます。`rg`がない場合のgrep / Node scan fallbackはPackage側に残りますが、workstationではrgを優先backendとして利用します。
 
