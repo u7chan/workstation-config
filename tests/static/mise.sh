@@ -15,10 +15,12 @@ case "${1:-}" in
     grep -Fq 'backend = "npm:@playwright/cli"' "$mise_lock"
     test -s "$mise_lock"
     grep -q '^neovim = "0.12"' "$mise_config"
-    grep -q '^hunk = "latest"' "$mise_config"
     grep -q '^lazygit = "latest"' "$mise_config"
     grep -q '^lazydocker = "latest"' "$mise_config"
-    grep -Fq 'backend = "aqua:modem-dev/hunk"' "$mise_lock"
+    if grep -q '^hunk' "$mise_config" || grep -Fq 'modem-dev/hunk' "$mise_lock"; then
+      printf 'Hunk is retired; mise must not provision it.\n' >&2
+      exit 1
+    fi
     grep -Fq 'backend = "aqua:jesseduffield/lazygit"' "$mise_lock"
     grep -Fq 'backend = "aqua:jesseduffield/lazydocker"' "$mise_lock"
     grep -q '^yazi = "latest"' "$mise_config"

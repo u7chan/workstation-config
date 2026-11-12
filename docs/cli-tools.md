@@ -6,7 +6,6 @@
 
 | ツール | 用途 | 起動 | 導入元 |
 |---|---|---|---|
-| [Hunk](https://github.com/modem-dev/hunk) | 変更セットをレビューするためのインタラクティブなdiff viewer | `hunk diff` | `modem-dev/hunk` |
 | [Lazygit](https://github.com/jesseduffield/lazygit) | Git操作用のターミナルUI | `lazygit` | `jesseduffield/lazygit` |
 | [Lazydocker](https://github.com/jesseduffield/lazydocker) | Docker resourceを操作・確認するターミナルUI | `lazydocker` | `jesseduffield/lazydocker` |
 | [Herdr](https://github.com/ogulcancelik/herdr) | terminal上でAgentを多重化するCLI | `herdr` | `ogulcancelik/herdr` |
@@ -32,21 +31,12 @@ playwright-cli install-browser chromium
 
 復旧後は smoke を再実行して `about:blank` の headless open→close が成功することを確認してください。
 
-## Gitと変更レビュー
+## Git操作
 
-Git操作には`lazygit`、Agentが生成した変更のレビューには`hunk diff`を使います。Hunkは`--watch`で作業ツリーの更新を追従できます。
+Git操作には`lazygit`を使います。
 
 ```bash
 lazygit
-hunk diff
-hunk diff --watch
-hunk show HEAD~1
-```
-
-HunkをGit pagerとして常用する場合は、利用者が明示的に次を設定します。リポジトリのbootstrapは既存のGit pager設定を変更しません。
-
-```bash
-git config --global core.pager "hunk pager"
 ```
 
 ## Docker
@@ -86,5 +76,5 @@ zoxide add ~/.config
 ## 設定の管理
 
 - YaziとStarshipの設定はchezmoiで管理します。詳細は[Workstation構成ガイド](workstation.md#yazi)を参照してください。
-- Hunk、Lazygit、Lazydocker、Herdrのユーザー設定は、必要になった時点で各ツールの公式ドキュメントを確認してください。現在はHerdrの非機密設定だけをchezmoiで管理しています。
+- Lazygit、Lazydocker、Herdrのユーザー設定は、必要になった時点で各ツールの公式ドキュメントを確認してください。現在はHerdrの非機密設定だけをchezmoiで管理しています。
 - 認証情報、履歴、cache、runtime stateはリポジトリで管理しません。
