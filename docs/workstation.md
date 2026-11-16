@@ -248,6 +248,30 @@ psql --version
 ./tests/psql-smoke.sh
 ```
 
+## ffmpeg（動画・音声処理）
+
+動画・音声の変換はAPTの`ffmpeg`パッケージで`base`プロファイルに導入します。
+`ffmpeg`と`ffprobe`が利用でき、バージョンはUbuntu 26.04のAPT repositoryが提供する
+版に従います。miseのtool定義やlockfileには追加しません。
+
+miseのconda backend（`conda:ffmpeg`）は使いません。conda環境一式を
+`~/.local/share/mise`へ複製するため、手動導入した`conda:ffmpeg@9.0.2`では
+約650MiBを消費しました。APTのビルドは`libav*`を共有ライブラリとして使い、
+codecもUbuntuの更新経路に乗ります。libx264を含む主要なcodecは有効です。
+
+`mise use -g conda:ffmpeg`のように手動で導入しても、`~/.config/mise/config.toml`は
+bootstrapがリポジトリの宣言で上書きするため、次回以降は`No version is set`で失敗する
+shimが残り、APT版を隠します。手動導入を削除してから確認してください。
+`mise reshim`でshimを削除してもbashのコマンドハッシュは残るため、`hash -r`で破棄してから解決先を確認します。
+
+```bash
+mise uninstall conda:ffmpeg
+mise reshim
+hash -r
+command -v ffmpeg   # /usr/bin/ffmpeg
+./tests/ffmpeg-smoke.sh
+```
+
 ## wl-clipboard（WSLgクリップボード）
 
 Piの画像貼り付け（`Alt+V`）はクリップボードを`wl-paste`（Wayland）→`xclip`（X11）→
@@ -365,9 +389,11 @@ lockfileの対象外は、runner image、container image、`run:`内でのツー
 `base`と`personal`の両プロファイルで、次のランタイムとportable CLIをmise経由で導入します。
 
 - Node.js 26.x（LTS）、Bun 1.x、uv
-- ripgrep、fd、tree-sitter CLI、Neovim 0.12.x、Lazygit、Lazydocker、Yazi、Starship、Herdr、Playwright CLI
+- ripgrep、fd、tree-sitter CLI、ShellCheck、Neovim 0.12.x、Lazygit、Lazydocker、Yazi、Starship、Herdr、Playwright CLI
 
 `ripgrep`はPi Package専用の一時依存ではなく、`base` / `personal`の両profileでmiseが恒久的に管理する共通CLIです。`pi-session-recall`の`session_search`はglobal sessions root全体を`rg -i -F`で検索するため、global JSONLが増えても高速かつliteralな検索を標準経路として再現できます。`rg`がない場合のgrep / Node scan fallbackはPackage側に残りますが、workstationではrgを優先backendとして利用します。
+
+`shellcheck`は`./tests/static.sh`のlint stageでBashスクリプトを検査します。CIの`ubuntu-slim`はmiseを使わないためAPT版を導入しますが、workstationではmiseのlockfileで版を固定します。
 
 Python本体はmiseで管理しません。プロジェクトの`.python-version`に基づくPythonと`.venv`はuvに委譲し、Ubuntuの`python3`はOS管理のままにします。nvm、APT版Neovim、ツールごとの手動PATH追加は使用しません。
 

@@ -22,6 +22,7 @@ case "${1:-}" in
     ;;
   vars-packages)
     grep -q '^  - jq$' "$ROOT_DIR/ansible/vars/main.yml"
+    grep -q '^  - ffmpeg$' "$ROOT_DIR/ansible/vars/main.yml"
     grep -q '^  - postgresql-client$' "$ROOT_DIR/ansible/vars/main.yml"
     grep -q '^  - wl-clipboard$' "$ROOT_DIR/ansible/vars/main.yml"
     ;;

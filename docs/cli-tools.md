@@ -14,6 +14,7 @@
 | [Playwright CLI](https://github.com/microsoft/playwright-cli) | coding agent向けのブラウザ自動化CLI | `playwright-cli --help` | `npm:@playwright/cli` |
 | [fzf](https://github.com/junegunn/fzf) | インタラクティブな曖昧検索 | `fzf` | `junegunn/fzf` |
 | [zoxide](https://github.com/ajeetdsouza/zoxide) | 頻繁に使うディレクトリへの高速ジャンプ（fzf連携） | `z <query>`, `zi` | `ajeetdsouza/zoxide` |
+| [ShellCheck](https://www.shellcheck.net/) | Bashスクリプトの静的検査（`./tests/static.sh`のlint stage） | `shellcheck <script>` | `koalaman/shellcheck` |
 
 ## Playwright CLI
 

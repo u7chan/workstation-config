@@ -41,6 +41,11 @@ case "${1:-}" in
     grep -Fq '### WSLのbinfmtエラーとWindows interop' "$ROOT_DIR/docs/workstation.md"
     grep -Fq '[WSLのbinfmtエラーとWindows interop](#wslのbinfmtエラーとwindows-interop)' "$ROOT_DIR/docs/workstation.md"
     grep -Fq '[wl-clipboard（WSLgクリップボード）](#wl-clipboardwslgクリップボード)' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '## ffmpeg（動画・音声処理）' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq './tests/ffmpeg-smoke.sh' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'mise uninstall conda:ffmpeg' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'hash -r' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '[workstation.md](workstation.md) の「ffmpeg（動画・音声処理）」' "$ROOT_DIR/docs/roles-boundary.md"
     ;;
   pi-packages)
     grep -Fq 'herdr integration install <agent>' "$ROOT_DIR/docs/workstation.md"
