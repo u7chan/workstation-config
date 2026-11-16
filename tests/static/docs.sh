@@ -44,7 +44,10 @@ case "${1:-}" in
     grep -Fq '## ffmpeg（動画・音声処理）' "$ROOT_DIR/docs/workstation.md"
     grep -Fq './tests/ffmpeg-smoke.sh' "$ROOT_DIR/docs/workstation.md"
     grep -Fq 'mise uninstall conda:ffmpeg' "$ROOT_DIR/docs/workstation.md"
-    grep -Fq 'hash -r' "$ROOT_DIR/docs/workstation.md"
+    # Pin `hash -r` to the ffmpeg cleanup block: the same command appears in the
+    # shell-init explanation, so a bare grep would not catch its removal here.
+    awk '/^mise reshim$/ { getline; if ($0 == "hash -r") found = 1 } END { exit !found }' \
+      "$ROOT_DIR/docs/workstation.md"
     grep -Fq '[workstation.md](workstation.md) の「ffmpeg（動画・音声処理）」' "$ROOT_DIR/docs/roles-boundary.md"
     ;;
   pi-packages)
