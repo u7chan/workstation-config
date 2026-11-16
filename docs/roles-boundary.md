@@ -18,7 +18,7 @@
 | credential helper / auth state / `safe.directory=*` | — | — | いずれの role も管理しない |
 | Ansible profile の選択 | `base` | `personal` | `workstation_profile` extra var で制御 |
 | Ubuntu 26.04 WSL2 の systemd 259 回避策 | 担当 | — | `base` role。対象環境（Ubuntu 26.04 WSL2 + systemd 259）のみ適用 |
-| ベース APT パッケージ（build-essential, ca-certificates, curl, git, jq, postgresql-client, wl-clipboard, fonts-noto-cjk） | 担当 | — | `base` role の `base_apt_packages`。`wl-clipboard` は WSLg の Wayland クリップボード基盤で、Pi の画像貼り付け（`Alt+V`）を WSLInterop 停止時でも成立させる（issue #178）。`fonts-noto-cjk` は Chromium 系の CJK フォールバック先で、`~/.config/fontconfig/fonts.conf` の `prefer` が指す実体。詳細は [workstation.md](workstation.md) の「wl-clipboard（WSLgクリップボード）」と「日本語フォント（CJKフォールバック）」を参照 |
+| ベース APT パッケージ（build-essential, ca-certificates, curl, ffmpeg, git, jq, postgresql-client, wl-clipboard, fonts-noto-cjk） | 担当 | — | `base` role の `base_apt_packages`。`ffmpeg`/`ffprobe` は動画・音声処理用で、APT の `libav*` 共有と Ubuntu の更新経路を優先する。`wl-clipboard` は WSLg の Wayland クリップボード基盤で、Pi の画像貼り付け（`Alt+V`）を WSLInterop 停止時でも成立させる（issue #178）。`fonts-noto-cjk` は Chromium 系の CJK フォールバック先で、`~/.config/fontconfig/fonts.conf` の `prefer` が指す実体。詳細は [workstation.md](workstation.md) の「ffmpeg（動画・音声処理）」「wl-clipboard（WSLgクリップボード）」「日本語フォント（CJKフォールバック）」を参照 |
 | 日本語フォントの優先順（`~/.config/fontconfig/fonts.conf`） | 担当 | 担当（継承） | chezmoi 管理（`home/dot_config/fontconfig/fonts.conf`）。`fonts-wqy-zenhei` の `64-wqy-zenhei.conf` が generic family へ挿す中国語フォントより前に Noto CJK JP を並べ、Chromium 系の CJK フォールバックを日本語字形に固定する。詳細は [workstation.md](workstation.md) の「日本語フォント（CJKフォールバック）」を参照 |
 | `~/.local/bin` の作成 | 担当 | — | `base` role |
 | chezmoi バイナリの導入 | 担当 | — | `base` role。chezmoi source の適用は `bootstrap` で共通 |
@@ -26,7 +26,7 @@
 | Safe-chain の導入・更新 | 担当 | — | `base` role。バージョンは `ansible/vars/main.yml` で固定 |
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
-| mise 管理ツール（Node.js 26.x (LTS), Bun 1.x, uv, ripgrep, fd, gh, Neovim 0.12.x, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
+| mise 管理ツール（Node.js 26.x (LTS), Bun 1.x, uv, ripgrep, fd, gh, ShellCheck, Neovim 0.12.x, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
 | AI CLI（Claude Code / Codex CLI / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
 | Herdr integration（Claude Code / Codex CLI / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |

@@ -9,6 +9,7 @@ case "${1:-}" in
     grep -q '^node = "26"' "$mise_config"
     grep -q '^herdr = "latest"' "$mise_config"
     grep -q '^ripgrep = "latest"' "$mise_config"
+    grep -q '^shellcheck = "latest"' "$mise_config"
     command -v rg >/dev/null
     rg --version >/dev/null
     grep -Fq '"npm:@playwright/cli" = "latest"' "$mise_config"
@@ -23,6 +24,7 @@ case "${1:-}" in
     fi
     grep -Fq 'backend = "aqua:jesseduffield/lazygit"' "$mise_lock"
     grep -Fq 'backend = "aqua:jesseduffield/lazydocker"' "$mise_lock"
+    grep -Fq 'backend = "aqua:koalaman/shellcheck"' "$mise_lock"
     grep -q '^yazi = "latest"' "$mise_config"
     test ! -e "$ROOT_DIR/mise/config.toml"
     test ! -e "$ROOT_DIR/mise/mise.lock"
