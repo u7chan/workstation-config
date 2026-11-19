@@ -1,0 +1,140 @@
+---
+- name: Check the agent-harness distribution
+  ansible.builtin.stat:
+    path: "{{ personal_agent_harness_home }}/current"
+  register: personal_agent_harness_current
+
+- name: Stop when the agent-harness current path is not a symlink
+  ansible.builtin.fail:
+    msg: "{{ personal_agent_harness_home }}/current is not a symlink; inspect it before rerunning bootstrap"
+  when:
+    - personal_agent_harness_current.stat.exists
+    - not personal_agent_harness_current.stat.islnk
+
+- name: Create the shared agent skills directory
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.agents/skills"
+    state: directory
+    mode: "0755"
+
+- name: Check the Claude configuration directory
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['user_dir'] }}/.claude"
+  register: personal_agent_harness_claude_dir
+
+- name: Check the Claude skills directory
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['user_dir'] }}/.claude/skills"
+    follow: false
+  register: personal_agent_harness_claude_skills
+
+- name: Link the Claude skills directory to the shared directory
+  ansible.builtin.file:
+    src: ../.agents/skills
+    dest: "{{ ansible_facts['user_dir'] }}/.claude/skills"
+    state: link
+  when:
+    - personal_agent_harness_claude_dir.stat.isdir | default(false)
+    - not personal_agent_harness_claude_skills.stat.exists
+    - not personal_agent_harness_claude_skills.stat.islnk | default(false)
+
+- name: Bootstrap the pinned agent-harness release
+  when: not personal_agent_harness_current.stat.exists
+  block:
+    - name: Create the agent-harness bootstrap cache directory
+      ansible.builtin.file:
+        path: "{{ personal_agent_harness_checkout | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Clone agent-harness at the pinned revision
+      ansible.builtin.git:
+        repo: "{{ personal_agent_harness_repo_url }}"
+        dest: "{{ personal_agent_harness_checkout }}"
+        version: "{{ personal_agent_harness_sha }}"
+        force: true
+
+    - name: Install the pinned agent-harness release
+      ansible.builtin.command:
+        argv:
+          - "{{ personal_agent_harness_checkout }}/scripts/skill-distribution/dist.sh"
+          - update
+          - --sha
+          - "{{ personal_agent_harness_sha }}"
+          - --pr
+          - "{{ personal_agent_harness_pr_url }}"
+          - --link-dir
+          - "{{ ansible_facts['user_dir'] }}/.agents/skills"
+          - --link-dir
+          - "{{ ansible_facts['user_dir'] }}/.claude/skills"
+        chdir: "{{ ansible_facts['user_dir'] }}"
+      register: personal_agent_harness_fresh
+      changed_when: "'state=updated' in personal_agent_harness_fresh.stdout"
+      when: not personal_agent_harness_migrate_pi | bool
+
+    - name: Install the pinned agent-harness release while replacing legacy links
+      ansible.builtin.command:
+        argv:
+          - "{{ personal_agent_harness_checkout }}/scripts/skill-distribution/dist.sh"
+          - update
+          - --sha
+          - "{{ personal_agent_harness_sha }}"
+          - --pr
+          - "{{ personal_agent_harness_pr_url }}"
+          - --link-dir
+          - "{{ ansible_facts['user_dir'] }}/.agents/skills"
+          - --link-dir
+          - "{{ ansible_facts['user_dir'] }}/.claude/skills"
+          - --replace-links
+        chdir: "{{ ansible_facts['user_dir'] }}"
+      register: personal_agent_harness_replace_result
+      changed_when: "'state=updated' in personal_agent_harness_replace_result.stdout"
+      when: personal_agent_harness_migrate_pi | bool
+
+    - name: Remove the agent-harness bootstrap checkout
+      ansible.builtin.file:
+        path: "{{ personal_agent_harness_checkout }}"
+        state: absent
+
+- name: Check the legacy agent-harness leaf link
+  ansible.builtin.stat:
+    path: "{{ ansible_facts['user_dir'] }}/.agents/skills/agent-harness"
+    follow: false
+  register: personal_agent_harness_leaf
+  when: personal_agent_harness_migrate_pi | bool
+
+- name: Remove the legacy agent-harness leaf link
+  ansible.builtin.file:
+    path: "{{ ansible_facts['user_dir'] }}/.agents/skills/agent-harness"
+    state: absent
+  when:
+    - personal_agent_harness_migrate_pi | bool
+    - personal_agent_harness_leaf.stat.islnk | default(false)
+
+- name: Stop when the legacy agent-harness path is not a symlink
+  ansible.builtin.fail:
+    msg: "{{ ansible_facts['user_dir'] }}/.agents/skills/agent-harness is a real path; inspect and remove it manually"
+  when:
+    - personal_agent_harness_migrate_pi | bool
+    - personal_agent_harness_leaf.stat.exists | default(false)
+    - not personal_agent_harness_leaf.stat.islnk | default(false)
+
+- name: Unregister the legacy agent-harness Pi package
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if ! command -v pi >/dev/null 2>&1; then
+      exit 0
+    fi
+    pi_list="$(NO_COLOR=1 pi list --no-approve)"
+    case "$pi_list" in
+      *'git:github.com/u7chan/agent-harness'*)
+        pi remove git:github.com/u7chan/agent-harness --no-approve
+        ;;
+    esac
+  args:
+    executable: /bin/bash
+  environment: "{{ personal_herdr_env }}"
+  register: personal_agent_harness_pi_remove
+  changed_when: "'Removing' in personal_agent_harness_pi_remove.stdout or
+      'Removed' in personal_agent_harness_pi_remove.stdout"
+  when: personal_agent_harness_migrate_pi | bool

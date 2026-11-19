@@ -91,7 +91,27 @@ case "$*" in
     ;;
 esac
 EOF
-chmod +x "$fixture_bin/update-ai" "$fixture_bin/mise"
+
+cat >"$fixture_bin/agent-harness-dist" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+count_file="$TEST_COUNTER_DIR/agent-harness"
+count=0
+[[ ! -r $count_file ]] || read -r count <"$count_file"
+count=$((count + 1))
+printf '%s\n' "$count" >"$count_file"
+printf 'agent-harness:%s:%s\n' "$count" "$*" >>"$TEST_COMMAND_LOG"
+if ((count <= ${TEST_AGENT_HARNESS_FAILURES:-0})); then
+  printf 'injected agent-harness failure\n' >&2
+  exit 51
+fi
+case "${1:-}" in
+  update) printf 'state=already-current\nrevision=test\n' ;;
+  status) printf 'record-match=yes\nlinks=ok\n' ;;
+  *) printf 'unexpected agent-harness command: %s\n' "$*" >&2; exit 1 ;;
+esac
+EOF
+chmod +x "$fixture_bin/update-ai" "$fixture_bin/mise" "$fixture_bin/agent-harness-dist"
 
 prepare_run() {
   local name=$1
@@ -121,6 +141,8 @@ run_update() {
   TEST_STARTED_FILE="${TEST_STARTED_FILE:-}" \
   TEST_BLOCK_FILE="${TEST_BLOCK_FILE:-}" \
   WORKSTATION_UPDATE_RETRY_DELAY_SECONDS=0 \
+  WORKSTATION_AGENT_HARNESS_DIST="$fixture_bin/agent-harness-dist" \
+  TEST_AGENT_HARNESS_FAILURES="${TEST_AGENT_HARNESS_FAILURES:-0}" \
     env "${optional_environment[@]}" "$MYUPDATE"
 }
 
@@ -139,8 +161,10 @@ grep -Fqx "$(coverage_row claude no -)" <<<"$normal_output"
 grep -Fqx "$(coverage_row opencode no -)" <<<"$normal_output"
 grep -Fqx "$(coverage_row herdr no -)" <<<"$normal_output"
 [[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1: ]]
-[[ $(sed -n '2p' "$RUN_COMMAND_LOG") == mise:1 ]]
-[[ $(wc -l <"$RUN_COMMAND_LOG") -eq 2 ]]
+[[ $(sed -n '2p' "$RUN_COMMAND_LOG") == agent-harness:1:update ]]
+[[ $(sed -n '3p' "$RUN_COMMAND_LOG") == agent-harness:2:status ]]
+[[ $(sed -n '4p' "$RUN_COMMAND_LOG") == mise:1 ]]
+[[ $(wc -l <"$RUN_COMMAND_LOG") -eq 4 ]]
 if grep -Eq 'plugin[[:space:]]+install|herdr-bin|mise-which:herdr' "$RUN_COMMAND_LOG"; then
   printf 'Herdr update unexpectedly installed or resolved a plugin.\n' >&2
   exit 1
@@ -271,6 +295,9 @@ if grep -q '^update-ai:' "$RUN_COMMAND_LOG"; then
   printf 'empty WORKSTATION_UPDATE_AI_TOOLS unexpectedly invoked update-ai.\n' >&2
   exit 1
 fi
+grep -Fqx 'agent-harness:1:update' "$RUN_COMMAND_LOG"
+grep -Fqx 'agent-harness:2:status' "$RUN_COMMAND_LOG"
+grep -Fqx 'mise:1' "$RUN_COMMAND_LOG"
 grep -Fqx '==> Safe-chain coverage' "$test_dir/empty-ai.out"
 grep -Fqx "$(coverage_row herdr no -)" "$test_dir/empty-ai.out"
 if grep -Fq 'pi core' "$test_dir/empty-ai.out"; then
@@ -314,6 +341,24 @@ set -e
 [[ $exit_code -eq 2 ]]
 grep -Fq 'invalid AI tool' "$test_dir/invalid.out"
 [[ ! -s $RUN_COMMAND_LOG ]]
+
+# A failed agent-harness step is retried independently, does not stop Herdr,
+# and aggregates to exit 1 after the later step has run.
+prepare_run agent-harness-retry
+TEST_AGENT_HARNESS_FAILURES=1 run_update >/dev/null 2>&1
+[[ $(grep -c '^agent-harness:' "$RUN_COMMAND_LOG") -eq 3 ]]
+[[ $(grep -c '^mise:' "$RUN_COMMAND_LOG") -eq 1 ]]
+
+prepare_run agent-harness-failure
+set +e
+TEST_AGENT_HARNESS_FAILURES=2 run_update >"$test_dir/agent-harness-failure.out" 2>&1
+exit_code=$?
+set -e
+[[ $exit_code -eq 1 ]]
+[[ $(grep -c '^agent-harness:' "$RUN_COMMAND_LOG") -eq 2 ]]
+[[ $(grep -c '^mise:' "$RUN_COMMAND_LOG") -eq 1 ]]
+grep -Fq 'agent-harness failed after 2 attempts' "$test_dir/agent-harness-failure.out"
+grep -Fq 'update failed: agent-harness' "$test_dir/agent-harness-failure.out"
 
 # A held update lock makes a concurrent invocation fail with exit code 3.
 rm -f "$fixture_home/.config/workstation/myupdate.conf"

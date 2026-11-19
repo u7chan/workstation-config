@@ -14,7 +14,7 @@
 | カレントディレクトリをLANへ公開する | `http-lan 8000` | 同一LANの端末からアクセス可能 |
 | Claude Codeをprovider指定で起動する | `myclaude <provider>` | My Claude |
 | 登録済みproviderを一覧表示する | `myclaude --list` |  |
-| 選択したAI CLIとHerdrをまとめて更新する | `myupdate` | My update |
+| 選択したAI CLI、agent-harnessのスキル、Herdrをまとめて更新する | `myupdate` | My update |
 
 各コマンドのヘルプは`<command> --help`で確認できます。ただし`myupdate`はオプションを受け付けないため、`myupdate --help`でも更新処理が開始されます。
 
@@ -112,7 +112,7 @@ chmod 600 ~/.config/envs/<provider>/.env
 
 ### `myupdate`
 
-`personal_ai_tools`で選択したAI CLIを`update-ai`で更新し、続いてmise管理のHerdrを`mise upgrade herdr`で更新します。引数・オプションは受け付けず、`WORKSTATION_UPDATE_AI_TOOLS`環境変数でのみ挙動を変更します。開始時に`==> Safe-chain coverage`表を出し、更新経路ごとのSafe-chain適用範囲（`pi core`はageゲートを`skipped`）を表示します。各処理は失敗時に5秒待って1回だけ再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、競合時は終了コード3で終了します。
+`personal_ai_tools`で選択したAI CLIを`update-ai`で更新し、続いてagent-harnessのスキル配布を`dist.sh update`で更新し、最後にmise管理のHerdrを`mise upgrade herdr`で更新します。agent-harnessのスキルはPiの選択とは独立して配布され、`dist.sh status`でserving revision・記録・linkの一致を確認します。`WORKSTATION_UPDATE_AI_TOOLS`が空でもスキル更新は実行されます。引数・オプションは受け付けず、`WORKSTATION_UPDATE_AI_TOOLS`環境変数でのみ挙動を変更します。開始時に`==> Safe-chain coverage`表を出し、更新経路ごとのSafe-chain適用範囲（`pi core`はageゲートを`skipped`）を表示します。各処理は失敗時に5秒待って1回だけ再試行し、失敗しても後続処理を続けます。多重起動はロックで抑止し、競合時は終了コード3で終了します。
 
 ```bash
 myupdate
@@ -120,7 +120,7 @@ myupdate
 
 Codex CLIも既定の対象です。既存環境は`./bootstrap personal`でコマンドと設定を再配置してください。Codexだけを更新する場合は`WORKSTATION_UPDATE_AI_TOOLS=codex myupdate`を使います。
 
-更新対象の選択方法（`WORKSTATION_UPDATE_AI_TOOLS`による上書き）、Pi Packageの処理内容、再provisioningとの排他制御の詳細は[Workstation構成ガイド](workstation.md#開発ツールの手動更新)を参照してください。
+更新対象の選択方法（`WORKSTATION_UPDATE_AI_TOOLS`による上書き）、agent-harnessの配布、Pi Packageの処理内容、再provisioningとの排他制御の詳細は[Workstation構成ガイド](workstation.md#開発ツールの手動更新)を参照してください。
 
 ## 開発時の確認
 

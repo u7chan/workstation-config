@@ -102,6 +102,18 @@ case "${1:-}" in
     grep -Fq '| `npm:@ogulcancelik/pi-session-recall` |' "$ROOT_DIR/docs/pi-packages.md"
     grep -Fq '0.84.2' "$ROOT_DIR/docs/pi-packages.md"
     ;;
+  agent-harness)
+    grep -Fq 'agent-harness' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'dist.sh update' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '~/.agents/skills' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '~/.claude/skills' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'personal_agent_harness_migrate_pi' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'pi remove' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq 'agent-harness' "$ROOT_DIR/docs/personal-cli.md"
+    grep -Fq 'agent-harness' "$ROOT_DIR/README.md"
+    grep -Fq 'agent-harness' "$ROOT_DIR/docs/roles-boundary.md"
+    grep -Fq 'Codex' "$ROOT_DIR/docs/workstation.md"
+    ;;
   mise-local-bin)
     # issue #216: login shellのPATH順序と、mise管理ツールと同名のバイナリを
     # ~/.local/binへ置かない運用ルール。
@@ -111,7 +123,7 @@ case "${1:-}" in
     grep -Fq '~/.local/share/mise/shims/gh' "$ROOT_DIR/docs/workstation.md"
     ;;
   *)
-    printf 'Usage: %s <stage: links|pi-packages|mise-local-bin>\n' "$0" >&2
+    printf 'Usage: %s <stage: links|pi-packages|agent-harness|mise-local-bin>\n' "$0" >&2
     exit 2
     ;;
 esac

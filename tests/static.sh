@@ -51,6 +51,7 @@ run mise.sh base-role-order              # 旧L191-194
 run smoke.sh run                         # 旧L195-201
 run shell-init.sh autoupdate             # 旧L202-203
 run docs.sh pi-packages                  # 旧L204-240
+run docs.sh agent-harness                # issue #244: agent-harnessスキル配布
 run herdr.sh wsl-restart-greps           # 旧L241-245
 run herdr.sh config                      # 旧L246-259
 run herdr.sh plugins                     # worktree-pi pluginの廃止
