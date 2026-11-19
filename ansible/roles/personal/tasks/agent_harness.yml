@@ -57,17 +57,18 @@
     - name: Install the pinned agent-harness release
       ansible.builtin.command:
         argv:
+          - /usr/bin/flock
+          - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
           - "{{ personal_agent_harness_checkout }}/scripts/skill-distribution/dist.sh"
           - update
           - --sha
           - "{{ personal_agent_harness_sha }}"
           - --pr
           - "{{ personal_agent_harness_pr_url }}"
-          - --link-dir
-          - "{{ ansible_facts['user_dir'] }}/.agents/skills"
-          - --link-dir
-          - "{{ ansible_facts['user_dir'] }}/.claude/skills"
         chdir: "{{ ansible_facts['user_dir'] }}"
+      environment:
+        AGENT_HARNESS_HOME: "{{ personal_agent_harness_home }}"
+        AGENT_HARNESS_REPO_URL: "{{ personal_agent_harness_repo_url }}"
       register: personal_agent_harness_fresh
       changed_when: "'state=updated' in personal_agent_harness_fresh.stdout"
       when: not personal_agent_harness_migrate_pi | bool
@@ -75,18 +76,19 @@
     - name: Install the pinned agent-harness release while replacing legacy links
       ansible.builtin.command:
         argv:
+          - /usr/bin/flock
+          - "{{ ansible_facts['user_dir'] }}/.local/state/workstation-update/update.lock"
           - "{{ personal_agent_harness_checkout }}/scripts/skill-distribution/dist.sh"
           - update
           - --sha
           - "{{ personal_agent_harness_sha }}"
           - --pr
           - "{{ personal_agent_harness_pr_url }}"
-          - --link-dir
-          - "{{ ansible_facts['user_dir'] }}/.agents/skills"
-          - --link-dir
-          - "{{ ansible_facts['user_dir'] }}/.claude/skills"
           - --replace-links
         chdir: "{{ ansible_facts['user_dir'] }}"
+      environment:
+        AGENT_HARNESS_HOME: "{{ personal_agent_harness_home }}"
+        AGENT_HARNESS_REPO_URL: "{{ personal_agent_harness_repo_url }}"
       register: personal_agent_harness_replace_result
       changed_when: "'state=updated' in personal_agent_harness_replace_result.stdout"
       when: personal_agent_harness_migrate_pi | bool

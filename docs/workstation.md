@@ -669,7 +669,7 @@ type -a gh herdr claude codex opencode pi
 2. agent-harnessのスキル配布を`dist.sh update`で更新（Piの選択とは独立）
 3. `mise upgrade herdr`
 
-agent-harnessは既定で`~/.local/share/agent-harness`にpinned releaseを置き、`~/.agents/skills`へper-skill linkを張ります。初回だけAnsibleがpinned SHAを配り、以後は`myupdate`が`origin/main`を追います。`~/.claude/skills`は`~/.agents/skills`へのsymlinkとしてbootstrapが用意し、実ディレクトリがある場合は触りません。Codexの探索パスは未測定のため、`~/.codex/skills`へのlinkはまだ追加していません。`--link-dir`は追加ではなく置換なので、link対象を増やすときは`~/.agents/skills`と`~/.claude/skills`を含む全dirを渡してください。`dist.sh status`でserving revisionと記録・linkの一致を確認できます。
+agent-harnessは既定で`~/.local/share/agent-harness`にpinned releaseを置き、`~/.agents/skills`へper-skill linkを張ります。初回だけAnsibleがpinned SHAを配り、以後は`myupdate`が`origin/main`を追います。`~/.claude/skills`は`~/.agents/skills`へのsymlinkとしてbootstrapが用意します。実ディレクトリや別のsymlinkが既にある場合は置き換えず、自動でもlinkしません。その場合は同名の実パスを解消したうえで、`dist.sh update --link-dir ~/.agents/skills --link-dir ~/.claude/skills`のように必要なdirを明示してください。bootstrapのupdateは`link-dirs`の記録（初回は`~/.agents/skills`）を使います。`--link-dir`は追加ではなく置換なので、増やすときは全dirを渡してください。Codexの探索パスは未測定のため、`~/.codex/skills`へのlinkはまだ追加していません。`dist.sh status`でserving revisionと記録・linkの一致を確認できます。非既定のrootを使う場合は`AGENT_HARNESS_HOME`をユーザー環境にも設定してください（bootstrapはrole変数、myupdateは環境変数を使うため）。
 
 Pi packageから移行する既存機では、`personal_agent_harness_migrate_pi=true`を一度だけ指定してbootstrapします。初回updateが`--replace-links`で旧linkを置き換え、旧`agent-harness` leaf linkを削除し、`pi list`に登録があれば`pi remove git:github.com/u7chan/agent-harness --no-approve`で解除します。移行中は新しいセッションを起動せず、完了後に各セッションを`/reload`してください。参照機は移行済みのため指定しません。
 

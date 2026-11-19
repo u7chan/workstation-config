@@ -37,6 +37,13 @@ case "${1:-}" in
     grep -Fq 'run_agent_harness' "$ROOT_DIR/scripts/personal-bin/myupdate"
     grep -Fq 'current/scripts/skill-distribution/dist.sh' "$ROOT_DIR/scripts/personal-bin/myupdate"
     grep -Fq '"$dist" status' "$ROOT_DIR/scripts/personal-bin/myupdate"
+    grep -Fq 'AGENT_HARNESS_HOME' "$agent_harness_tasks"
+    grep -Fq 'AGENT_HARNESS_REPO_URL' "$agent_harness_tasks"
+    grep -Fq '/usr/bin/flock' "$agent_harness_tasks"
+    if grep -Fq -- '--link-dir' "$agent_harness_tasks"; then
+      printf 'agent_harness.yml must use the recorded/default link dirs, not --link-dir\n' >&2
+      exit 1
+    fi
     ;;
   *)
     printf 'Usage: %s <stage: syntax|role>\n' "$0" >&2

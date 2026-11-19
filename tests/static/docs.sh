@@ -112,7 +112,7 @@ case "${1:-}" in
     grep -Fq 'agent-harness' "$ROOT_DIR/docs/personal-cli.md"
     grep -Fq 'agent-harness' "$ROOT_DIR/README.md"
     grep -Fq 'agent-harness' "$ROOT_DIR/docs/roles-boundary.md"
-    grep -Fq 'Codex' "$ROOT_DIR/docs/workstation.md"
+    grep -Fq '~/.codex/skills' "$ROOT_DIR/docs/workstation.md"
     ;;
   mise-local-bin)
     # issue #216: login shellのPATH順序と、mise管理ツールと同名のバイナリを
