@@ -666,19 +666,24 @@ type -a gh herdr claude codex opencode pi
 `personal`プロファイルは、開発ツールをまとめて同期更新する`myupdate`を配置します。必要なときに手動で実行し、次の順序で処理します。
 
 1. `personal_ai_tools`で選択したAI CLIを`update-ai`で更新（空ならスキップ）
-2. `mise upgrade herdr`
+2. agent-harnessのスキル配布を`dist.sh update`で更新（Piの選択とは独立）
+3. `mise upgrade herdr`
+
+agent-harnessは既定で`~/.local/share/agent-harness`にpinned releaseを置き、`~/.agents/skills`へper-skill linkを張ります。初回だけAnsibleがpinned SHAを配り、以後は`myupdate`が`origin/main`を追います。`~/.claude/skills`は`~/.agents/skills`へのsymlinkとしてbootstrapが用意します。実ディレクトリや別のsymlinkが既にある場合は置き換えず、自動でもlinkしません。ただし、既存の`link-dirs`に`~/.claude/skills`が記録されている場合はbootstrapもその記録を使うため、実ディレクトリにもlinkし、同名の実パスがあれば停止します。その場合は`dist.sh update --link-dir ~/.agents/skills`で記録を`.agents`だけに戻してから再実行してください。実ディレクトリへlinkしたい場合は、同名の実パスを解消したうえで`dist.sh update --link-dir ~/.agents/skills --link-dir ~/.claude/skills`のように必要なdirを明示してください。bootstrapのupdateは`link-dirs`の記録（初回は`~/.agents/skills`）を使います。`--link-dir`は追加ではなく置換なので、増やすときは全dirを渡してください。Codexの探索パスは未測定のため、`~/.codex/skills`へのlinkはまだ追加していません。`dist.sh status`でserving revisionと記録・linkの一致を確認できます。非既定のrootやrepoを使う場合は`AGENT_HARNESS_HOME`と`AGENT_HARNESS_REPO_URL`をユーザー環境にも設定してください（bootstrapはrole変数、myupdateは環境変数を使うため）。
+
+Pi packageから移行する既存機では、`personal_agent_harness_migrate_pi=true`を一度だけ指定してbootstrapします。初回updateが`--replace-links`で旧linkを置き換え、旧`agent-harness` leaf linkを削除し、`pi list`に登録があれば`pi remove git:github.com/u7chan/agent-harness --no-approve`で解除します。移行中は新しいセッションを起動せず、完了後に各セッションを`/reload`してください。参照機は移行済みのため指定しません。
 
 各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。標準出力・標準エラーへ結果を直接表示し、いずれかの処理が2回とも失敗した場合は終了コード1を返します。多重起動はロックで抑止し、競合時は終了コード3で終了します。再provisioningのmise、AI CLI更新も同じロックへ参加します。Herdrの更新主体はmiseであり、`herdr update`は使用しません。
 
-開始時に`==> Safe-chain coverage`の表を出力し、更新経路ごとのSafe-chain適用範囲を可視化します。列は`target`、`npm path`（npm経由か）、`age gate`です。`pi core`は`age gate`が`skipped`（`update-ai`のinstallが`--safe-chain-skip-minimum-package-age`を使う）、`pi packages`と`codex`は`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`（既定48h）、`claude`・`opencode`・`herdr`はnpmを経由しないため`-`です。選択されていないAI CLIは表示せず、`WORKSTATION_UPDATE_AI_TOOLS`と`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`へ追従します。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`が整数でない場合は開始前に終了コード2で失敗します。
+開始時に`==> Safe-chain coverage`の表を出力し、更新経路ごとのSafe-chain適用範囲を可視化します。列は`target`、`npm path`（npm経由か）、`age gate`です。`pi core`は`age gate`が`skipped`（`update-ai`のinstallが`--safe-chain-skip-minimum-package-age`を使う）、`pi packages`と`codex`は`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`（既定48h）、`claude`・`opencode`・`herdr`はnpmを経由しないため`-`です。agent-harnessはgit配布でnpmを経由しないため、この表の対象外です。選択されていないAI CLIは表示せず、`WORKSTATION_UPDATE_AI_TOOLS`と`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`へ追従します。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`が整数でない場合は開始前に終了コード2で失敗します。
 
-SafeChainのブロック（minimum package age / malware検知）は同じ入力で必ず再発するため、再試行せずに理由を表示して後続処理へ進みます。ageの場合はブロックされたパッケージ名と、時間を置くか`update-ai`と同じ`npm_config_before`で解決する旨を表示します。各ステップの出力は`tee`でコンソールへ流しつつ`~/.local/state/workstation-update/step-<label>.log`（labelの空白は`-`へ置換。例: `step-mise-upgrade-herdr.log`）へ複製し、失敗時はそのパスを案内します。この複製によりinstallerのstdoutがパイプになるため、TTY検出に依存するツールは表示が簡素になる場合があります。SafeChain以外の失敗は従来どおり5秒待って1回だけ再試行します。なお`pi update --extensions`を直接実行した場合はmyupdateの外なので、この分類は働きません。
+SafeChainのブロック（minimum package age / malware検知）は同じ入力で必ず再発するため、再試行せずに理由を表示して後続処理へ進みます。ageの場合はブロックされたパッケージ名と、時間を置くか`update-ai`と同じ`npm_config_before`で解決する旨を表示します。各ステップの出力は`tee`でコンソールへ流しつつ`~/.local/state/workstation-update/step-<label>.log`（labelの空白は`-`へ置換。例: `step-mise-upgrade-herdr.log`、`step-agent-harness.log`）へ複製し、失敗時はそのパスを案内します。この複製によりinstallerのstdoutがパイプになるため、TTY検出に依存するツールは表示が簡素になる場合があります。SafeChain以外の失敗は従来どおり5秒待って1回だけ再試行します。なお`pi update --extensions`を直接実行した場合はmyupdateの外なので、この分類は働きません。
 
 ```bash
 myupdate
 ```
 
-更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=opencode,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップします。
+更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=opencode,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップしますが、agent-harnessのスキル更新は実行されます。
 
 Codex CLIを含む既定対象への更新は`./bootstrap personal`でスクリプトと設定を再配置してから`myupdate`を実行します。subsetを指定している場合は`personal_ai_tools`（または`WORKSTATION_PERSONAL_AI_TOOLS`）へ`codex`を追加してください。Codexだけを一時的に更新する場合は`WORKSTATION_UPDATE_AI_TOOLS=codex myupdate`を使います。
 

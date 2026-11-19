@@ -29,12 +29,13 @@
 | mise 管理ツール（Node.js 26.x (LTS), Bun 1.x, uv, ripgrep, fd, gh, ShellCheck, Neovim 0.12.x, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
 | AI CLI（Claude Code / Codex CLI / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
+| agent-harnessのスキル配布 | — | 担当 | `personal` roleがpinned releaseを`~/.agents/skills`へper-skill linkで配布。初回だけbootstrapし、更新は`myupdate`の`dist.sh update`。linkの所有権はコマンドにあり、Ansibleは親ディレクトリと`~/.claude/skills`のsymlinkだけを管理する。Pi未選択でも配布し、`~/.codex/skills`は探索パス測定まで未対応 |
 | Herdr integration（Claude Code / Codex CLI / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
 | Herdrローカルプラグイン（`u7chan.file-viewer`） | — | 担当 | 自作plugin。ビルド済みの配置先を`personal_herdr_local_plugins`で宣言し、`personal` roleは`herdr plugin link --enabled`だけを行う（clone・buildはpluginのリポジトリが所有。未ビルドならリンクせず警告して続行）。worktree作成時にroot paneでpiを起動する`u7chan.worktree-pi`は廃止し、ワークツリー作成と最初のエージェント起動はWebコンソール（hwc）が行う。常看板`u7chan.status-board`は廃止し、確認待ち・受付・使用量の表示はWebコンソールへ一本化 |
 | AI CLI 設定（Claude Code / OpenCode） | — | 担当 | OpenCode は chezmoi source として配置。`~/.claude/statusline/`（`statusline.sh` と `statusline.jq`）は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理 |
 | Pi ユーザー設定（`~/.pi/agent/keybindings.json` / `~/.pi/agent/models.json` / `~/.pi/agent/web-search.json` / `~/.pi/agent/AGENTS.md`） | — | 担当 | WSL2/Windows Terminal向けPiキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）、openai-codexのモデル別context budget（`modelOverrides`）、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルト、チャット出力でIssue / PR番号・コミットSHAをマークダウンリンクにするユーザー全体の指示（`AGENTS.md`）。chezmoiが`home/dot_pi/agent/`配下を管理し（web-search.jsonは`create`属性）、bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ配置し、未選択・`base`では削除する。web-search.jsonは`create`属性のため、既存ファイル（API key等の手動追加）は上書きしない。その他のPiユーザー設定は管理しない |
 | 個人 CLI スクリプト（myclaude, gac, gpc, http, http-lan, myupdate） | — | 担当 | `personal` role の `scripts/personal-bin/` |
-| 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、mise管理のHerdrを同期更新。再provisioningとも排他 |
+| 開発ツールの手動更新 | — | 担当 | `myupdate`で選択済みAI CLI、agent-harnessのスキル、mise管理のHerdrを同期更新。再provisioningとも排他 |
 | Docker CE の導入 | — | 担当（オプション） | `docker_ce` role。`personal_docker_ce_enabled=false` で無効化可能 |
 
 Pi本体とPi Packagesは`personal`の`update-ai`がmise管理のNode.js/npmとSafe-chain経由で導入・更新します。`personal_ai_tools`でPiが選択されている場合だけglobal scopeへ導入し、`base`では変更しません。要件、Packageごとの所有権、設定merge、Safe-chain経路、検証手順は[Pi Packages一覧](pi-packages.md)に集約しています。

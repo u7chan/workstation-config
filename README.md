@@ -44,13 +44,13 @@ cd workstation-config
 
 ## Tools update
 
-`personal` プロファイルでは、AI CLI（Claude Code/Codex CLI/OpenCode/Pi）とHerdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
+`personal` プロファイルでは、AI CLI（Claude Code/Codex CLI/OpenCode/Pi）、agent-harnessのスキル配布、Herdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
 
 ```bash
 myupdate
 ```
 
-更新対象のAI CLIは`personal_ai_tools`で選択します。詳細は [Workstation構成ガイド](docs/workstation.md#開発ツールの手動更新) を参照してください。
+更新対象のAI CLIは`personal_ai_tools`で選択します。agent-harnessのスキルはPi非依存で、`~/.agents/skills`にper-skill linkを置きます。初回は`./bootstrap personal`がpinned releaseを配り、以後は`myupdate`が`origin/main`を追います。詳細は [Workstation構成ガイド](docs/workstation.md#開発ツールの手動更新) を参照してください。
 
 ## Docs
 

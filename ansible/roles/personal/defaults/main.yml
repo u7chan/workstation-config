@@ -15,3 +15,17 @@ personal_herdr_local_plugins:
     root: "{{ ansible_facts['user_dir'] }}/workspace/herdr-file-viewer"
     binary: bin/herdr-file-viewer
     build: CGO_ENABLED=0 go build -trimpath -o bin/herdr-file-viewer ./cmd/herdr-file-viewer
+
+# agent-harness のスキル配布。初回だけ pinned release を配り、以後は myupdate が
+# origin/main を追う。SHA は上流の配布契約が始まった merge commit を指す。
+personal_agent_harness_home: >-
+  {{ (ansible_facts['env']['XDG_DATA_HOME']
+      | default(ansible_facts['user_dir'] + '/.local/share', true))
+     ~ '/agent-harness' }}
+personal_agent_harness_repo_url: https://github.com/u7chan/agent-harness.git
+personal_agent_harness_sha: bde7b2f7399dbc13f601aa4ac7730903e197fb29
+personal_agent_harness_pr_url: https://github.com/u7chan/agent-harness/pull/316
+personal_agent_harness_checkout: "{{ ansible_facts['user_dir'] }}/.cache/workstation/agent-harness-bootstrap"
+# true は pi package からの移行時だけ。初回 update に --replace-links を付け、
+# 旧 leaf link と package 登録を片付ける。参照機では設定しない。
+personal_agent_harness_migrate_pi: false
