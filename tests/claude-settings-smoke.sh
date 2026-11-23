@@ -25,8 +25,16 @@ grep -Fq '[[ $PROFILE == "personal" ]] && CLAUDE_SELECTED=true' "$BOOTSTRAP"
 grep -Fq 'if [[ -z $WORKSTATION_PERSONAL_AI_TOOLS ]]; then' "$BOOTSTRAP"
 grep -Fq 'if [[ $ai_tool == "claude" ]]; then' "$BOOTSTRAP"
 
-jq -e 'if type == "object" then has("theme") and has("statusLine") else false end' \
-  "$FRAGMENT" >/dev/null
+jq -e '
+  if type == "object" then
+    .theme == "dark"
+    and .permissions.defaultMode == "auto"
+    and .syncClaudeAiSkills == false
+    and .syncClaudeAiPlugins == false
+  else false
+  end
+' "$FRAGMENT" >/dev/null
+jq -e '(.statusLine.command // null) != null' "$FRAGMENT" >/dev/null
 grep -Fqx '    "command": "bash ~/.claude/statusline/statusline.sh",' \
   "$FRAGMENT"
 grep -Fqx '    "refreshInterval": 1' \
@@ -51,7 +59,7 @@ run_merge() {
 
 make_fixture existing
 mkdir -p "$fixture_home/.claude"
-printf '%s\n' '{"hooks":{"keep":"herdr"},"permissions":{"allow":["Bash"]},"unmanaged":{"keep":true},"theme":"light","statusLine":{"type":"command","command":"old","extra":"remove"}}' \
+printf '%s\n' '{"hooks":{"keep":"herdr"},"permissions":{"allow":["Bash"],"defaultMode":"plan"},"syncClaudeAiSkills":true,"syncClaudeAiPlugins":true,"unmanaged":{"keep":true},"theme":"light","statusLine":{"type":"command","command":"old","extra":"remove"}}' \
   >"$fixture_home/.claude/settings.json"
 chmod 0640 "$fixture_home/.claude/settings.json"
 run_merge
@@ -62,6 +70,10 @@ jq -e '
   and .statusLine.refreshInterval == 1
   and ((.statusLine | keys | sort) == ["command", "refreshInterval", "type"])
   and .permissions.allow[0] == "Bash"
+  and .permissions.defaultMode == "auto"
+  and ((.permissions | keys | sort) == ["allow", "defaultMode"])
+  and .syncClaudeAiSkills == false
+  and .syncClaudeAiPlugins == false
   and .hooks.keep == "herdr"
   and .unmanaged.keep == true
 ' "$fixture_home/.claude/settings.json" >/dev/null
@@ -75,9 +87,26 @@ run_merge
 jq -e '
   .theme == "dark"
   and .statusLine.command == "bash ~/.claude/statusline/statusline.sh"
-  and ((keys | sort) == ["statusLine", "theme"])
+  and .permissions.defaultMode == "auto"
+  and .syncClaudeAiSkills == false
+  and .syncClaudeAiPlugins == false
+  and ((keys | sort) == ["permissions", "statusLine", "syncClaudeAiPlugins", "syncClaudeAiSkills", "theme"])
+  and ((.permissions | keys) == ["defaultMode"])
 ' "$fixture_home/.claude/settings.json" >/dev/null
 [[ $(stat -c '%a' "$fixture_home/.claude/settings.json") == 600 ]]
+
+make_fixture missing-managed-path
+mkdir -p "$fixture_home/.claude"
+printf '%s\n' '{"keep":true}' >"$fixture_home/.claude/settings.json"
+cp "$fixture_home/.claude/settings.json" "$fixture_home/settings.before"
+printf '%s\n' '{"theme":"dark","statusLine":{"type":"command","command":"x"},"permissions":{"defaultMode":"auto"}}' \
+  >"$fixture_root/claude/settings.json"
+if run_merge >/dev/null 2>&1; then
+  printf 'Fragment without every managed path was accepted.\n' >&2
+  exit 1
+fi
+cmp "$fixture_home/settings.before" "$fixture_home/.claude/settings.json"
+[[ -z $(find "$fixture_home/.claude" -maxdepth 1 -name '.settings.json.tmp.*' -print -quit) ]]
 
 make_fixture invalid-fragment
 mkdir -p "$fixture_home/.claude"

@@ -6,6 +6,9 @@ readonly ROOT_DIR
 readonly FRAGMENT_PATH="$ROOT_DIR/claude/settings.json"
 readonly SETTINGS_DIR="${HOME:?}/.claude"
 readonly SETTINGS_PATH="$SETTINGS_DIR/settings.json"
+# Only these paths are owned by the repository. Everything else in the user's
+# settings.json is preserved.
+readonly MANAGED_PATHS='[["theme"],["statusLine"],["permissions","defaultMode"],["syncClaudeAiSkills"],["syncClaudeAiPlugins"]]'
 
 die() {
   printf 'merge-claude-settings: %s\n' "$*" >&2
@@ -18,9 +21,14 @@ command -v jq >/dev/null 2>&1 || die "jq is required"
 umask 077
 mkdir -p -- "$SETTINGS_DIR"
 
-if ! jq -e 'if type == "object" then has("theme") and has("statusLine") else false end' \
-  "$FRAGMENT_PATH" >/dev/null; then
-  die "settings fragment must be a JSON object with theme and statusLine"
+if ! jq -e --argjson paths "$MANAGED_PATHS" '
+  . as $fragment
+  | if type == "object"
+    then [$paths[] | . as $path | ($fragment | getpath($path)) != null] | all
+    else false
+    end
+' "$FRAGMENT_PATH" >/dev/null; then
+  die "settings fragment must be a JSON object defining every managed path: $MANAGED_PATHS"
 fi
 
 if [[ -e $SETTINGS_PATH ]]; then
@@ -40,20 +48,16 @@ trap cleanup EXIT
 temporary_path="$(mktemp --tmpdir="$SETTINGS_DIR" '.settings.json.tmp.XXXXXXXXXX')"
 
 if [[ -e $SETTINGS_PATH ]]; then
-  jq -s '
+  jq -s --argjson paths "$MANAGED_PATHS" '
     .[0] as $existing
     | .[1] as $fragment
-    | $existing
-    | .theme = $fragment.theme
-    | .statusLine = $fragment.statusLine
+    | reduce $paths[] as $path ($existing; setpath($path; ($fragment | getpath($path))))
   ' "$SETTINGS_PATH" "$FRAGMENT_PATH" >"$temporary_path"
   chmod --reference="$SETTINGS_PATH" "$temporary_path"
 else
-  jq -s '
+  jq -s --argjson paths "$MANAGED_PATHS" '
     .[0] as $fragment
-    | {}
-    | .theme = $fragment.theme
-    | .statusLine = $fragment.statusLine
+    | reduce $paths[] as $path ({}; setpath($path; ($fragment | getpath($path))))
   ' "$FRAGMENT_PATH" >"$temporary_path"
 fi
 

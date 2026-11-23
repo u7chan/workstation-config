@@ -9,6 +9,9 @@ case "${1:-}" in
     test -f "$ROOT_DIR/home/dot_claude/statusline/statusline.sh"
     test -f "$ROOT_DIR/home/dot_claude/statusline/statusline.jq"
     grep -Fq 'bash ~/.claude/statusline/statusline.sh' "$ROOT_DIR/claude/settings.json"
+    grep -Fq '"defaultMode": "auto"' "$ROOT_DIR/claude/settings.json"
+    grep -Fq '"syncClaudeAiSkills": false' "$ROOT_DIR/claude/settings.json"
+    grep -Fq '"syncClaudeAiPlugins": false' "$ROOT_DIR/claude/settings.json"
     grep -Fq 'scripts/merge-claude-settings' "$ROOT_DIR/bootstrap"
     grep -Fq "rm -f -- \"\$HOME/.claude/statusline.py\"" "$ROOT_DIR/bootstrap"
     ;;
