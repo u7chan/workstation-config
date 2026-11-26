@@ -668,6 +668,7 @@ type -a gh herdr claude codex opencode pi
 1. `personal_ai_tools`で選択したAI CLIを`update-ai`で更新（空ならスキップ）
 2. agent-harnessのスキル配布を`dist.sh update`で更新（Piの選択とは独立）
 3. `mise upgrade herdr`
+4. `mise audit`で既知の脆弱性を表示（3まで成功したときだけ）
 
 agent-harnessは既定で`~/.local/share/agent-harness`にpinned releaseを置き、`~/.agents/skills`へper-skill linkを張ります。初回だけAnsibleがpinned SHAを配り、以後は`myupdate`が`origin/main`を追います。`~/.claude/skills`は`~/.agents/skills`へのsymlinkとしてbootstrapが用意します。実ディレクトリや別のsymlinkが既にある場合は置き換えず、自動でもlinkしません。ただし、既存の`link-dirs`に`~/.claude/skills`が記録されている場合はbootstrapもその記録を使うため、実ディレクトリにもlinkし、同名の実パスがあれば停止します。その場合は`dist.sh update --link-dir ~/.agents/skills`で記録を`.agents`だけに戻してから再実行してください。実ディレクトリへlinkしたい場合は、同名の実パスを解消したうえで`dist.sh update --link-dir ~/.agents/skills --link-dir ~/.claude/skills`のように必要なdirを明示してください。bootstrapのupdateは`link-dirs`の記録（初回は`~/.agents/skills`）を使います。`--link-dir`は追加ではなく置換なので、増やすときは全dirを渡してください。Codexの探索パスは未測定のため、`~/.codex/skills`へのlinkはまだ追加していません。`dist.sh status`でserving revisionと記録・linkの一致を確認できます。非既定のrootやrepoを使う場合は`AGENT_HARNESS_HOME`と`AGENT_HARNESS_REPO_URL`をユーザー環境にも設定してください（bootstrapはrole変数、myupdateは環境変数を使うため）。
 
@@ -686,6 +687,8 @@ myupdate
 更新対象は`~/.config/workstation/myupdate.conf`へ展開されます。手動テストなどで一時的に変更する場合は、`WORKSTATION_UPDATE_AI_TOOLS=opencode,pi myupdate`のように環境変数で上書きできます。空文字を指定するとAI CLI更新をスキップしますが、agent-harnessのスキル更新は実行されます。
 
 Codex CLIを含む既定対象への更新は`./bootstrap personal`でスクリプトと設定を再配置してから`myupdate`を実行します。subsetを指定している場合は`personal_ai_tools`（または`WORKSTATION_PERSONAL_AI_TOOLS`）へ`codex`を追加してください。Codexだけを一時的に更新する場合は`WORKSTATION_UPDATE_AI_TOOLS=codex myupdate`を使います。
+
+3つの更新がすべて成功した後の最後に`mise audit --json`を実行し、mise管理ツールの解決済みバージョンに既知の脆弱性がないかをOSV.devで照合します。出力は`mise audit: <n> known vulnerabilities in <n> tool versions (<n> with a fix, <n> high or critical); not checked: <n>`で、`not checked`はmiseが照合対象を持たないツール数（例: neovim）です。レポートは`~/.local/state/workstation-update/mise-audit.json`へ残し、前回と同じadvisoryは再表示せず、新しいものだけを`mise audit: <n> new since the last run`に続けて`no fix`または`fix <version>`付きで表示します。毎回の実行がそのまま定期監視になり、同じ指摘の読み飛ばしを避けられます。これは助言であり、`myupdate`の成否には影響しません。検知があっても終了コードは0のまま、miseが古くて`audit`を持たない場合、jqが無い場合、OSV.devへ到達できない場合も`mise audit skipped:`を1行出して更新結果は変えずに終わります。解決に失敗した場合（configとlockfileの不一致など）は`mise audit skipped: mise could not check every tool version (exit 1): <未解決のバージョン>`を出し、空のレポートを「脆弱性なし」として扱わず、前回のレポートも上書きしません。一部だけ未解決のまま検知がある場合は`mise audit: incomplete; not resolved: <未解決のバージョン>`を追加し、その回を次回の差分基準にしません。対象はmise管理ツールだけで、APT、AI CLIのinstaller、Dockerイメージは含みません。検知を理由に`mise upgrade --vulnerable`を実行しないでください。lockfileとPRレビューを通す方針と衝突します。`audit`はmise 2026.11.12以降が必要で、Ansibleが入れるpinは`ansible/vars/main.yml`が所有します。
 
 Piを選択した更新では、Pi本体の更新後に`pi-web-access`、`pi-codex-image-gen`、`@howaboua/pi-codex-conversion`、`@ogulcancelik/pi-session-recall`の導入・更新と登録確認まで行います。最後に`==> Pi versions`ブロックが出るため、ageゲートで見送った版と実際に入った版を更新ログだけで判別できます。bootstrapと`myupdate`を複数回実行しても、Pi Package managerが同じglobal sourceを重複登録しないようにします。conversionのmanaged configも同じ処理で冪等に更新します。
 

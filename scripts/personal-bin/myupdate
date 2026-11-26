@@ -143,6 +143,136 @@ run_herdr_update() {
     env -u MISE_LOCKED "$mise_bin" upgrade herdr || return $?
 }
 
+# mise audit reports known vulnerabilities in the tool versions the config
+# resolves. The report is advisory: a finding, an unsupported mise, or an
+# unreachable OSV must not decide the outcome of an update. It runs last and is
+# never added to FAILED_STEPS.
+#
+# `mise audit --json` writes the report to stdout and keeps warnings and errors
+# on stderr. Exit status 1 covers both "advisories found" and a failed lookup
+# such as a lockfile that no longer matches the config, so the report and stderr
+# are read together instead of trusting the status alone.
+readonly MISE_AUDIT_REPORT_FILE="$STATE_DIR/mise-audit-latest.json"
+readonly MISE_AUDIT_ERROR_FILE="$STATE_DIR/mise-audit-latest.err"
+readonly MISE_AUDIT_STATE_FILE="$STATE_DIR/mise-audit.json"
+
+mise_audit_skip() {
+  printf 'mise audit skipped: %s\n' "$*"
+}
+
+# An unresolved version makes mise print an empty report and exit 1, which is
+# otherwise indistinguishable from "no known vulnerabilities". The error line
+# names every version that was not checked.
+mise_audit_unresolved() {
+  sed -n 's/.*not checked, the version did not resolve: //p' "$1" 2>/dev/null \
+    | tail -n 1
+}
+
+# Findings are keyed by tool/version/id so a re-run prints only what is new.
+# Without the diff the same locked advisories would be reprinted every run and
+# stop being read.
+new_mise_audit_findings() {
+  local report_file=$1 previous_json=$2
+
+  jq -r --argjson previous "$previous_json" '
+    ($previous | map("\(.tool)\t\(.version)\t\(.id)")) as $seen
+    | [.vulnerabilities[]
+      | select(("\(.tool)\t\(.version)\t\(.id)") as $key | ($seen | index($key)) == null)]
+    | sort_by(.tool, .version, .id)
+    | .[]
+    | "  \(.tool) \(.version) \(.id) \(.severity // "-") "
+      + (if (.fixed | length) > 0 then "fix " + (.fixed | join(",")) else "no fix" end)' \
+    "$report_file"
+}
+
+print_mise_audit_report() {
+  local report_file=$1
+  local total tools fixed_count severe_count unchecked_count new_findings new_count
+  local previous_json='[]' vulnerability_label='vulnerabilities' tool_label='tool versions'
+
+  total="$(jq '.vulnerabilities | length' "$report_file")"
+  tools="$(jq '[.vulnerabilities[].tool] | unique | length' "$report_file")"
+  fixed_count="$(jq '[.vulnerabilities[] | select((.fixed | length) > 0)] | length' "$report_file")"
+  severe_count="$(jq '[.vulnerabilities[]
+    | select(.severity == "high" or .severity == "critical")] | length' "$report_file")"
+  unchecked_count="$(jq '.unchecked | length' "$report_file")"
+
+  if ((total == 0)); then
+    printf 'mise audit: no known vulnerabilities'
+  else
+    ((total == 1)) && vulnerability_label='vulnerability'
+    ((tools == 1)) && tool_label='tool version'
+    printf 'mise audit: %s known %s in %s %s (%s with a fix, %s high or critical)' \
+      "$total" "$vulnerability_label" "$tools" "$tool_label" "$fixed_count" "$severe_count"
+  fi
+  ((unchecked_count == 0)) || printf '; not checked: %s' "$unchecked_count"
+  printf '\n'
+
+  if [[ -r $MISE_AUDIT_STATE_FILE ]]; then
+    previous_json="$(jq -c 'if (.vulnerabilities | type) == "array" then .vulnerabilities else [] end' \
+      "$MISE_AUDIT_STATE_FILE" 2>/dev/null)" || previous_json='[]'
+    [[ -n $previous_json ]] || previous_json='[]'
+  fi
+
+  new_findings="$(new_mise_audit_findings "$report_file" "$previous_json")"
+  [[ -n $new_findings ]] || return 0
+
+  new_count="$(printf '%s\n' "$new_findings" | wc -l)"
+  printf 'mise audit: %s new since the last run\n' "$new_count"
+  printf '%s\n' "$new_findings"
+}
+
+run_mise_audit() {
+  local mise_bin="${WORKSTATION_UPDATE_MISE_BIN:-$HOME/.local/bin/mise}"
+  local mise_config_file="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}"
+  local exit_code=0 total unresolved
+
+  if ! command -v jq >/dev/null 2>&1; then
+    mise_audit_skip 'jq is required to summarize the report'
+    return 0
+  fi
+  [[ -x $mise_bin ]] || {
+    mise_audit_skip "mise is not executable: $mise_bin"
+    return 0
+  }
+
+  printf '==> mise audit\n'
+  : >"$MISE_AUDIT_REPORT_FILE"
+  : >"$MISE_AUDIT_ERROR_FILE"
+  MISE_CONFIG_FILE="$mise_config_file" \
+  MISE_LOCKED=1 \
+  MISE_YES=1 \
+    "$mise_bin" audit --json \
+      >"$MISE_AUDIT_REPORT_FILE" 2>"$MISE_AUDIT_ERROR_FILE" || exit_code=$?
+
+  if ! jq -e '(.vulnerabilities | type) == "array"' "$MISE_AUDIT_REPORT_FILE" >/dev/null 2>&1; then
+    mise_audit_skip "mise did not return a report (exit $exit_code); see $MISE_AUDIT_ERROR_FILE"
+    return 0
+  fi
+
+  total="$(jq '.vulnerabilities | length' "$MISE_AUDIT_REPORT_FILE")"
+  unresolved="$(mise_audit_unresolved "$MISE_AUDIT_ERROR_FILE")"
+
+  # An empty report from a failed run says nothing about the tools. Reporting it
+  # as clean would be wrong, and storing it would make the next run lose its
+  # baseline, so the previous report is kept.
+  if ((total == 0)) && [[ -n $unresolved || $exit_code -ne 0 ]]; then
+    mise_audit_skip "mise could not check every tool version (exit $exit_code)${unresolved:+: $unresolved}"
+    return 0
+  fi
+
+  print_mise_audit_report "$MISE_AUDIT_REPORT_FILE"
+  # A partial report still lists real advisories, but it cannot become the
+  # baseline: the unchecked tools would silently leave the next diff.
+  if [[ -n $unresolved ]]; then
+    printf 'mise audit: incomplete; not resolved: %s\n' "$unresolved"
+    return 0
+  fi
+
+  mv -f -- "$MISE_AUDIT_REPORT_FILE" "$MISE_AUDIT_STATE_FILE"
+  rm -f -- "$MISE_AUDIT_ERROR_FILE"
+}
+
 # Stream a step to the console while keeping a copy for failure classification.
 # pipefail (set above) preserves the step's exit code through the pipe. The copy
 # makes the step's stdout a pipe, so installers that detect a TTY may print less.
@@ -297,5 +427,7 @@ if ((${#FAILED_STEPS[@]} > 0)); then
   printf '%s: captured step output: %s/\n' "$PROGRAM_NAME" "$STATE_DIR" >&2
   exit 1
 fi
+
+run_mise_audit
 
 printf '%s: all updates completed successfully\n' "$PROGRAM_NAME"
