@@ -87,23 +87,31 @@ case "$*" in
     ;;
   'audit --json')
     printf 'mise-audit:1\n' >>"$TEST_COMMAND_LOG"
+    audit_report='{"vulnerabilities":[{"tool":"node","version":"18.0.0","id":"CVE-2022-32212","aliases":[],"severity":null,"summary":"command injection","fixed":[],"url":"https://osv.dev/vulnerability/CVE-2022-32212"},{"tool":"npm:lodash","version":"4.17.15","id":"GHSA-35jh-r3h4-6jhm","aliases":[],"severity":"high","summary":"command injection","fixed":["4.17.21"],"url":"https://osv.dev/vulnerability/GHSA-35jh-r3h4-6jhm"}],"unchecked":[{"tool":"neovim","version":"0.12.3"}]}'
+    # The report always goes to stdout; warnings and errors stay on stderr.
     case "${TEST_AUDIT_MODE:-clean}" in
       clean)
-        printf '{"vulnerabilities":[],"unchecked":[]}\n' >&2
+        printf '{"vulnerabilities":[],"unchecked":[]}\n'
         ;;
       findings)
-        audit_report='{"vulnerabilities":[{"tool":"node","version":"18.0.0","id":"CVE-2022-32212","aliases":[],"severity":null,"summary":"command injection","fixed":[],"url":"https://osv.dev/vulnerability/CVE-2022-32212"},{"tool":"npm:lodash","version":"4.17.15","id":"GHSA-35jh-r3h4-6jhm","aliases":[],"severity":"high","summary":"command injection","fixed":["4.17.21"],"url":"https://osv.dev/vulnerability/GHSA-35jh-r3h4-6jhm"}],"unchecked":[{"tool":"neovim","version":"0.12.3"}]}'
-        # mise writes the report to stderr on a terminal and to stdout when it
-        # is redirected, so both placements have to be understood.
-        if [[ ${TEST_AUDIT_STREAM:-stderr} == stdout ]]; then
-          printf '%s\n' "$audit_report"
-        else
-          printf '%s\n' "$audit_report" >&2
-        fi
+        printf '%s\n' "$audit_report"
+        exit 1
+        ;;
+      # A lockfile that no longer matches the config: an empty report, exit 1,
+      # and the unchecked versions named on stderr.
+      unresolved)
+        printf '{"vulnerabilities":[],"unchecked":[]}\n'
+        printf 'mise ERROR not checked, the version did not resolve: node@18.0.0\n' >&2
+        exit 1
+        ;;
+      # Some versions resolved and one did not: real findings plus a gap.
+      partial)
+        printf '%s\n' "$audit_report"
+        printf 'mise ERROR not checked, the version did not resolve: node@18.0.0\n' >&2
         exit 1
         ;;
       error)
-        printf 'error: failed to query osv.dev\n' >&2
+        printf 'mise ERROR failed to query osv.dev\n' >&2
         exit 1
         ;;
       unsupported)
@@ -150,6 +158,11 @@ prepare_run() {
   RUN_COMMAND_LOG="$test_dir/$name-commands.log"
   mkdir -p "$RUN_COUNTER_DIR"
   : >"$RUN_COMMAND_LOG"
+  # Every case starts without an audit baseline so none of them depends on the
+  # order the earlier cases ran in.
+  rm -f -- "$fixture_home/.local/state/workstation-update/mise-audit.json" \
+    "$fixture_home/.local/state/workstation-update/mise-audit-latest.json" \
+    "$fixture_home/.local/state/workstation-update/mise-audit-latest.err"
 }
 
 run_update() {
@@ -166,7 +179,6 @@ run_update() {
   TEST_AI_FAILURES="${TEST_AI_FAILURES:-0}" \
   TEST_MISE_FAILURES="${TEST_MISE_FAILURES:-0}" \
   TEST_AUDIT_MODE="${TEST_AUDIT_MODE:-clean}" \
-  TEST_AUDIT_STREAM="${TEST_AUDIT_STREAM:-stderr}" \
   TEST_SAFE_CHAIN_BLOCK="${TEST_SAFE_CHAIN_BLOCK:-}" \
   TEST_SAFE_CHAIN_GENERIC_BLOCK="${TEST_SAFE_CHAIN_GENERIC_BLOCK:-}" \
   TEST_SAFE_CHAIN_INFO="${TEST_SAFE_CHAIN_INFO:-}" \
@@ -433,7 +445,7 @@ if grep -Fq 'mise audit' "$test_dir/audit-skipped.out"; then
 fi
 
 # Findings are reported but never fail the update, and the previous report is
-# kept so the next run only prints what changed.
+# kept so a later run only prints what changed.
 prepare_run audit-findings
 set +e
 TEST_AUDIT_MODE=findings run_update >"$test_dir/audit-findings.out" 2>&1
@@ -441,7 +453,7 @@ exit_code=$?
 set -e
 [[ $exit_code -eq 0 ]]
 [[ $(grep -c '^mise-audit:' "$RUN_COMMAND_LOG") -eq 1 ]]
-grep -Fq '==> mise audit' "$test_dir/audit-findings.out"
+grep -Fqx '==> mise audit' "$test_dir/audit-findings.out"
 grep -Fqx 'mise audit: 2 known vulnerabilities in 2 tool versions (1 with a fix, 1 high or critical); not checked: 1' \
   "$test_dir/audit-findings.out"
 grep -Fqx 'mise audit: 2 new since the last run' "$test_dir/audit-findings.out"
@@ -452,37 +464,52 @@ grep -Fq 'all updates completed successfully' "$test_dir/audit-findings.out"
 [[ $(jq '.vulnerabilities | length' \
   "$fixture_home/.local/state/workstation-update/mise-audit.json") -eq 2 ]]
 
+# The second run against the same report reprints the summary only.
 prepare_run audit-repeat
 TEST_AUDIT_MODE=findings run_update >"$test_dir/audit-repeat.out" 2>&1
+grep -Fqx 'mise audit: 2 new since the last run' "$test_dir/audit-repeat.out"
+TEST_AUDIT_MODE=findings run_update >"$test_dir/audit-repeat2.out" 2>&1
 grep -Fqx 'mise audit: 2 known vulnerabilities in 2 tool versions (1 with a fix, 1 high or critical); not checked: 1' \
-  "$test_dir/audit-repeat.out"
-if grep -Fq 'new since the last run' "$test_dir/audit-repeat.out"; then
+  "$test_dir/audit-repeat2.out"
+if grep -Fq 'new since the last run' "$test_dir/audit-repeat2.out"; then
   printf 'an unchanged report must not reprint its findings.\n' >&2
   exit 1
 fi
 
-# An unreachable or too-old mise skips the audit without changing the outcome
-# and without overwriting the last usable report.
-prepare_run audit-error
-set +e
-TEST_AUDIT_MODE=error run_update >"$test_dir/audit-error.out" 2>&1
-exit_code=$?
-set -e
-[[ $exit_code -eq 0 ]]
-grep -Fqx 'mise audit skipped: mise did not return a report (exit 1); see '"$fixture_home"'/.local/state/workstation-update/mise-audit-latest.*' \
-  "$test_dir/audit-error.out"
-grep -Fq 'all updates completed successfully' "$test_dir/audit-error.out"
+# A failed lookup with an empty report is not "no known vulnerabilities": it is
+# skipped and the previous baseline survives.
+prepare_run audit-unresolved
+TEST_AUDIT_MODE=findings run_update >/dev/null 2>&1
+TEST_AUDIT_MODE=unresolved run_update >"$test_dir/audit-unresolved.out" 2>&1
+grep -Fqx 'mise audit skipped: mise could not check every tool version (exit 1): node@18.0.0' \
+  "$test_dir/audit-unresolved.out"
+if grep -Fq 'no known vulnerabilities' "$test_dir/audit-unresolved.out"; then
+  printf 'an empty report from a failed lookup must not be reported as clean.\n' >&2
+  exit 1
+fi
+grep -Fq 'all updates completed successfully' "$test_dir/audit-unresolved.out"
 [[ $(jq '.vulnerabilities | length' \
   "$fixture_home/.local/state/workstation-update/mise-audit.json") -eq 2 ]]
 
-prepare_run audit-stdout
-TEST_AUDIT_MODE=findings TEST_AUDIT_STREAM=stdout run_update >"$test_dir/audit-stdout.out" 2>&1
+# A partial report keeps its findings visible, says what was not checked, and
+# does not become the baseline.
+prepare_run audit-partial
+TEST_AUDIT_MODE=findings run_update >/dev/null 2>&1
+TEST_AUDIT_MODE=partial run_update >"$test_dir/audit-partial.out" 2>&1
 grep -Fqx 'mise audit: 2 known vulnerabilities in 2 tool versions (1 with a fix, 1 high or critical); not checked: 1' \
-  "$test_dir/audit-stdout.out"
-if grep -Fq 'mise audit skipped' "$test_dir/audit-stdout.out"; then
-  printf 'a report on stdout must be read as the report.\n' >&2
-  exit 1
-fi
+  "$test_dir/audit-partial.out"
+grep -Fqx 'mise audit: incomplete; not resolved: node@18.0.0' "$test_dir/audit-partial.out"
+[[ $(jq '.vulnerabilities | length' \
+  "$fixture_home/.local/state/workstation-update/mise-audit.json") -eq 2 ]]
+grep -Fq 'all updates completed successfully' "$test_dir/audit-partial.out"
+
+# A report that never arrives, or a mise without the subcommand, skips the step.
+prepare_run audit-error
+TEST_AUDIT_MODE=error run_update >"$test_dir/audit-error.out" 2>&1
+grep -Fqx 'mise audit skipped: mise did not return a report (exit 1); see '"$fixture_home"'/.local/state/workstation-update/mise-audit-latest.err' \
+  "$test_dir/audit-error.out"
+grep -Fq 'all updates completed successfully' "$test_dir/audit-error.out"
+[[ ! -e $fixture_home/.local/state/workstation-update/mise-audit.json ]]
 
 prepare_run audit-unsupported
 TEST_AUDIT_MODE=unsupported run_update >"$test_dir/audit-unsupported.out" 2>&1

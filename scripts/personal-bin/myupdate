@@ -148,16 +148,24 @@ run_herdr_update() {
 # unreachable OSV must not decide the outcome of an update. It runs last and is
 # never added to FAILED_STEPS.
 #
-# `mise audit --json` writes its report to stderr while stdout is a terminal and
-# to stdout once it is redirected, so myupdate keeps both streams and treats the
-# one that parses as the report. Capturing only one breaks when myupdate itself
-# is piped into a log.
-readonly MISE_AUDIT_STDERR_FILE="$STATE_DIR/mise-audit-latest.json"
-readonly MISE_AUDIT_STDOUT_FILE="$STATE_DIR/mise-audit-latest.out"
+# `mise audit --json` writes the report to stdout and keeps warnings and errors
+# on stderr. Exit status 1 covers both "advisories found" and a failed lookup
+# such as a lockfile that no longer matches the config, so the report and stderr
+# are read together instead of trusting the status alone.
+readonly MISE_AUDIT_REPORT_FILE="$STATE_DIR/mise-audit-latest.json"
+readonly MISE_AUDIT_ERROR_FILE="$STATE_DIR/mise-audit-latest.err"
 readonly MISE_AUDIT_STATE_FILE="$STATE_DIR/mise-audit.json"
 
 mise_audit_skip() {
   printf 'mise audit skipped: %s\n' "$*"
+}
+
+# An unresolved version makes mise print an empty report and exit 1, which is
+# otherwise indistinguishable from "no known vulnerabilities". The error line
+# names every version that was not checked.
+mise_audit_unresolved() {
+  sed -n 's/.*not checked, the version did not resolve: //p' "$1" 2>/dev/null \
+    | tail -n 1
 }
 
 # Findings are keyed by tool/version/id so a re-run prints only what is new.
@@ -217,8 +225,7 @@ print_mise_audit_report() {
 run_mise_audit() {
   local mise_bin="${WORKSTATION_UPDATE_MISE_BIN:-$HOME/.local/bin/mise}"
   local mise_config_file="${MISE_CONFIG_FILE:-$HOME/.config/mise/config.toml}"
-  local report_file=""
-  local exit_code=0
+  local exit_code=0 total unresolved
 
   if ! command -v jq >/dev/null 2>&1; then
     mise_audit_skip 'jq is required to summarize the report'
@@ -230,33 +237,40 @@ run_mise_audit() {
   }
 
   printf '==> mise audit\n'
-  : >"$MISE_AUDIT_STDERR_FILE"
-  : >"$MISE_AUDIT_STDOUT_FILE"
-  # Exit status 1 means "advisories found", so it cannot separate findings from
-  # a failure. A parseable report is the evidence that the lookup itself worked.
+  : >"$MISE_AUDIT_REPORT_FILE"
+  : >"$MISE_AUDIT_ERROR_FILE"
   MISE_CONFIG_FILE="$mise_config_file" \
   MISE_LOCKED=1 \
   MISE_YES=1 \
     "$mise_bin" audit --json \
-      >"$MISE_AUDIT_STDOUT_FILE" 2>"$MISE_AUDIT_STDERR_FILE" || exit_code=$?
+      >"$MISE_AUDIT_REPORT_FILE" 2>"$MISE_AUDIT_ERROR_FILE" || exit_code=$?
 
-  local stream_file
-  for stream_file in "$MISE_AUDIT_STDERR_FILE" "$MISE_AUDIT_STDOUT_FILE"; do
-    if jq -e '(.vulnerabilities | type) == "array"' "$stream_file" >/dev/null 2>&1; then
-      report_file=$stream_file
-      break
-    fi
-  done
-  if [[ -z $report_file ]]; then
-    mise_audit_skip "mise did not return a report (exit $exit_code); see $STATE_DIR/mise-audit-latest.*"
+  if ! jq -e '(.vulnerabilities | type) == "array"' "$MISE_AUDIT_REPORT_FILE" >/dev/null 2>&1; then
+    mise_audit_skip "mise did not return a report (exit $exit_code); see $MISE_AUDIT_ERROR_FILE"
     return 0
   fi
 
-  print_mise_audit_report "$report_file"
-  mv -f -- "$report_file" "$MISE_AUDIT_STATE_FILE"
-  for stream_file in "$MISE_AUDIT_STDERR_FILE" "$MISE_AUDIT_STDOUT_FILE"; do
-    rm -f -- "$stream_file"
-  done
+  total="$(jq '.vulnerabilities | length' "$MISE_AUDIT_REPORT_FILE")"
+  unresolved="$(mise_audit_unresolved "$MISE_AUDIT_ERROR_FILE")"
+
+  # An empty report from a failed run says nothing about the tools. Reporting it
+  # as clean would be wrong, and storing it would make the next run lose its
+  # baseline, so the previous report is kept.
+  if ((total == 0)) && [[ -n $unresolved || $exit_code -ne 0 ]]; then
+    mise_audit_skip "mise could not check every tool version (exit $exit_code)${unresolved:+: $unresolved}"
+    return 0
+  fi
+
+  print_mise_audit_report "$MISE_AUDIT_REPORT_FILE"
+  # A partial report still lists real advisories, but it cannot become the
+  # baseline: the unchecked tools would silently leave the next diff.
+  if [[ -n $unresolved ]]; then
+    printf 'mise audit: incomplete; not resolved: %s\n' "$unresolved"
+    return 0
+  fi
+
+  mv -f -- "$MISE_AUDIT_REPORT_FILE" "$MISE_AUDIT_STATE_FILE"
+  rm -f -- "$MISE_AUDIT_ERROR_FILE"
 }
 
 # Stream a step to the console while keeping a copy for failure classification.
