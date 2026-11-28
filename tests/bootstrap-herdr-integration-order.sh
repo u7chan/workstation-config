@@ -116,7 +116,7 @@ grep -Fq "map('extract', personal_herdr_integration_names)" "$herdr_tasks" || {
 antigravity_task="$(task_block 'Keep the Antigravity CLI installer out of unmanaged shell profiles' "$antigravity_tasks")"
 grep -Fq 'ansible.builtin.replace' <<<"$antigravity_task" &&
 grep -Fq '# Added by Antigravity CLI installer\n^export PATH=' <<<"$antigravity_task" &&
-grep -Fqx '  when: item.stat.exists' <<<"$antigravity_task" || {
+grep -Fqx '  when: item.stat is defined and item.stat.exists' <<<"$antigravity_task" || {
   printf 'bootstrap-herdr-integration-order: Antigravity profile cleanup must remove only the installer block.\n' >&2
   exit 1
 }

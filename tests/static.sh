@@ -36,6 +36,7 @@ run smoke.sh syntax-more                 # 旧L82-88
 run personal.sh syntax                   # 旧L89
 run smoke.sh syntax-update               # 旧L90
 run personal.sh role                     # 旧L91-104
+run personal.sh antigravity-cleanup      # #248: Antigravity CLIのプロファイル掃除
 run mise.sh yazi                         # 旧L106-115
 run shell-init.sh syntax-bashrc          # 旧L117
 run shell-init.sh syntax-profile         # issue #216: login shellのPATH順序

@@ -24,4 +24,4 @@
   loop: "{{ personal_antigravity_shell_profiles.results | default([]) }}"
   loop_control:
     label: "{{ item.item }}"
-  when: item.stat.exists
+  when: item.stat is defined and item.stat.exists

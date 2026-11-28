@@ -53,8 +53,8 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
 
 - `base` role の tasks は責務ごとに `systemd_workaround.yml` / `apt.yml` / `toolchain.yml` /
   `mise_tools.yml` / `shell.yml` / `safe_chain.yml` へ分割され、
-  `personal` role の tasks は `git.yml` / `update_ai.yml` / `herdr_integration.yml` /
-  `herdr_plugins.yml` / `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
+  `personal` role の tasks は `git.yml` / `update_ai.yml` / `antigravity.yml` /
+  `herdr_integration.yml` / `herdr_plugins.yml` / `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
   移行用タスク（APT版`gh`の除去、Bun global Safe-chainの撤去、`clp`の旧名削除）は、
   全管理対象環境で適用済み・不要物の不存在を確認できたため撤去済み。
   残骸が再発した場合は手動で除去する。
@@ -65,7 +65,7 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
   `personal_mise_path` / `personal_herdr_env`）。
 - `base` に含まれない責務は `personal` にも含まれません。`personal` は `base` を包含するため、
   `personal` プロファイルでは上表の `base` 列が「担当」の項目もすべて適用されます。
-- `personal_ai_tools` の許可リスト（`claude` / `codex` / `opencode` / `pi`）の正本は
+- `personal_ai_tools` の許可リスト（`antigravity` / `claude` / `codex` / `opencode` / `pi`）の正本は
   `ansible/roles/personal/defaults/main.yml` です。この集合はshell側でも検証・展開されるため、
   `bootstrap` の `WORKSTATION_PERSONAL_AI_TOOLS` 検証、`ansible/roles/personal/tasks/update_ai.yml`
   のassert、`scripts/update-ai` のCLIフラグ、`scripts/personal-bin/myupdate` の設定検証と同期して
