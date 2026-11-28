@@ -44,7 +44,7 @@ assert_line="$(line_number '- name: Verify selected Herdr integrations are curre
 }
 
 directories_task="$(task_block 'Ensure Herdr integration config directories exist for selected AI CLI tools' "$herdr_tasks")"
-for config_path in .claude .codex .config/opencode .pi/agent; do
+for config_path in .gemini/config .claude .codex .config/opencode .pi/agent; do
   grep -Fqx "      path: $config_path" <<<"$directories_task" || {
     printf 'bootstrap-herdr-integration-order: missing Herdr config directory %s.\n' "$config_path" >&2
     exit 1
@@ -63,7 +63,7 @@ install_task="$(task_block 'Install selected Herdr integrations' "$herdr_tasks")
 grep -Fqx '      - integration' <<<"$install_task" &&
 grep -Fqx '      - install' <<<"$install_task" &&
 grep -Fqx '      - "{{ item }}"' <<<"$install_task" &&
-grep -Fq 'loop: "{{ personal_ai_tools | unique | list }}"' <<<"$install_task" &&
+grep -Fq 'loop: "{{ personal_herdr_integrations }}"' <<<"$install_task" &&
 grep -Fq 'personal_ai_tools | length > 0' <<<"$install_task" &&
 grep -Fq '/usr/bin/flock' <<<"$install_task" || {
   printf 'bootstrap-herdr-integration-order: selected Herdr integration install task is incomplete.\n' >&2
@@ -86,8 +86,18 @@ grep -Fq 'personal_ai_tools | length > 0' <<<"$status_task" || {
 assert_task="$(task_block 'Verify selected Herdr integrations are current' "$herdr_tasks")"
 grep -Fq "': current '" <<<"$assert_task" &&
 grep -Fq 'herdr_integration_status.stdout_lines' <<<"$assert_task" &&
-grep -Fq 'personal_ai_tools | unique | list' <<<"$assert_task" || {
+grep -Fq 'loop: "{{ personal_herdr_integrations }}"' <<<"$assert_task" || {
   printf 'bootstrap-herdr-integration-order: selected Herdr integrations must be asserted as current.\n' >&2
+  exit 1
+}
+# The Antigravity CLI integration is named antigravity-cli, so the install and
+# status loops must resolve names through the declared mapping instead of
+# reusing the tool name.
+personal_vars="$ROOT_DIR/ansible/roles/personal/vars/main.yml"
+grep -Fq 'personal_herdr_integration_names:' "$personal_vars" &&
+grep -Fqx '  antigravity: antigravity-cli' "$personal_vars" &&
+grep -Fq "map('extract', personal_herdr_integration_names)" "$herdr_tasks" || {
+  printf 'bootstrap-herdr-integration-order: Herdr integration names must be mapped from personal_ai_tools.\n' >&2
   exit 1
 }
 

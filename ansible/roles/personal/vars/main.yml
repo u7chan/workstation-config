@@ -13,3 +13,14 @@ personal_mise_path: >-
   ansible_facts['env']['PATH'] | default('/usr/local/bin:/usr/bin:/bin') }}
 
 personal_herdr_env: "{{ personal_mise_env | combine({'PATH': personal_mise_path}) }}"
+
+# `personal_ai_tools` の tool 名と Herdr integration 名の対応表。Antigravity CLI
+# だけは tool 名（antigravity）と integration 名（antigravity-cli）が一致しない。
+# 選択された tool から install/status 用の名前を引くため、全 tool を列挙して
+# 未登録のまま素通りさせない。
+personal_herdr_integration_names:
+  antigravity: antigravity-cli
+  claude: claude
+  codex: codex
+  opencode: opencode
+  pi: pi

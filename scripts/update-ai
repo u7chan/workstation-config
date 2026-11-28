@@ -363,12 +363,14 @@ ai_cli_version_line() {
   printf '%s %s\n' "$label" "$version"
 }
 
+install_antigravity=false
 install_claude=false
 install_codex=false
 install_opencode=false
 install_pi=false
 
 if [[ $# -eq 0 ]]; then
+  install_antigravity=true
   install_claude=true
   install_codex=true
   install_opencode=true
@@ -376,6 +378,7 @@ if [[ $# -eq 0 ]]; then
 else
   for arg in "$@"; do
     case "$arg" in
+      --antigravity) install_antigravity=true ;;
       --claude) install_claude=true ;;
       --codex) install_codex=true ;;
       --opencode) install_opencode=true ;;
@@ -425,6 +428,20 @@ if [[ $install_opencode == true ]]; then
   curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
 fi
 
+if [[ $install_antigravity == true ]]; then
+  printf '==> Updating Antigravity CLI from its official installer or update command\n'
+  agy_bin="$HOME/.local/bin/agy"
+  if [[ -x $agy_bin ]]; then
+    # The installer exits 0 without touching an existing binary, so its own
+    # update command is the only way to move an installed CLI forward. The
+    # self-updater stays disabled in init.bash; AGY_CLI_DISABLE_AUTO_UPDATE
+    # only suppresses the background check, not this explicit invocation.
+    "$agy_bin" update
+  else
+    curl -fsSL https://antigravity.google/cli/install.sh | bash
+  fi
+fi
+
 printf '==> AI CLI versions\n'
 if [[ $install_pi == true ]]; then
   ai_cli_version_line pi "$(NO_COLOR=1 pi --version 2>/dev/null || true)"
@@ -437,4 +454,7 @@ if [[ $install_claude == true ]]; then
 fi
 if [[ $install_opencode == true ]]; then
   ai_cli_version_line opencode "$(opencode --version 2>/dev/null || true)"
+fi
+if [[ $install_antigravity == true ]]; then
+  ai_cli_version_line antigravity "$(agy --version 2>/dev/null || true)"
 fi

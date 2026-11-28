@@ -44,7 +44,7 @@ cd workstation-config
 
 ## Tools update
 
-`personal` プロファイルでは、AI CLI（Claude Code/Codex CLI/OpenCode/Pi）、agent-harnessのスキル配布、Herdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
+`personal` プロファイルでは、AI CLI（Antigravity CLI/Claude Code/Codex CLI/OpenCode/Pi）、agent-harnessのスキル配布、Herdrを手動でまとめて更新できます。処理結果は標準出力・標準エラーへ直接表示され、完了まで同期的に実行します。
 
 ```bash
 myupdate

@@ -1,0 +1,14 @@
+---
+# Antigravity CLI の installer は、install の最後に同梱の `agy install` を呼び、
+# `~/.bashrc` と `~/.profile` の両方へ PATH 追記ブロックを直接書き込む。共通の
+# 初期化は chezmoi 管理の init.bash が持つため、この管理外の追記だけを削除する
+# （Safe-chain installer の source 行と同じ扱い）。
+- name: Keep the Antigravity CLI installer out of unmanaged shell profiles
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_facts['user_dir'] }}/{{ item }}"
+    regexp: '^(# Added by Antigravity CLI installer|export PATH="[^"]*/\.local/bin:\$PATH")$'
+    state: absent
+  loop:
+    - .bashrc
+    - .profile
+  when: "'antigravity' in personal_ai_tools"

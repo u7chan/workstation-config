@@ -19,12 +19,12 @@ systemctl is-active --quiet "$user_unit" || {
 
 expected_tools=("$@")
 if ((${#expected_tools[@]} == 0)); then
-  expected_tools=(claude codex opencode pi)
+  expected_tools=(antigravity claude codex opencode pi)
 fi
 
 for tool in "${expected_tools[@]}"; do
   case "$tool" in
-    claude|codex|opencode|pi) ;;
+    antigravity|claude|codex|opencode|pi) ;;
     *)
       printf 'wsl-restart-smoke: unsupported AI CLI: %s\n' "$tool" >&2
       exit 1
@@ -59,8 +59,14 @@ gh_path="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" \
 }
 
 for tool in "${expected_tools[@]}"; do
+  # The Antigravity CLI binary is `agy`, and its Herdr integration is
+  # `antigravity-cli` (personal_herdr_integration_names in the personal role).
+  case "$tool" in
+    antigravity) binary=agy ;;
+    *) binary=$tool ;;
+  esac
   tool_path="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml" \
-    bash --login -ic 'command -v "$1"' _ "$tool" 2>/dev/null)"
+    bash --login -ic 'command -v "$1"' _ "$binary" 2>/dev/null)"
   case "$tool" in
     pi|codex)
       [[ $tool_path == "$HOME/.local/share/mise/"* ]] || {
@@ -84,6 +90,12 @@ for tool in "${expected_tools[@]}"; do
         exit 1
       }
       ;;
+    antigravity)
+      [[ $tool_path == "$HOME/.local/bin/agy" ]] || {
+        printf 'wsl-restart-smoke: unexpected Antigravity path: %s\n' "$tool_path" >&2
+        exit 1
+      }
+      ;;
   esac
 done
 
@@ -93,8 +105,12 @@ integration_status="$(MISE_TRUSTED_CONFIG_PATHS="$HOME/.config/mise/config.toml"
 }
 printf '%s\n' "$integration_status"
 for tool in "${expected_tools[@]}"; do
-  grep -Eq "^${tool}: current " <<<"$integration_status" || {
-    printf 'wsl-restart-smoke: %s integration is not current\n' "$tool" >&2
+  case "$tool" in
+    antigravity) integration=antigravity-cli ;;
+    *) integration=$tool ;;
+  esac
+  grep -Eq "^${integration}: current " <<<"$integration_status" || {
+    printf 'wsl-restart-smoke: %s integration is not current\n' "$integration" >&2
     exit 1
   }
 done

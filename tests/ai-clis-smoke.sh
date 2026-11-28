@@ -93,18 +93,24 @@ cat >"$test_bin/curl" <<'EOF'
 case "$*" in
   *claude.ai*) name=claude; version='2.1.314 (Claude Code)' ;;
   *opencode.ai*) name=opencode; version='opencode v2.2.2' ;;
+  # The installer writes `agy`, not a binary named after the tool.
+  *antigravity.google*) name=antigravity; binary=agy; version='1.5.18' ;;
   *) exit 98 ;;
 esac
+binary=${binary:-$name}
 printf 'curl %s exclusion=%s\n' "$name" "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
 # Hand the installer to the caller so the smoke test still exercises the
 # download-and-run path; the installer writes the CLI the summary reads.
 cat <<SCRIPT
 mkdir -p "\$HOME/.local/bin"
-cat >"\$HOME/.local/bin/${name}" <<'INNER'
+cat >"\$HOME/.local/bin/${binary}" <<'INNER'
 #!/usr/bin/env bash
+if [[ \${1:-} == update ]]; then
+  printf '${name} update\\n' >>"\$TEST_INSTALL_LOG"
+fi
 printf '%s\\n' '${version}'
 INNER
-chmod +x "\$HOME/.local/bin/${name}"
+chmod +x "\$HOME/.local/bin/${binary}"
 SCRIPT
 EOF
 chmod +x "$test_bin/node" "$test_bin/npm" "$test_bin/curl"
@@ -118,7 +124,7 @@ printf '%s\n' 'export default {}' >"$HOME/.pi/agent/extensions/herdr-agent-state
 
 # Every installer prints its own version shape, so the summary must label each
 # tool and normalize the version the same way.
-cmp <(printf '%s\n' '==> AI CLI versions' 'pi 0.84.2' 'codex 0.148.0' 'claude 2.1.314' 'opencode 2.2.2') \
+cmp <(printf '%s\n' '==> AI CLI versions' 'pi 0.84.2' 'codex 0.148.0' 'claude 2.1.314' 'opencode 2.2.2' 'antigravity 1.5.18') \
   <(sed -n '/^==> AI CLI versions$/,$p' "$test_dir/update-ai.out")
 
 # The Pi core install skips the Safe-chain minimum package age gate and keeps
@@ -148,13 +154,20 @@ jq -e '
 ' "$HOME/.pi/agent/pi-codex-conversion.json" >/dev/null
 grep -Fqx 'curl claude exclusion=' "$log"
 grep -Fqx 'curl opencode exclusion=' "$log"
+grep -Fqx 'curl antigravity exclusion=' "$log"
+# The Antigravity CLI installer no-ops on an existing binary, so the second run
+# must move the version with `agy update` instead of downloading again.
+"$ROOT_DIR/scripts/update-ai" --antigravity >"$test_dir/update-ai-antigravity-again.out"
+grep -Fqx 'antigravity update' "$log"
+[[ $(grep -c '^curl antigravity ' "$log") -eq 1 ]]
+grep -Fqx 'antigravity 1.5.18' "$test_dir/update-ai-antigravity-again.out"
 grep -Fq '  "update": "disable"' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
 grep -Fqx 'export DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 # shellcheck disable=SC2016
 grep -Fqx 'export PATH="$HOME/.opencode/bin:$PATH"' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
 
 # Selective flag behavior: only the requested tool(s) are invoked.
-for flag in claude codex opencode pi; do
+for flag in claude codex opencode pi antigravity; do
   flag_test_dir="$(mktemp -d)"
   flag_home="$flag_test_dir/home"
   flag_bin="$flag_test_dir/bin"
@@ -231,18 +244,24 @@ EOF
 case "$*" in
   *claude.ai*) name=claude; version='2.1.314 (Claude Code)' ;;
   *opencode.ai*) name=opencode; version='opencode v2.2.2' ;;
+  # The installer writes `agy`, not a binary named after the tool.
+  *antigravity.google*) name=antigravity; binary=agy; version='1.5.18' ;;
   *) exit 98 ;;
 esac
+binary=${binary:-$name}
 printf 'curl %s exclusion=%s\n' "$name" "${SAFE_CHAIN_MINIMUM_PACKAGE_AGE_EXCLUSIONS:-}" >>"$TEST_INSTALL_LOG"
 # Hand the installer to the caller so the smoke test still exercises the
 # download-and-run path; the installer writes the CLI the summary reads.
 cat <<SCRIPT
 mkdir -p "\$HOME/.local/bin"
-cat >"\$HOME/.local/bin/${name}" <<'INNER'
+cat >"\$HOME/.local/bin/${binary}" <<'INNER'
 #!/usr/bin/env bash
+if [[ \${1:-} == update ]]; then
+  printf '${name} update\\n' >>"\$TEST_INSTALL_LOG"
+fi
 printf '%s\\n' '${version}'
 INNER
-chmod +x "\$HOME/.local/bin/${name}"
+chmod +x "\$HOME/.local/bin/${binary}"
 SCRIPT
 EOF
   chmod +x "$flag_bin/npm" "$flag_bin/curl"
@@ -298,7 +317,7 @@ EOF
         "$flag_test_dir/invalid-age.out"
       [[ $(wc -l <"$flag_log") -eq 2 ]]
       ;;
-    claude|opencode)
+    claude|opencode|antigravity)
       grep -Fqx "curl $flag exclusion=" "$flag_log"
       if grep -Eq '^npm ' "$flag_log"; then
         printf '%s flag should not invoke npm.\n' "$flag" >&2

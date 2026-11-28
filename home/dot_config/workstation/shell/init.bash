@@ -21,6 +21,9 @@ fi
 
 # Claude Code updates are owned by update-ai, not by the CLI background updater.
 export DISABLE_AUTOUPDATER=1
+# Antigravity CLI updates are owned by update-ai too; its self-updater runs in the
+# background and takes its own advisory lock in ~/.gemini/antigravity-cli/updater.
+export AGY_CLI_DISABLE_AUTO_UPDATE=true
 export PATH="$HOME/.opencode/bin:$PATH"
 
 export EDITOR=nvim

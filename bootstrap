@@ -60,7 +60,7 @@ if [[ ${WORKSTATION_PERSONAL_AI_TOOLS+x} == x ]]; then
     personal_ai_tools_json="["
     for ai_tool in "${requested_ai_tools[@]}"; do
       case "$ai_tool" in
-        claude|codex|opencode|pi) ;;
+        claude|codex|opencode|pi|antigravity) ;;
         *) die "unsupported WORKSTATION_PERSONAL_AI_TOOLS value: $ai_tool" ;;
       esac
       if [[ $ai_tool == "claude" ]]; then

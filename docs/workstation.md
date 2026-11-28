@@ -35,7 +35,7 @@ secret、認証state、履歴、ログ、cache、マシン固有設定はリポ�
 personal構成はAnsibleを直接実行し、`personal_docker_ce_enabled=false`を指定してください。
 `base`ではDocker repository、package、service、groupのいずれも変更しません。
 
-AI CLIをsubset化する場合は、`WORKSTATION_PERSONAL_AI_TOOLS`へカンマ区切りで指定します。未指定時は4種類すべてを対象にし、空文字を指定するとpersonal AI CLIの更新・integration導入を無効化します。
+AI CLIをsubset化する場合は、`WORKSTATION_PERSONAL_AI_TOOLS`へカンマ区切りで指定します。未指定時は5種類すべてを対象にし、空文字を指定するとpersonal AI CLIの更新・integration導入を無効化します。
 
 ```bash
 WORKSTATION_PERSONAL_AI_TOOLS=opencode,pi ./bootstrap personal
@@ -571,7 +571,7 @@ pluginやflavorを追加・更新する場合は`package.toml`の宣言を更新
 
 ## HerdrとAI CLI
 
-Herdr本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。Claude Code、Codex CLI、OpenCode、Piは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止した`cagent`も例外ではなく、bootstrapが削除するのはrepo管理の`~/.config/cagent/config.yaml`だけです。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiとCodex CLIはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。OpenCodeはv2系（`https://opencode.ai/v2/install`、パッケージは`@opencode/cli`）を使い、v1系のinstallerは使いません。v1へ戻す場合はバイナリと設定をv1形式へ揃えます（手順は後述）。AI CLIの認証は手動です。
+Herdr本体はmiseで管理します。Herdrはbootstrapごとに`latest`を解決するため、リポジトリのlockfileに記録されたHerdr版は固定値として扱いません。Claude Code、Codex CLI、OpenCode、Pi、Antigravity CLIは`personal`プロファイルだけで導入し、`personal_ai_tools`で選択されたCLIだけにHerdr公式integrationを導入します。integrationはAI CLI本体の導入後に`herdr integration install <agent>`で設定し、`herdr integration status`で選択対象が`current`であることを検証します。選択から外れた既存integrationは自動削除しません。廃止した`cagent`も例外ではなく、bootstrapが削除するのはrepo管理の`~/.config/cagent/config.yaml`だけです。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物は残るため、不要なら手動で削除します（具体的なコマンドは後述）。`base`プロファイルではAI CLI本体・integrationとも導入しません。PiとCodex CLIはnpmをSafe-chain経由で`--ignore-scripts`付きで導入します。Claude CodeとOpenCodeは各公式installerで最新版を導入します。Antigravity CLI（`agy`）は公式installerで導入し、2回目以降は`agy update`で更新します（installerは`~/.local/bin/agy`が既にあると何もせず終了するため、再実行では更新されません）。CLI内蔵のbackground updaterは`init.bash`の`AGY_CLI_DISABLE_AUTO_UPDATE`で停止し、更新主体を`update-ai`へ一本化します。Herdr integration名は`antigravity-cli`で、tool名と一致しないため`personal_herdr_integration_names`で対応づけます。OpenCodeはv2系（`https://opencode.ai/v2/install`、パッケージは`@opencode/cli`）を使い、v1系のinstallerは使いません。v1へ戻す場合はバイナリと設定をv1形式へ揃えます（手順は後述）。AI CLIの認証は手動です。
 
 Herdr integrationが生成するhook/pluginはHerdrが所有し、chezmoi sourceには含めません。AI CLIの既存設定本体は、現在の所有関係を維持します。
 
@@ -605,6 +605,7 @@ git clone https://github.com/u7chan/herdr-file-viewer ~/workspace/herdr-file-vie
 |---|---|---|
 | Claude Code | `~/.claude/settings.json`のHerdr hook entries、`~/.claude/hooks/herdr-agent-state.sh` | `~/.claude/statusline/`（`statusline.sh`・`statusline.jq`、chezmoi）、および`claude/settings.json`の`theme`・`statusLine`・`permissions.defaultMode`・`syncClaudeAiSkills`・`syncClaudeAiPlugins`（bootstrap merge）。それ以外の個人設定はユーザー管理 |
 | Codex CLI | `~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh` | 管理しない。設定・model catalog・auth・session・履歴はユーザーruntime |
+| Antigravity CLI | `~/.gemini/config/hooks/herdr-agent-state.sh`、`~/.gemini/config/hooks.json` | 管理しない。`~/.gemini/antigravity-cli/`（`antigravity-oauth-token`・会話DB・履歴・ログ・updater）と`~/.gemini/config/`（`config.json`・`mcp_config.json`・`projects/`）はagyのruntimeとして扱う。Herdrが書く`hooks.json`と`hooks/`だけはHerdr所有 |
 | OpenCode | `~/.config/opencode/plugins/herdr-agent-state.js`、`~/.config/opencode/cli.json`、`~/.config/opencode/tui.jsonc`、`~/.config/opencode/herdr-tui-session.js`、`~/.config/opencode/herdr-opencode/`、`~/.config/opencode/package.json` / `package-lock.json` / `node_modules` / `.gitignore`（OpenCode 2のTUIプラグイン登録は`cli.json`が正本で、`tui.jsonc`はv1の残置物） | `~/.config/opencode/opencode.json` |
 | Pi | `~/.pi/agent/extensions/herdr-agent-state.ts` | ユーザー設定・`~/.pi/agent/sessions/**`・履歴は管理しない。ただしPi選択時のみchezmoiが管理するのは4ファイルのみ: WSL2/Windows Terminal向けキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）の`~/.pi/agent/keybindings.json`、openai-codexのモデル別context budget（`modelOverrides`、コンパクション費用対策）の`~/.pi/agent/models.json`、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルトを`create`属性で配布する`~/.pi/agent/web-search.json`（既存ファイルは上書きしないため、API key等の手動追加はユーザーruntime）、チャット出力のIssue / PR番号・コミットSHAをマークダウンリンクにするユーザー全体の指示を配布する`~/.pi/agent/AGENTS.md`。Pi Packageのsession recallもglobal user runtimeとして扱う |
 
@@ -628,6 +629,10 @@ chezmoiが管理するのは`~/.config/opencode/opencode.json`などのallowlist
 
 Codex CLIは`personal_ai_tools`の既定対象に含まれ、`update-ai --codex`で個別に導入・更新できます。[公式npm package](https://github.com/openai/codex#installing-and-running-codex-cli)の`@openai/codex`を、mise管理のNode.js/npmとSafe-chain経由で`--ignore-scripts`付きで導入します。ageゲートは維持し、`npm_config_before`で「現在時刻 - minimum package age（既定48時間）- 1時間」までに公開されたバージョンを解決します。`home/dot_codex/`の設定管理は復活させず、`~/.codex/config.toml`とmodel catalog、auth・session・履歴はユーザー管理のまま保持します。bootstrapによる旧Codex設定の削除も行いません。
 
+Antigravity CLI（`agy`）も`personal_ai_tools`の既定対象で、`WORKSTATION_PERSONAL_AI_TOOLS=antigravity ./bootstrap personal`のようにsubsetでも選べます。導入は[公式installer](https://antigravity.google/docs/getting-started/)（`curl -fsSL https://antigravity.google/cli/install.sh | bash`）で、installerは`~/.local/bin/agy`が既にあると`already installed`で終了するため更新には使えません。そのため`update-ai --antigravity`は、未導入ならinstaller、導入済みなら`agy update`を実行します。CLIは既定で15分間隔のbackground self-updaterを持ちますが、`init.bash`の`AGY_CLI_DISABLE_AUTO_UPDATE=true`で停止し、更新主体を`update-ai`（`myupdate`）へ一本化します（Claude Codeの`DISABLE_AUTOUPDATER`と同じ方針）。`agy update`はこの変数の影響を受けず、明示実行では常に最新版を確認します。
+
+`~/.gemini/antigravity-cli/antigravity-oauth-token`（mode 600）はOAuthトークンの保存先で、WSL2ではkeyringではなくこのファイルが使われます。そのため`gnome-keyring`等のsecret-service daemonは不要です。このファイルと会話DB・履歴・ログ・`~/.gemini/config/`配下のagy設定はユーザーruntimeとしてGit管理しません（Herdr所有の`~/.gemini/config/hooks.json`と`hooks/`を除く）。installerは`~/.bashrc`と`~/.profile`へ`# Added by Antigravity CLI installer`付きのPATH追記を行うため、`personal` roleがその行を削除してchezmoi管理の`init.bash`へ一本化します。
+
 cagentはOpenCode Goのランチャーとして導入していましたが、使用しておらず、OpenCode 2ではトップレベルの`opencode --model`が使えないため撤去しました。`home/dot_config/cagent/`は削除済みです。chezmoiはsourceから消えたファイルの配置先を削除しないため、bootstrapが旧`~/.config/cagent/config.yaml`を削除します。`mise`で導入したcagent CLI本体と`~/.config/cagent`配下の残置物はbootstrapの管理対象外であり、不要ならユーザーが手動で削除します（`mise uninstall --all cagent`、必要なら`rm -rf ~/.config/cagent`）。
 
 ### OpenCode v2 から v1 へ戻す
@@ -643,7 +648,7 @@ curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path
 
 v1 installerは1.xに固定する実装のため、v1 installerの再実行でv2へ戻ることはありません。v2 installerが作る`~/.opencode/bin/opencode2` shimは残りますが、`~/.opencode/bin/opencode`を呼ぶだけなので、v1バイナリを入れればv1として起動します。v1を継続利用する場合は1の変更をリポジトリへコミットして、`update-ai`を再びv2 installerのまま実行しないようにします。
 
-WSL再起動後は次を実行し、Herdr、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の4種類（Claude Code / Codex CLI / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
+WSL再起動後は次を実行し、Herdr、および選択済みAI CLIがmise配下または所定のLinux binaryへ解決され、Windows側のshimへフォールバックせず、選択済みHerdr integrationが`current`であることを確認します。引数なしの場合は既定の5種類（Antigravity CLI / Claude Code / Codex CLI / OpenCode / Pi）を確認します。subsetを適用した場合は、選択したCLIを引数に渡します。
 
 ```bash
 ./tests/wsl-restart-smoke.sh
@@ -658,7 +663,7 @@ native session restoreの実機確認では、選択済みCLIをHerdrのpane内�
 ```bash
 eval "$(~/.local/bin/mise activate bash --shims)"
 hash -r
-type -a gh herdr claude codex opencode pi
+type -a gh herdr agy claude codex opencode pi
 ```
 
 ### 開発ツールの手動更新
@@ -675,7 +680,7 @@ Pi packageから移行する既存機では、`personal_agent_harness_migrate_pi
 
 各処理は失敗時に5秒待ってその処理だけを1回再試行し、失敗しても後続処理を続けます。標準出力・標準エラーへ結果を直接表示し、いずれかの処理が2回とも失敗した場合は終了コード1を返します。多重起動はロックで抑止し、競合時は終了コード3で終了します。再provisioningのmise、AI CLI更新も同じロックへ参加します。Herdrの更新主体はmiseであり、`herdr update`は使用しません。
 
-開始時に`==> Safe-chain coverage`の表を出力し、更新経路ごとのSafe-chain適用範囲を可視化します。列は`target`、`npm path`（npm経由か）、`age gate`です。`pi core`は`age gate`が`skipped`（`update-ai`のinstallが`--safe-chain-skip-minimum-package-age`を使う）、`pi packages`と`codex`は`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`（既定48h）、`claude`・`opencode`・`herdr`はnpmを経由しないため`-`です。agent-harnessはgit配布でnpmを経由しないため、この表の対象外です。選択されていないAI CLIは表示せず、`WORKSTATION_UPDATE_AI_TOOLS`と`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`へ追従します。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`が整数でない場合は開始前に終了コード2で失敗します。
+開始時に`==> Safe-chain coverage`の表を出力し、更新経路ごとのSafe-chain適用範囲を可視化します。列は`target`、`npm path`（npm経由か）、`age gate`です。`pi core`は`age gate`が`skipped`（`update-ai`のinstallが`--safe-chain-skip-minimum-package-age`を使う）、`pi packages`と`codex`は`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`（既定48h）、`claude`・`opencode`・`antigravity`・`herdr`はnpmを経由しないため`-`です。agent-harnessはgit配布でnpmを経由しないため、この表の対象外です。選択されていないAI CLIは表示せず、`WORKSTATION_UPDATE_AI_TOOLS`と`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`へ追従します。`SAFE_CHAIN_MINIMUM_PACKAGE_AGE_HOURS`が整数でない場合は開始前に終了コード2で失敗します。
 
 SafeChainのブロック（minimum package age / malware検知）は同じ入力で必ず再発するため、再試行せずに理由を表示して後続処理へ進みます。ageの場合はブロックされたパッケージ名と、時間を置くか`update-ai`と同じ`npm_config_before`で解決する旨を表示します。各ステップの出力は`tee`でコンソールへ流しつつ`~/.local/state/workstation-update/step-<label>.log`（labelの空白は`-`へ置換。例: `step-mise-upgrade-herdr.log`、`step-agent-harness.log`）へ複製し、失敗時はそのパスを案内します。この複製によりinstallerのstdoutがパイプになるため、TTY検出に依存するツールは表示が簡素になる場合があります。SafeChain以外の失敗は従来どおり5秒待って1回だけ再試行します。なお`pi update --extensions`を直接実行した場合はmyupdateの外なので、この分類は働きません。
 
