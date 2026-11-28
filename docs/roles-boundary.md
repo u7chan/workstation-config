@@ -54,7 +54,7 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
 - `base` role の tasks は責務ごとに `systemd_workaround.yml` / `apt.yml` / `toolchain.yml` /
   `mise_tools.yml` / `shell.yml` / `safe_chain.yml` へ分割され、
   `personal` role の tasks は `git.yml` / `update_ai.yml` / `antigravity.yml` /
-  `herdr_integration.yml` / `herdr_plugins.yml` / `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
+  `agent_harness.yml` / `herdr_integration.yml` / `herdr_plugins.yml` / `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
   移行用タスク（APT版`gh`の除去、Bun global Safe-chainの撤去、`clp`の旧名削除）は、
   全管理対象環境で適用済み・不要物の不存在を確認できたため撤去済み。
   残骸が再発した場合は手動で除去する。
