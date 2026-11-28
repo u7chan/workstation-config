@@ -9,6 +9,7 @@ personal_tasks_dir="$ROOT_DIR/ansible/roles/personal/tasks"
 personal_main="$personal_tasks_dir/main.yml"
 update_ai_tasks="$personal_tasks_dir/update_ai.yml"
 herdr_tasks="$personal_tasks_dir/herdr_integration.yml"
+antigravity_tasks="$personal_tasks_dir/antigravity.yml"
 base_tasks_dir="$ROOT_DIR/ansible/roles/base/tasks"
 
 line_number() {
@@ -27,6 +28,14 @@ task_block() {
 
 update_line="$(line_number '- name: Update selected AI CLI tools' "$update_ai_tasks")"
 update_include_line="$(line_number 'ansible.builtin.import_tasks: update_ai.yml' "$personal_main")"
+antigravity_line="$(line_number '- name: Keep the Antigravity CLI installer out of unmanaged shell profiles' "$antigravity_tasks")"
+antigravity_include_line="$(line_number 'ansible.builtin.import_tasks: antigravity.yml' "$personal_main")"
+# The installer writes its PATH block during the AI CLI update, so the cleanup
+# import must come after update_ai.yml.
+[[ $antigravity_line -gt 0 && $antigravity_include_line -gt $update_include_line ]] || {
+  printf 'bootstrap-herdr-integration-order: Antigravity profile cleanup must be imported after the AI CLI update.\n' >&2
+  exit 1
+}
 herdr_include_line="$(line_number 'ansible.builtin.import_tasks: herdr_integration.yml' "$personal_main")"
 plugins_include_line="$(line_number 'ansible.builtin.import_tasks: herdr_plugins.yml' "$personal_main")"
 directories_line="$(line_number '- name: Ensure Herdr integration config directories exist for selected AI CLI tools' "$herdr_tasks")"
@@ -100,6 +109,31 @@ grep -Fq "map('extract', personal_herdr_integration_names)" "$herdr_tasks" || {
   printf 'bootstrap-herdr-integration-order: Herdr integration names must be mapped from personal_ai_tools.\n' >&2
   exit 1
 }
+
+# The Antigravity CLI installer appends a marker line and a PATH line to both
+# shell profiles. Only that pair may be removed: a regexp that matches the PATH
+# line alone would also delete a line the user wrote.
+antigravity_task="$(task_block 'Keep the Antigravity CLI installer out of unmanaged shell profiles' "$antigravity_tasks")"
+grep -Fq 'ansible.builtin.replace' <<<"$antigravity_task" &&
+grep -Fq '# Added by Antigravity CLI installer\n^export PATH=' <<<"$antigravity_task" &&
+grep -Fqx '  when: item.stat.exists' <<<"$antigravity_task" || {
+  printf 'bootstrap-herdr-integration-order: Antigravity profile cleanup must remove only the installer block.\n' >&2
+  exit 1
+}
+for profile_file in .bashrc .profile; do
+  grep -Fqx "    - $profile_file" "$antigravity_tasks" || {
+    printf 'bootstrap-herdr-integration-order: Antigravity profile cleanup must cover %s.\n' "$profile_file" >&2
+    exit 1
+  }
+done
+grep -Fq "\"'antigravity' in personal_ai_tools\"" "$antigravity_tasks" || {
+  printf 'bootstrap-herdr-integration-order: Antigravity profile cleanup must be limited to the selected tool.\n' >&2
+  exit 1
+}
+if grep -Fq 'lineinfile' "$antigravity_tasks"; then
+  printf 'bootstrap-herdr-integration-order: Antigravity profile cleanup must not delete bare PATH lines.\n' >&2
+  exit 1
+fi
 
 if grep -Eq 'integration[[:space:]]+(install|uninstall|status)' "$base_tasks_dir"/*.yml; then
   printf 'bootstrap-herdr-integration-order: base role must not manage AI CLI integrations.\n' >&2

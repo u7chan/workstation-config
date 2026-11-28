@@ -3,12 +3,25 @@
 # `~/.bashrc` と `~/.profile` の両方へ PATH 追記ブロックを直接書き込む。共通の
 # 初期化は chezmoi 管理の init.bash が持つため、この管理外の追記だけを削除する
 # （Safe-chain installer の source 行と同じ扱い）。
-- name: Keep the Antigravity CLI installer out of unmanaged shell profiles
-  ansible.builtin.lineinfile:
+#
+# 削除対象は installer が書くマーカー行と、その直後の PATH 行をひと組にした
+# ブロックだけにする。PATH 行だけを条件にすると、利用者が自分で書いた同じ形の
+# export 行まで消えてしまう。
+- name: Check the shell profiles the Antigravity CLI installer can modify
+  ansible.builtin.stat:
     path: "{{ ansible_facts['user_dir'] }}/{{ item }}"
-    regexp: '^(# Added by Antigravity CLI installer|export PATH="[^"]*/\.local/bin:\$PATH")$'
-    state: absent
   loop:
     - .bashrc
     - .profile
+  register: personal_antigravity_shell_profiles
   when: "'antigravity' in personal_ai_tools"
+
+- name: Keep the Antigravity CLI installer out of unmanaged shell profiles
+  ansible.builtin.replace:
+    path: "{{ item.stat.path }}"
+    regexp: '(?m)^# Added by Antigravity CLI installer\n^export PATH="[^"]*/\.local/bin:\$PATH"\n'
+    replace: ""
+  loop: "{{ personal_antigravity_shell_profiles.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists
