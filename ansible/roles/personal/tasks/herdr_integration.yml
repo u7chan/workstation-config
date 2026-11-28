@@ -1,10 +1,28 @@
 ---
+- name: Validate selected AI CLI tools have a Herdr integration name
+  ansible.builtin.assert:
+    that:
+      - >-
+        personal_ai_tools | unique | difference(personal_herdr_integration_names.keys() | list)
+        | length == 0
+    fail_msg: "personal_herdr_integration_names has no entry for a selected AI CLI tool"
+    quiet: true
+  when: personal_ai_tools | length > 0
+
+- name: Resolve the Herdr integration names for the selected AI CLI tools
+  ansible.builtin.set_fact:
+    personal_herdr_integrations: >-
+      {{ personal_ai_tools | unique | map('extract', personal_herdr_integration_names) | list }}
+  when: personal_ai_tools | length > 0
+
 - name: Ensure Herdr integration config directories exist for selected AI CLI tools
   ansible.builtin.file:
     path: "{{ ansible_facts['user_dir'] }}/{{ item.path }}"
     state: directory
     mode: "0700"
   loop:
+    - name: antigravity
+      path: .gemini/config
     - name: claude
       path: .claude
     - name: codex
@@ -26,7 +44,7 @@
       - integration
       - install
       - "{{ item }}"
-  loop: "{{ personal_ai_tools | unique | list }}"
+  loop: "{{ personal_herdr_integrations }}"
   loop_control:
     label: "{{ item }}"
   environment: "{{ personal_herdr_env }}"
@@ -53,7 +71,7 @@
         | list
         | length == 1
     fail_msg: "Herdr integration is not current: {{ item }}"
-  loop: "{{ personal_ai_tools | unique | list }}"
+  loop: "{{ personal_herdr_integrations }}"
   loop_control:
     label: "{{ item }}"
   when: personal_ai_tools | length > 0

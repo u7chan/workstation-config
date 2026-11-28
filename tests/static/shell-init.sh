@@ -23,6 +23,7 @@ case "${1:-}" in
     ;;
   autoupdate)
     grep -q 'DISABLE_AUTOUPDATER=1' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
+    grep -q 'AGY_CLI_DISABLE_AUTO_UPDATE=true' "$ROOT_DIR/home/dot_config/workstation/shell/init.bash"
     grep -q '"update": "disable"' "$ROOT_DIR/home/dot_config/opencode/opencode.json"
     ;;
   bashrc-suite)

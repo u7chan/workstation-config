@@ -78,6 +78,11 @@ case "${1:-}" in
     grep -q 'https://claude.ai/install.sh' "$ROOT_DIR/scripts/update-ai"
     grep -q 'https://opencode.ai/v2/install' "$ROOT_DIR/scripts/update-ai"
     grep -q -- '--no-modify-path' "$ROOT_DIR/scripts/update-ai"
+    # The Antigravity CLI installer exits 0 without touching an existing binary,
+    # so an installed CLI must move forward through its own update command.
+    grep -q 'https://antigravity.google/cli/install.sh' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq -- '--antigravity) install_antigravity=true' "$ROOT_DIR/scripts/update-ai"
+    grep -Fq '"$agy_bin" update' "$ROOT_DIR/scripts/update-ai"
     grep -q 'scripts/update-ai' "$ROOT_DIR/ansible/roles/personal/tasks/update_ai.yml"
     grep -Fq 'exec "$mise_bin" exec node -- "$0" "$@"' "$ROOT_DIR/scripts/update-ai"
     grep -Fq "'MISE_LOCKED': '1'" "$ROOT_DIR/ansible/roles/personal/vars/main.yml"

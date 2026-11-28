@@ -204,6 +204,7 @@ grep -Fqx "$(coverage_row 'pi packages (4)' yes 48h)" <<<"$normal_output"
 grep -Fqx "$(coverage_row codex yes 48h)" <<<"$normal_output"
 grep -Fqx "$(coverage_row claude no -)" <<<"$normal_output"
 grep -Fqx "$(coverage_row opencode no -)" <<<"$normal_output"
+grep -Fqx "$(coverage_row antigravity no -)" <<<"$normal_output"
 grep -Fqx "$(coverage_row herdr no -)" <<<"$normal_output"
 [[ $(sed -n '1p' "$RUN_COMMAND_LOG") == update-ai:1: ]]
 [[ $(sed -n '2p' "$RUN_COMMAND_LOG") == agent-harness:1:update ]]

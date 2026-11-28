@@ -5,6 +5,9 @@
 - name: Install update-ai and workstation update entrypoints
   ansible.builtin.import_tasks: update_ai.yml
 
+- name: Keep the Antigravity CLI installer out of unmanaged shell profiles
+  ansible.builtin.import_tasks: antigravity.yml
+
 - name: Manage the harness-neutral agent-harness skill distribution
   ansible.builtin.import_tasks: agent_harness.yml
 

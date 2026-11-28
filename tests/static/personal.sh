@@ -45,8 +45,97 @@ case "${1:-}" in
       exit 1
     fi
     ;;
+  antigravity-cleanup)
+    # Execute the task file instead of grepping it: the cleanup skips files that
+    # do not exist and must also stay a no-op when antigravity is not selected.
+    # A when-clause that dereferences a skipped stat result only shows up here.
+    if ! command -v ansible-playbook >/dev/null 2>&1; then
+      printf 'ansible-playbook is not installed; skipping the Antigravity cleanup run.\n'
+      exit 0
+    fi
+    cleanup_test_dir="$(mktemp -d)"
+    trap 'rm -rf "$cleanup_test_dir"' EXIT
+    cleanup_tasks="$ROOT_DIR/ansible/roles/personal/tasks/antigravity.yml"
+    cat >"$cleanup_test_dir/playbook.yml" <<'PLAYBOOK'
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_facts:
+      user_dir: "{{ lookup('env', 'ANTIGRAVITY_TEST_HOME') }}"
+  tasks:
+    - ansible.builtin.import_tasks: TASKS
+PLAYBOOK
+    sed -i "s|TASKS|$cleanup_tasks|" "$cleanup_test_dir/playbook.yml"
+
+    run_cleanup() {
+      local name=$1 selection=$2
+      mkdir -p "$cleanup_test_dir/$name/home"
+      cat >"$cleanup_test_dir/$name/home/.bashrc" <<'BASHRC'
+# user configuration
+export PATH="$HOME/.local/bin:$PATH"
+
+# Added by Antigravity CLI installer
+export PATH="/home/example/.local/bin:$PATH"
+BASHRC
+      ANTIGRAVITY_TEST_HOME="$cleanup_test_dir/$name/home" \
+      ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+        ansible-playbook \
+        --inventory localhost, \
+        --connection local \
+        --extra-vars "personal_ai_tools=$selection" \
+        "$cleanup_test_dir/playbook.yml" >"$cleanup_test_dir/$name/run.out" 2>&1 || {
+        printf 'Antigravity cleanup failed for personal_ai_tools=%s:\n' "$selection" >&2
+        cat "$cleanup_test_dir/$name/run.out" >&2
+        exit 1
+      }
+      if grep -Fq 'Added by Antigravity CLI installer' "$cleanup_test_dir/$name/home/.bashrc"; then
+        printf 'Antigravity cleanup kept the installer block for personal_ai_tools=%s.\n' \
+          "$selection" >&2
+        exit 1
+      fi
+    }
+
+    run_cleanup selected '["antigravity"]'
+    # The unselected cases only have to stay runnable and leave the file alone.
+    for selection_name in '[]' '["opencode"]'; do
+      cleanup_case="unselected-${selection_name//[^[:alnum:]]/}"
+      mkdir -p "$cleanup_test_dir/$cleanup_case/home"
+      cat >"$cleanup_test_dir/$cleanup_case/home/.bashrc" <<'BASHRC'
+# user configuration
+export PATH="$HOME/.local/bin:$PATH"
+
+# Added by Antigravity CLI installer
+export PATH="/home/example/.local/bin:$PATH"
+BASHRC
+      cp "$cleanup_test_dir/$cleanup_case/home/.bashrc" "$cleanup_test_dir/$cleanup_case/before"
+      ANTIGRAVITY_TEST_HOME="$cleanup_test_dir/$cleanup_case/home" \
+      ANSIBLE_CONFIG="$ROOT_DIR/ansible/ansible.cfg" \
+        ansible-playbook \
+        --inventory localhost, \
+        --connection local \
+        --extra-vars "personal_ai_tools=$selection_name" \
+        "$cleanup_test_dir/playbook.yml" >"$cleanup_test_dir/$cleanup_case/run.out" 2>&1 || {
+        printf 'Antigravity cleanup failed for personal_ai_tools=%s:\n' "$selection_name" >&2
+        cat "$cleanup_test_dir/$cleanup_case/run.out" >&2
+        exit 1
+      }
+      if ! cmp -s "$cleanup_test_dir/$cleanup_case/before" \
+        "$cleanup_test_dir/$cleanup_case/home/.bashrc"; then
+        printf 'Antigravity cleanup modified .bashrc for personal_ai_tools=%s.\n' \
+          "$selection_name" >&2
+        exit 1
+      fi
+    done
+
+    # The selected case must keep the user line and drop only the installer pair.
+    grep -Fqx 'export PATH="$HOME/.local/bin:$PATH"' "$cleanup_test_dir/selected/home/.bashrc" || {
+      printf 'Antigravity cleanup removed a user-written PATH line.\n' >&2
+      exit 1
+    }
+    ;;
   *)
-    printf 'Usage: %s <stage: syntax|role>\n' "$0" >&2
+    printf 'Usage: %s <stage: syntax|role|antigravity-cleanup>\n' "$0" >&2
     exit 2
     ;;
 esac

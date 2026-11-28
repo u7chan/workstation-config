@@ -27,10 +27,10 @@
 | マシン固有ローカル設定 `~/.config/workstation/shell/local.bash` の雛形 | 担当 | — | `base` role。内容は手動で編集し、Git 管理外 |
 | 共通 Bash 初期化（mise, Safe-chain, Starship, ローカル設定読み込み） | 担当 | 担当 | chezmoi 管理の `init.bash`。両プロファイルで有効 |
 | mise 管理ツール（Node.js 26.x (LTS), Bun 1.x, uv, ripgrep, fd, gh, ShellCheck, Neovim 0.12.x, Lazygit, Lazydocker, Yazi, Starship, Herdr, Playwright CLI） | 担当 | 担当 | mise は `base` で導入 |
-| AI CLI（Claude Code / Codex CLI / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
+| AI CLI（Antigravity CLI / Claude Code / Codex CLI / OpenCode / Pi）本体の導入 | — | 担当 | `update-ai` 経由。`personal_ai_tools` で導入するツールを選択可能 |
 | Pi Packages（`pi-web-access` / `pi-codex-image-gen` / `@howaboua/pi-codex-conversion` / `@ogulcancelik/pi-session-recall`） | — | 担当 | `personal_ai_tools` に `pi` が含まれる場合だけ、Pi公式Package managerでglobal install/update。`base`では導入しない。詳細は[Pi Packages一覧](pi-packages.md)を参照 |
 | agent-harnessのスキル配布 | — | 担当 | `personal` roleがpinned releaseを`~/.agents/skills`へper-skill linkで配布。初回だけbootstrapし、更新は`myupdate`の`dist.sh update`。linkの所有権はコマンドにあり、Ansibleは親ディレクトリと`~/.claude/skills`のsymlinkだけを管理する。Pi未選択でも配布し、`~/.codex/skills`は探索パス測定まで未対応 |
-| Herdr integration（Claude Code / Codex CLI / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
+| Herdr integration（Antigravity CLI / Claude Code / Codex CLI / OpenCode / Pi） | — | 担当 | AI CLI導入後にHerdr公式installerで`personal_ai_tools`の選択対象だけを導入・検証。非選択integrationは自動削除しない |
 | Herdrローカルプラグイン（`u7chan.file-viewer`） | — | 担当 | 自作plugin。ビルド済みの配置先を`personal_herdr_local_plugins`で宣言し、`personal` roleは`herdr plugin link --enabled`だけを行う（clone・buildはpluginのリポジトリが所有。未ビルドならリンクせず警告して続行）。worktree作成時にroot paneでpiを起動する`u7chan.worktree-pi`は廃止し、ワークツリー作成と最初のエージェント起動はWebコンソール（hwc）が行う。常看板`u7chan.status-board`は廃止し、確認待ち・受付・使用量の表示はWebコンソールへ一本化 |
 | AI CLI 設定（Claude Code / OpenCode） | — | 担当 | OpenCode は chezmoi source として配置。`~/.claude/statusline/`（`statusline.sh` と `statusline.jq`）は chezmoi で管理し、`claude/settings.json` の `theme` / `statusLine` / `permissions.defaultMode` / `syncClaudeAiSkills` / `syncClaudeAiPlugins` は `personal` profile かつ Claude 選択時に bootstrap が fragment merge で管理 |
 | Pi ユーザー設定（`~/.pi/agent/keybindings.json` / `~/.pi/agent/models.json` / `~/.pi/agent/web-search.json` / `~/.pi/agent/AGENTS.md`） | — | 担当 | WSL2/Windows Terminal向けPiキーバインド（画像貼り付け`Alt+V`、メッセージキュー復元`Alt+Up`）、openai-codexのモデル別context budget（`modelOverrides`）、pi-web-accessのcuratorを開かない`workflow: "auto-summary"`デフォルト、チャット出力でIssue / PR番号・コミットSHAをマークダウンリンクにするユーザー全体の指示（`AGENTS.md`）。chezmoiが`home/dot_pi/agent/`配下を管理し（web-search.jsonは`create`属性）、bootstrapは`personal_ai_tools`に`pi`が含まれる場合だけ配置し、未選択・`base`では削除する。web-search.jsonは`create`属性のため、既存ファイル（API key等の手動追加）は上書きしない。その他のPiユーザー設定は管理しない |
@@ -42,6 +42,7 @@ Pi本体とPi Packagesは`personal`の`update-ai`がmise管理のNode.js/npmとS
 
 Codex CLIも`personal_ai_tools`に`codex`が含まれる場合だけ、mise管理のNode.js/npmとSafe-chain経由で`@openai/codex`を導入・更新します。ageゲートとmalware検査は有効なまま、`--ignore-scripts`付きで導入します。`~/.codex/config.toml`やmodel catalogはchezmoiで管理せず、bootstrapでも削除しません。認証・session・履歴もユーザーruntimeとして保持します。
 
+Antigravity CLI（`agy`）も`personal_ai_tools`に`antigravity`が含まれる場合だけ、公式installerで導入し、導入済みなら`agy update`で更新します。installerは既存バイナリがあると何もせず終了するため、再実行では更新できません。CLI内蔵のbackground updaterは`AGY_CLI_DISABLE_AUTO_UPDATE=true`で停止し、更新主体を`update-ai`（`myupdate`）に一本化します。installerが`~/.bashrc`と`~/.profile`へ追記するPATHブロックは`personal` roleが削除し、`~/.gemini/`配下（`antigravity-oauth-token`・会話DB・履歴・agy設定・Herdr生成hook）はユーザーruntimeおよびHerdr所有として管理しません。
 表の`ripgrep`はPi Package登録ではなく、`base` / `personal`共通のmise管理CLIです。`pi-session-recall`の`session_search`がglobal sessions rootを検索する際の優先backendとして恒久的に利用します。Package側のgrep / Node scan fallbackは維持し、CIの`ubuntu-slim`だけはstatic checkの`command -v rg` / `rg --version`を満たすためworkflowでAPT導入します。したがって、CIのAPT追加はworkstationの責務境界やmiseの導入経路を変更しません。
 
 Pi Packageのsource、要件、設定所有権、Safe-chain経路、責務境界、検証手順は[Pi Packages一覧](pi-packages.md)に集約します。ここでは`base` / `personal`の導入条件とHerdrとの大まかな境界だけを扱います。
@@ -52,8 +53,8 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
 
 - `base` role の tasks は責務ごとに `systemd_workaround.yml` / `apt.yml` / `toolchain.yml` /
   `mise_tools.yml` / `shell.yml` / `safe_chain.yml` へ分割され、
-  `personal` role の tasks は `git.yml` / `update_ai.yml` / `herdr_integration.yml` /
-  `herdr_plugins.yml` / `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
+  `personal` role の tasks は `git.yml` / `update_ai.yml` / `antigravity.yml` /
+  `agent_harness.yml` / `herdr_integration.yml` / `herdr_plugins.yml` / `personal_cli.yml` へ分割されている。各 `main.yml` は `import_tasks` でこれらを読み込む。
   移行用タスク（APT版`gh`の除去、Bun global Safe-chainの撤去、`clp`の旧名削除）は、
   全管理対象環境で適用済み・不要物の不存在を確認できたため撤去済み。
   残骸が再発した場合は手動で除去する。
@@ -64,7 +65,7 @@ Herdr integrationの生成hook/pluginはHerdrのruntime管理対象であり、c
   `personal_mise_path` / `personal_herdr_env`）。
 - `base` に含まれない責務は `personal` にも含まれません。`personal` は `base` を包含するため、
   `personal` プロファイルでは上表の `base` 列が「担当」の項目もすべて適用されます。
-- `personal_ai_tools` の許可リスト（`claude` / `codex` / `opencode` / `pi`）の正本は
+- `personal_ai_tools` の許可リスト（`antigravity` / `claude` / `codex` / `opencode` / `pi`）の正本は
   `ansible/roles/personal/defaults/main.yml` です。この集合はshell側でも検証・展開されるため、
   `bootstrap` の `WORKSTATION_PERSONAL_AI_TOOLS` 検証、`ansible/roles/personal/tasks/update_ai.yml`
   のassert、`scripts/update-ai` のCLIフラグ、`scripts/personal-bin/myupdate` の設定検証と同期して
